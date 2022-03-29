@@ -1,32 +1,25 @@
 const { createPoints, sendPoints } = require('./common')
 const axios = require('axios')
 const { WebSocket } = require('ws')
+const yaml = require('yaml')
+const { message } = require('protocol-buffers/compile')
+const protobufjs = require('protobufjs')
+const path = require('path')
 // const pb = require("protobufjs");
 const e2e = () => process.env.INTEGRATION_E2E || process.env.INTEGRATION
 const clokiLocal = () => process.env.CLOKI_LOCAL || process.env.CLOKI_EXT_URL || false
-let l = null
 
 // const root = pb.loadSync(__dirname + "/../lib/loki.proto");
 // const pushMessage = root.lookupType("logproto.PushRequest");
 
 beforeAll(() => {
-  // await new Promise(f => setTimeout(f, 500));
   jest.setTimeout(300000)
-  return setup()
 })
 
-function setup () {
-  if (!e2e()) {
-    return
-  }
-  if (!clokiLocal()) l = require('../cloki')
-  return new Promise(resolve => setTimeout(resolve, 1000))
-}
 afterAll(() => {
   if (!e2e()) {
     return
   }
-  if (!clokiLocal()) l.stop()
 })
 
 /* async function pushPBPoints(endpoint, points) {
@@ -42,6 +35,28 @@ afterAll(() => {
     req = pushMessage.fromObject(req);
 } */
 
+const clokiExtUrl = process.env.CLOKI_EXT_URL || 'localhost:3100'
+const clokiWriteUrl = process.env.CLOKI_WRITE_URL || process.env.CLOKI_EXT_URL || 'localhost:3100'
+const runRequestFunc = (start, end) => (req, _step, _start, _end) => {
+  _start = _start || start
+  _end = _end || end
+  _step = _step || 2
+  return axios.get(
+      `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=2000&query=${encodeURIComponent(req)}&start=${_start}000000&end=${_end}000000&step=${_step}`
+  )
+}
+
+const adjustResultFunc = (start, testID) => (resp, id, _start) => {
+  _start = _start || start
+  id = id || testID
+  resp.data.data.result = resp.data.data.result.map(stream => {
+    expect(stream.stream.test_id).toEqual(id)
+    stream.stream.test_id = 'TEST_ID'
+    stream.values = stream.values.map(v => [v[0] - _start * 1000000, v[1]])
+    return stream
+  })
+}
+
 jest.setTimeout(300000)
 
 it('e2e', async () => {
@@ -49,7 +64,6 @@ it('e2e', async () => {
     return
   }
   console.log('Waiting 2s before all inits')
-  const clokiExtUrl = process.env.CLOKI_EXT_URL || 'localhost:3100'
   await new Promise(resolve => setTimeout(resolve, 2000))
   const testID = Math.random() + ''
   console.log(testID)
@@ -61,38 +75,22 @@ it('e2e', async () => {
   points = createPoints(testID, 4, start, end, {}, points)
 
   points = createPoints(testID + '_json', 1, start, end,
-    { fmt: 'json', lbl_repl: 'val_repl', int_lbl: '1' }, points,
-    (i) => JSON.stringify({ lbl_repl: 'REPL', int_val: '1', new_lbl: 'new_val', str_id: i, arr: [1, 2, 3], obj: { o_1: 'v_1' } })
+      { fmt: 'json', lbl_repl: 'val_repl', int_lbl: '1' }, points,
+      (i) => JSON.stringify({ lbl_repl: 'REPL', int_val: '1', new_lbl: 'new_val', str_id: i, arr: [1, 2, 3], obj: { o_1: 'v_1' } })
   )
   points = createPoints(testID + '_metrics', 1, start, end,
-    { fmt: 'int', lbl_repl: 'val_repl', int_lbl: '1' }, points,
-    (i) => '',
-    (i) => i % 10
+      { fmt: 'int', lbl_repl: 'val_repl', int_lbl: '1' }, points,
+      (i) => '',
+      (i) => i % 10
   )
   points = createPoints(testID + '_logfmt', 1, start, end,
-    { fmt: 'logfmt', lbl_repl: 'val_repl', int_lbl: '1' }, points,
-    (i) => 'lbl_repl="REPL" int_val=1 new_lbl="new_val" str_id="' + i + '" '
+      { fmt: 'logfmt', lbl_repl: 'val_repl', int_lbl: '1' }, points,
+      (i) => 'lbl_repl="REPL" int_val=1 new_lbl="new_val" str_id="' + i + '" '
   )
-  await sendPoints(`http://${clokiExtUrl}`, points)
+  await sendPoints(`http://${clokiWriteUrl}`, points)
   await new Promise(resolve => setTimeout(resolve, 4000))
-  const adjustResult = (resp, id, _start) => {
-    _start = _start || start
-    id = id || testID
-    resp.data.data.result = resp.data.data.result.map(stream => {
-      expect(stream.stream.test_id).toEqual(id)
-      stream.stream.test_id = 'TEST_ID'
-      stream.values = stream.values.map(v => [v[0] - _start * 1000000, v[1]])
-      return stream
-    })
-  }
-  const runRequest = (req, _step, _start, _end) => {
-    _start = _start || start
-    _end = _end || end
-    _step = _step || 2
-    return axios.get(
-            `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=2000&query=${encodeURIComponent(req)}&start=${_start}000000&end=${_end}000000&step=${_step}`
-    )
-  }
+  const runRequest = runRequestFunc(start, end)
+  const adjustResult = adjustResultFunc(start, testID)
   const adjustMatrixResult = (resp, id) => {
     id = id || testID
     resp.data.data.result = resp.data.data.result.map(stream => {
@@ -140,12 +138,12 @@ it('e2e', async () => {
   }
   // aggregation empty
   resp = await runRequest(`rate({test_id="${testID}", freq="2"} |~ "2[0-9]$" [1s])`,
-    2, start - 3600 * 1000, end - 3600 * 1000)
+      2, start - 3600 * 1000, end - 3600 * 1000)
   adjustMatrixResult(resp)
   expect(resp.data).toMatchSnapshot()
   // high level empty
   resp = await runRequest(`sum by (test_id) (rate({test_id="${testID}"} |~ "2[0-9]$" [1s]))`,
-    2, start - 3600 * 1000, end - 3600 * 1000)
+      2, start - 3600 * 1000, end - 3600 * 1000)
   adjustMatrixResult(resp)
   expect(resp.data).toMatchSnapshot()
   // json without params
@@ -174,7 +172,7 @@ it('e2e', async () => {
   expect(resp.data).toMatchSnapshot()
   // unwrap
   resp = await runRequest(`sum_over_time({test_id="${testID}_json"}|json` +
-    '|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
+      '|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
   adjustMatrixResult(resp, testID + '_json')
   expect(resp.data).toMatchSnapshot()
   // hammering unwrap
@@ -183,7 +181,7 @@ it('e2e', async () => {
     // , 'stdvar_over_time', 'stddev_over_time', 'quantile_over_time', 'absent_over_time'
   ]) {
     resp = await runRequest(`${fn}({test_id="${testID}_json"}|json` +
-      '|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
+        '|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
     try {
       expect(resp.data.data.result.length).toBeTruthy()
     } catch (e) {
@@ -192,21 +190,21 @@ it('e2e', async () => {
     }
   }
   resp = await runRequest(`sum_over_time({test_id="${testID}_json"}|json lbl_int1="int_val"` +
-    '|lbl_repl="val_repl"|unwrap lbl_int1 [3s]) by (test_id, lbl_repl)')
+      '|lbl_repl="val_repl"|unwrap lbl_int1 [3s]) by (test_id, lbl_repl)')
   adjustMatrixResult(resp, testID + '_json')
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`{test_id="${testID}"}| line_format ` +
-    '"{ \\"str\\":\\"{{_entry}}\\", \\"freq2\\": {{divide freq 2}} }"')
+      '"{ \\"str\\":\\"{{_entry}}\\", \\"freq2\\": {{divide freq 2}} }"')
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`rate({test_id="${testID}"}` +
-    '| line_format "{ \\"str\\":\\"{{_entry}}\\", \\"freq2\\": {{divide freq 2}} }"' +
-    '| json|unwrap freq2 [1s]) by (test_id, freq2)')
+      '| line_format "{ \\"str\\":\\"{{_entry}}\\", \\"freq2\\": {{divide freq 2}} }"' +
+      '| json|unwrap freq2 [1s]) by (test_id, freq2)')
   adjustMatrixResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`rate({test_id="${testID}"}` +
-    '| line_format "{ \\"str\\":\\"{{_entry}}\\", \\"freq2\\": {{divide freq 2}} }"' +
-    '| json|unwrap freq2 [1s]) by (test_id, freq2)', 60)
+      '| line_format "{ \\"str\\":\\"{{_entry}}\\", \\"freq2\\": {{divide freq 2}} }"' +
+      '| json|unwrap freq2 [1s]) by (test_id, freq2)', 60)
   adjustMatrixResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`{test_id="${testID}_json"}|json|json int_lbl2="int_val"`)
@@ -268,7 +266,6 @@ it('e2e', async () => {
   resp = await runRequest(`first_over_time({test_id="${testID}", freq="0.5"} | regexp "^[^0-9]+(?<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`, 1)
   adjustMatrixResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
-
   const ws = new WebSocket(`ws://${clokiExtUrl}/loki/api/v1/tail?query={test_id="${testID}_ws"}`)
   resp = {
     data: {
@@ -278,26 +275,33 @@ it('e2e', async () => {
     }
   }
   ws.on('message', (msg) => {
-    const _msg = JSON.parse(msg)
-    for (const stream of _msg.streams) {
-      let _stream = resp.data.data.result.find(res =>
-        JSON.stringify(res.stream) === JSON.stringify(stream.stream)
-      )
-      if (!_stream) {
-        _stream = {
-          stream: stream.stream,
-          values: []
+    try {
+      const _msg = JSON.parse(msg)
+      for (const stream of _msg.streams) {
+        let _stream = resp.data.data.result.find(res =>
+            JSON.stringify(res.stream) === JSON.stringify(stream.stream)
+        )
+        if (!_stream) {
+          _stream = {
+            stream: stream.stream,
+            values: []
+          }
+          resp.data.data.result.push(_stream)
         }
-        resp.data.data.result.push(_stream)
+        _stream.values.push(...stream.values)
       }
-      _stream.values.push(...stream.values)
+    } catch (e) {
+      console.log(message)
+      console.log(e)
+      throw e
     }
   })
+  await new Promise(resolve => setTimeout(resolve, 2000))
   const wsStart = Math.floor(Date.now() / 1000) * 1000
   for (let i = 0; i < 5; i++) {
     const points = createPoints(testID + '_ws', 1, wsStart + i * 1000, wsStart + i * 1000 + 1000, {}, {},
-      () => `MSG_${i}`)
-    sendPoints(`http://${clokiExtUrl}`, points)
+        () => `MSG_${i}`)
+    await sendPoints(`http://${clokiWriteUrl}`, points)
     await new Promise(resolve => setTimeout(resolve, 1000))
   }
   await new Promise(resolve => setTimeout(resolve, 6000))
@@ -332,7 +336,7 @@ it('e2e', async () => {
   adjustResult(resp, testID + '_json')
   expect(resp.data.data.result.map(s => [s.stream, s.values.length])).toMatchSnapshot()
   resp = await runRequest(`sum_over_time({test_id="${testID}_json"}` +
-    '| json| label_to_row "str_id, int_lbl"| unwrap _entry [10s])')
+      '| json| label_to_row "str_id, int_lbl"| unwrap _entry [10s])')
   resp.data.data.result = resp.data.data.result.map(stream => {
     stream.values = stream.values.map(v => [v[0] - Math.floor(start / 1000), v[1]])
     return stream
@@ -355,7 +359,7 @@ it('e2e', async () => {
   adjustResult(resp, testID + '_logfmt')
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`sum_over_time({test_id="${testID}_logfmt"}|logfmt` +
-    '|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
+      '|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
   adjustMatrixResult(resp, testID + '_logfmt')
   expect(resp.data).toMatchSnapshot()
   // hammering aggregation
@@ -364,7 +368,7 @@ it('e2e', async () => {
     // , 'stdvar_over_time', 'stddev_over_time', 'quantile_over_time', 'absent_over_time'
   ]) {
     resp = await runRequest(`${fn}({test_id="${testID}_logfmt"}|logfmt` +
-      '|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
+        '|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
     try {
       expect(resp.data.data.result.length).toBeTruthy()
     } catch (e) {
@@ -373,13 +377,13 @@ it('e2e', async () => {
     }
   }
   resp = await runRequest(`rate({test_id="${testID}"}` +
-    '| line_format "str=\\"{{_entry}}\\" freq2={{divide freq 2}}"' +
-    '| logfmt | unwrap freq2 [1s]) by (test_id, freq2)')
+      '| line_format "str=\\"{{_entry}}\\" freq2={{divide freq 2}}"' +
+      '| logfmt | unwrap freq2 [1s]) by (test_id, freq2)')
   adjustMatrixResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`rate({test_id="${testID}"}` +
-    '| line_format "str=\\"{{_entry}}\\" freq2={{divide freq 2}}"' +
-    '| logfmt | unwrap freq2 [1s]) by (test_id, freq2)', 60)
+      '| line_format "str=\\"{{_entry}}\\" freq2={{divide freq 2}}"' +
+      '| logfmt | unwrap freq2 [1s]) by (test_id, freq2)', 60)
   adjustMatrixResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`sum(rate({test_id="${testID}_logfmt"}| logfmt [5s])) by (test_id)`)
@@ -400,12 +404,132 @@ it('e2e', async () => {
   adjustResult(resp, testID + '_logfmt')
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`rate({test_id="${testID}_json"} | json int_val="int_val" | unwrap int_val [1m]) by (test_id)`,
-    0.05)
+      0.05)
   expect(resp.data.data.result.length > 0).toBeTruthy()
   process.env.LINE_FMT = 'go_native'
   resp = await runRequest(`{test_id="${testID}"}| line_format ` +
-    '"{ \\"str\\":\\"{{ ._entry }}\\", \\"freq2\\": {{ .freq }} }"')
+      '"{ \\"str\\":\\"{{ ._entry }}\\", \\"freq2\\": {{ .freq }} }"')
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
   process.env.LINE_FMT = 'handlebars'
+  resp = await runRequest(`rate({test_id="${testID}_json"} | json int_val="int_val" | unwrap int_val [1m]) by (test_id)`,
+      0.05)
+  expect(resp.data.data.result.length > 0).toBeTruthy()
+  await checkAlertConfig()
+  await checkTempo()
+  await pbCheck(testID)
 })
+
+const checkAlertConfig = async () => {
+  try {
+    expect(await axios({
+      method: 'POST',
+      url: 'http://localhost:3100/api/prom/rules/test_ns',
+      data: yaml.stringify({
+        name: 'test_group',
+        interval: '1s',
+        rules: [{
+          alert: 'test_rul',
+          for: '1m',
+          annotations: { summary: 'ssssss' },
+          labels: { lllll: 'vvvvv' },
+          expr: '{test_id="alert_test"}'
+        }]
+      }),
+      headers: {
+        'Content-Type': 'application/yaml'
+      }
+    })).toHaveProperty('data', { msg: 'ok' })
+    expect(yaml.parse((await axios.get('http://localhost:3100/api/prom/rules')).data))
+        .toHaveProperty('test_ns', [{
+          name: 'test_group',
+          interval: '1s',
+          rules: [{
+            alert: 'test_rul',
+            for: '1m',
+            annotations: { summary: 'ssssss' },
+            labels: { lllll: 'vvvvv' },
+            expr: '{test_id="alert_test"}'
+          }]
+        }])
+    await axios.delete('http://localhost:3100/api/prom/rules/test_ns').catch(console.log)
+  } catch (e) {
+    await axios.delete('http://localhost:3100/api/prom/rules/test_ns').catch(console.log)
+    throw e
+  }
+}
+
+const tsNow = parseInt(Date.now() * 1000)
+const checkTempo = async () => {
+  // Send Tempo data and expect status code 200
+  const obj = {
+    id: '1234er4',
+    traceId: 'd6e9329d67b6146c',
+    timestamp: tsNow,
+    duration: 1000,
+    name: 'span from http',
+    tags: {
+      'http.method': 'GET',
+      'http.path': '/api'
+    },
+    localEndpoint: {
+      serviceName: 'node script'
+    }
+  }
+
+  const arr = []
+  arr.push(obj)
+
+  const data = JSON.stringify(arr)
+
+  const url = `http://${clokiWriteUrl}/tempo/api/push`
+  console.log(url)
+
+  const test = await axios.post(url, data)
+
+  expect(test).toHaveProperty('status', 204)
+  console.log('Tempo Insertion Successful')
+  // Query data and confirm it's there
+  await new Promise(resolve => setTimeout(resolve, 5000)) // CI is slow
+
+  const res = await axios.get(`http://${clokiExtUrl}/api/traces/d6e9329d67b6146c/json`)
+  const validation = res.data
+  const id = validation['resourceSpans'][0]['instrumentationLibrarySpans'][0]['spans'][0]['spanID']
+  console.log('Checking Tempo API Reading inserted data')
+  expect(id).toMatch('1234er4')
+}
+
+/**
+ *
+ * @param testID {string}
+ * @returns {Promise<void>}
+ */
+async function pbCheck (testID) {
+  const PushRequest = protobufjs
+      .loadSync(path.join(__dirname, '../lib/loki.proto'))
+      .lookupType('PushRequest')
+  const end = Math.floor(Date.now() / 1000) * 1000
+  const start = end - 1000
+  const runRequest = runRequestFunc(start, end)
+  const adjustResult = adjustResultFunc(start, testID)
+  let points = createPoints(testID+'_PB', 0.5, start, end, {}, {})
+  points = {
+    streams: Object.values(points).map(stream => {
+      return {
+        labels: Object.entries(stream.stream).map(s => `${s[0]}=${JSON.stringify(s[1])}`).join(','),
+        entries: stream.values.map(v => ({
+          timestamp: { seconds: Math.floor(v[0] / 1e9).toString(), nanos: parseInt(v[0]) % 1e9 },
+          line: v[1]
+        }))
+      }
+    })
+  }
+  let body = PushRequest.encode(points).finish()
+  body = require('snappyjs').compress(body)
+  await axios.post(`http://${clokiWriteUrl}/loki/api/v1/push`, body, {
+    headers: { 'Content-Type': 'application/x-protobuf' }
+  })
+  const resp = await runRequest(`{test_id="${testID}_PB"}`, 1, start, end)
+  adjustResult(resp, testID + '_PB')
+  expect(resp.data).toMatchSnapshot()
+}
