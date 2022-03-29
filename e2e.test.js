@@ -407,7 +407,7 @@ it('e2e', async () => {
       0.05)
   expect(resp.data.data.result.length > 0).toBeTruthy()
   process.env.LINE_FMT = 'go_native'
-  resp = await runRequest(`{test_id="${testID}"}| line_format ` +
+  resp = await runRequest(`{test_id="${testID}"}| line_format_native ` +
       '"{ \\"str\\":\\"{{ ._entry }}\\", \\"freq2\\": {{ .freq }} }"')
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
