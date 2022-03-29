@@ -506,7 +506,7 @@ const checkTempo = async () => {
  */
 async function pbCheck (testID) {
   const PushRequest = protobufjs
-      .loadSync(path.join(__dirname, '../lib/loki.proto'))
+      .loadSync(path.join(__dirname, './loki.proto'))
       .lookupType('PushRequest')
   const end = Math.floor(Date.now() / 1000) * 1000
   const start = end - 1000
