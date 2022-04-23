@@ -71351,268 +71351,6 @@ Object {
   "data": Object {
     "result": Array [
       Object {
-        "metric": Object {
-          "fmt": "int",
-          "freq": "1",
-          "int_lbl": "1",
-          "lbl_repl": "val_repl",
-          "test_id": "TEST_ID",
-        },
-        "values": Array [
-          Array [
-            0,
-            "45.000000",
-          ],
-          Array [
-            10,
-            "45.000000",
-          ],
-          Array [
-            20,
-            "45.000000",
-          ],
-          Array [
-            30,
-            "45.000000",
-          ],
-          Array [
-            40,
-            "45.000000",
-          ],
-          Array [
-            50,
-            "45.000000",
-          ],
-          Array [
-            60,
-            "45.000000",
-          ],
-          Array [
-            70,
-            "45.000000",
-          ],
-          Array [
-            80,
-            "45.000000",
-          ],
-          Array [
-            90,
-            "45.000000",
-          ],
-          Array [
-            100,
-            "45.000000",
-          ],
-          Array [
-            110,
-            "45.000000",
-          ],
-          Array [
-            120,
-            "45.000000",
-          ],
-          Array [
-            130,
-            "45.000000",
-          ],
-          Array [
-            140,
-            "45.000000",
-          ],
-          Array [
-            150,
-            "45.000000",
-          ],
-          Array [
-            160,
-            "45.000000",
-          ],
-          Array [
-            170,
-            "45.000000",
-          ],
-          Array [
-            180,
-            "45.000000",
-          ],
-          Array [
-            190,
-            "45.000000",
-          ],
-          Array [
-            200,
-            "45.000000",
-          ],
-          Array [
-            210,
-            "45.000000",
-          ],
-          Array [
-            220,
-            "45.000000",
-          ],
-          Array [
-            230,
-            "45.000000",
-          ],
-          Array [
-            240,
-            "45.000000",
-          ],
-          Array [
-            250,
-            "45.000000",
-          ],
-          Array [
-            260,
-            "45.000000",
-          ],
-          Array [
-            270,
-            "45.000000",
-          ],
-          Array [
-            280,
-            "45.000000",
-          ],
-          Array [
-            290,
-            "45.000000",
-          ],
-          Array [
-            300,
-            "45.000000",
-          ],
-          Array [
-            310,
-            "45.000000",
-          ],
-          Array [
-            320,
-            "45.000000",
-          ],
-          Array [
-            330,
-            "45.000000",
-          ],
-          Array [
-            340,
-            "45.000000",
-          ],
-          Array [
-            350,
-            "45.000000",
-          ],
-          Array [
-            360,
-            "45.000000",
-          ],
-          Array [
-            370,
-            "45.000000",
-          ],
-          Array [
-            380,
-            "45.000000",
-          ],
-          Array [
-            390,
-            "45.000000",
-          ],
-          Array [
-            400,
-            "45.000000",
-          ],
-          Array [
-            410,
-            "45.000000",
-          ],
-          Array [
-            420,
-            "45.000000",
-          ],
-          Array [
-            430,
-            "45.000000",
-          ],
-          Array [
-            440,
-            "45.000000",
-          ],
-          Array [
-            450,
-            "45.000000",
-          ],
-          Array [
-            460,
-            "45.000000",
-          ],
-          Array [
-            470,
-            "45.000000",
-          ],
-          Array [
-            480,
-            "45.000000",
-          ],
-          Array [
-            490,
-            "45.000000",
-          ],
-          Array [
-            500,
-            "45.000000",
-          ],
-          Array [
-            510,
-            "45.000000",
-          ],
-          Array [
-            520,
-            "45.000000",
-          ],
-          Array [
-            530,
-            "45.000000",
-          ],
-          Array [
-            540,
-            "45.000000",
-          ],
-          Array [
-            550,
-            "45.000000",
-          ],
-          Array [
-            560,
-            "45.000000",
-          ],
-          Array [
-            570,
-            "45.000000",
-          ],
-          Array [
-            580,
-            "45.000000",
-          ],
-          Array [
-            590,
-            "45.000000",
-          ],
-        ],
-      },
-    ],
-    "resultType": "matrix",
-  },
-  "status": "success",
-}
-`;
-
-exports[`e2e 44`] = `
-Object {
-  "data": Object {
-    "result": Array [
-      Object {
         "stream": Object {
           "fmt": "logfmt",
           "freq": "1",
@@ -83000,6 +82738,16 @@ Object {
 }
 `;
 
+exports[`e2e 44`] = `
+Object {
+  "data": Object {
+    "result": Array [],
+    "resultType": "streams",
+  },
+  "status": "success",
+}
+`;
+
 exports[`e2e 45`] = `
 Object {
   "data": Object {
@@ -83014,7 +82762,7 @@ exports[`e2e 46`] = `
 Object {
   "data": Object {
     "result": Array [],
-    "resultType": "streams",
+    "resultType": "matrix",
   },
   "status": "success",
 }
@@ -83041,16 +82789,6 @@ Object {
 `;
 
 exports[`e2e 49`] = `
-Object {
-  "data": Object {
-    "result": Array [],
-    "resultType": "matrix",
-  },
-  "status": "success",
-}
-`;
-
-exports[`e2e 50`] = `
 Object {
   "data": Object {
     "result": Array [
@@ -83548,7 +83286,7 @@ Object {
 }
 `;
 
-exports[`e2e 51`] = `
+exports[`e2e 50`] = `
 Object {
   "data": Object {
     "result": Array [
@@ -83806,7 +83544,7 @@ Object {
 }
 `;
 
-exports[`e2e 52`] = `
+exports[`e2e 51`] = `
 Object {
   "data": Object {
     "result": Array [
@@ -84024,7 +83762,7 @@ Object {
 }
 `;
 
-exports[`e2e 53`] = `
+exports[`e2e 52`] = `
 Object {
   "data": Object {
     "result": Array [
@@ -84073,7 +83811,7 @@ Object {
 }
 `;
 
-exports[`e2e 54`] = `
+exports[`e2e 53`] = `
 Object {
   "data": Object {
     "result": Array [
@@ -88116,23 +87854,10 @@ Object {
 }
 `;
 
-exports[`e2e 55`] = `
+exports[`e2e 54`] = `
 Object {
   "data": Object {
-    "result": Array [
-      Object {
-        "stream": Object {
-          "freq": "0.5",
-          "test_id": "TEST_ID",
-        },
-        "values": Array [
-          Array [
-            500000000,
-            "FREQ_TEST_1",
-          ],
-        ],
-      },
-    ],
+    "result": Array [],
     "resultType": "streams",
   },
   "status": "success",
