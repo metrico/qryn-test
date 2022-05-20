@@ -43,7 +43,7 @@ module.exports.sendPoints = async (endpoint, points) => {
     await axios.post(`${endpoint}/loki/api/v1/push`, {
       streams: Object.values(points)
     }, {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', "uptrace-project-id": "1" }
     })
   } catch (e) {
     console.log(e.response)

@@ -37,14 +37,20 @@ afterAll(() => {
 
 const clokiExtUrl = process.env.CLOKI_EXT_URL || 'localhost:3100'
 const clokiWriteUrl = process.env.CLOKI_WRITE_URL || process.env.CLOKI_EXT_URL || 'localhost:3100'
-const runRequestFunc = (start, end) => async (req, _step, _start, _end) => {
+const runRequestFunc = (start, end) => async (req, _step, _start, _end, oid) => {
   console.log(req)
+  oid = oid || "1"
   try {
     _start = _start || start
     _end = _end || end
     _step = _step || 2
     return await axios.get(
-        `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=2000&query=${encodeURIComponent(req)}&start=${_start}000000&end=${_end}000000&step=${_step}`
+        `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=2000&query=${encodeURIComponent(req)}&start=${_start}000000&end=${_end}000000&step=${_step}`,
+        {
+          headers: {
+            "uptrace-project-id": oid
+          }
+        }
     )
   } catch (e) {
     throw new Error(`${e.message}; req: ${req}`)
@@ -60,6 +66,15 @@ const adjustResultFunc = (start, testID) => (resp, id, _start) => {
     stream.values = stream.values.map(v => [v[0] - _start * 1000000, v[1]])
     return stream
   })
+}
+
+const axiosGet = async (req) => {
+  try {
+    return await axios.get(req, {headers: {'uptrace-project-id': '1'}})
+  } catch(e) {
+    console.log(req)
+    throw new Error(e)
+  }
 }
 
 jest.setTimeout(300000)
@@ -273,7 +288,7 @@ it('e2e', async () => {
   resp = await runRequest(`first_over_time({test_id="${testID}", freq="0.5"} | regexp "^[^0-9]+(?<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`, 1)
   adjustMatrixResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
-  const ws = new WebSocket(`ws://${clokiExtUrl}/loki/api/v1/tail?query={test_id="${testID}_ws"}`)
+  const ws = new WebSocket(`ws://${clokiExtUrl}/loki/api/v1/tail?query={test_id="${testID}_ws"}&uptrace-project-id=1`)
   resp = {
     data: {
       data: {
@@ -283,6 +298,9 @@ it('e2e', async () => {
   }
   ws.on('message', (msg) => {
     console.log("GOT MESSAGE!!!!")
+    if (!msg || msg === 'undefined') {
+      return
+    }
     try {
       const _msg = JSON.parse(msg)
       for (const stream of _msg.streams) {
@@ -299,9 +317,8 @@ it('e2e', async () => {
         _stream.values.push(...stream.values)
       }
     } catch (e) {
-      console.log(message)
+      console.log(msg.toString())
       console.log(e)
-      throw e
     }
   })
   await new Promise(resolve => setTimeout(resolve, 2000))
@@ -317,16 +334,17 @@ it('e2e', async () => {
   for (const res of resp.data.data.result) {
     res.values.sort()
   }
+  console.log(JSON.stringify(resp, ' '))
   adjustResult(resp, testID + '_ws', wsStart)
   expect(resp.data).toMatchSnapshot()
-  resp = await axios.get(`http://${clokiExtUrl}/loki/api/v1/series?match[]={test_id="${testID}"}&start=1636008723293000000&end=1636012323293000000`)
+  resp = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/series?match[]={test_id="${testID}"}&start=1636008723293000000&end=1636012323293000000`)
   resp.data.data = resp.data.data.map(l => {
     expect(l.test_id).toEqual(testID)
     return { ...l, test_id: 'TEST' }
   })
   resp.data.data.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
   expect(resp.data).toMatchSnapshot()
-  resp = await axios.get(`http://${clokiExtUrl}/loki/api/v1/series?match[]={test_id="${testID}"}&match[]={test_id="${testID}_json"}&start=1636008723293000000&end=1636012323293000000`)
+  resp = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/series?match[]={test_id="${testID}"}&match[]={test_id="${testID}_json"}&start=1636008723293000000&end=1636012323293000000`)
   resp.data.data = resp.data.data.map(l => {
     expect(l.test_id.startsWith(testID))
     return { ...l, test_id: l.test_id.replace(testID, 'TEST') }
@@ -427,6 +445,9 @@ it('e2e', async () => {
   //await checkAlertConfig()
   //await checkTempo()
   await pbCheck(testID)
+  resp = await runRequest(`{test_id="${testID}"}`, null, null, null, "2")
+  adjustResult(resp, testID)
+  expect(resp.data).toMatchSnapshot()
 })
 
 const checkAlertConfig = async () => {
@@ -501,7 +522,7 @@ const checkTempo = async () => {
   // Query data and confirm it's there
   await new Promise(resolve => setTimeout(resolve, 5000)) // CI is slow
 
-  const res = await axios.get(`http://${clokiExtUrl}/api/traces/d6e9329d67b6146c/json`)
+  const res = await axiosGet(`http://${clokiExtUrl}/api/traces/d6e9329d67b6146c/json`)
   const validation = res.data
   const id = validation['resourceSpans'][0]['instrumentationLibrarySpans'][0]['spans'][0]['spanID']
   console.log('Checking Tempo API Reading inserted data')
@@ -536,7 +557,7 @@ async function pbCheck (testID) {
   let body = PushRequest.encode(points).finish()
   body = require('snappyjs').compress(body)
   await axios.post(`http://${clokiWriteUrl}/loki/api/v1/push`, body, {
-    headers: { 'Content-Type': 'application/x-protobuf' }
+    headers: { 'Content-Type': 'application/x-protobuf', 'uptrace-project-id': '1'}
   })
   const resp = await runRequest(`{test_id="${testID}_PB"}`, 1, start, end)
   adjustResult(resp, testID + '_PB')
