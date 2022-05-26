@@ -201,7 +201,7 @@ it('e2e', async () => {
     // , 'stdvar_over_time', 'stddev_over_time', 'quantile_over_time', 'absent_over_time'
   ]) {
     resp = await runRequest(`${fn}({test_id="${testID}_json"}|json` +
-        '|lbl_repl_extracted="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
+        '|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
     try {
       expect(resp.data.data.result.length).toBeTruthy()
     } catch (e) {
@@ -215,25 +215,32 @@ it('e2e', async () => {
   adjustMatrixResult(resp, testID + '_json')
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`{test_id="${testID}"}| line_format ` +
-      '"{ \\"str\\":\\"{{_entry}}\\", \\"freq2\\": {{divide freq 2}} }"')
+      '"{ \\"str\\":\\"{{._entry}}\\", \\"freq2\\": {{div .freq 2}} }"')
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`rate({test_id="${testID}"}` +
-      '| line_format "{ \\"str\\":\\"{{_entry}}\\", \\"freq2\\": {{divide freq 2}} }"' +
+      '| line_format "{ \\"str\\":\\"{{._entry}}\\", \\"freq2\\": {{div .freq 2}} }"' +
       '| json|unwrap freq2 [1s]) by (test_id, freq2)')
   adjustMatrixResult(resp, testID)
+  resp.data.data.result.sort((a,b) => {
+    return JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric))
+  })
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`rate({test_id="${testID}"}` +
-      '| line_format "{ \\"str\\":\\"{{_entry}}\\", \\"freq2\\": {{divide freq 2}} }"' +
+      '| line_format "{ \\"str\\":\\"{{._entry}}\\", \\"freq2\\": {{div .freq 2}} }"' +
       '| json|unwrap freq2 [1s]) by (test_id, freq2)', 60)
   adjustMatrixResult(resp, testID)
+  resp.data.data.result.sort((a,b) => {
+    return JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric))
+  })
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`{test_id="${testID}_json"}|json|json int_lbl2="int_val"`)
   adjustResult(resp, testID + '_json')
   expect(resp.data).toMatchSnapshot()
-  resp = await runRequest(`{test_id="${testID}_json"}| line_format "{{ divide test_id 2  }}"`)
+  resp = await runRequest(`{test_id="${testID}_json"}| line_format "{{ div .test_id 2  }}"`)
+  adjustResult(resp, testID + '_json')
   expect(resp.data).toMatchSnapshot()
-  resp = await runRequest(`rate({test_id="${testID}_json"}| line_format "{{ divide int_lbl 2  }}" | unwrap _entry [1s])`)
+  resp = await runRequest(`rate({test_id="${testID}_json"}| line_format "{{ div .int_lbl 2  }}" | unwrap _entry [1s])`)
   adjustMatrixResult(resp, testID + '_json')
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`sum(rate({test_id="${testID}_json"}| json [5s])) by (test_id)`)
@@ -276,16 +283,16 @@ it('e2e', async () => {
   /*resp = await runRequest(`test_macro("${testID}")`)
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()*/
-  resp = await runRequest(`{test_id="${testID}"} | regexp "^(?<e>[^0-9]+)[0-9]+$"`)
+  resp = await runRequest(`{test_id="${testID}"} | regexp "^(?P<e>[^0-9]+)[0-9]+$"`)
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
-  resp = await runRequest(`{test_id="${testID}"} | regexp "^[^0-9]+(?<e>[0-9])+$"`)
+  resp = await runRequest(`{test_id="${testID}"} | regexp "^[^0-9]+(?P<e>[0-9])+$"`)
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
-  resp = await runRequest(`{test_id="${testID}"} | regexp "^[^0-9]+([0-9]+(?<e>[0-9]))$"`)
+  resp = await runRequest(`{test_id="${testID}"} | regexp "^[^0-9]+([0-9]+(?P<e>[0-9]))$"`)
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
-  resp = await runRequest(`first_over_time({test_id="${testID}", freq="0.5"} | regexp "^[^0-9]+(?<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`, 1)
+  resp = await runRequest(`first_over_time({test_id="${testID}", freq="0.5"} | regexp "^[^0-9]+(?P<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`, 1)
   adjustMatrixResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
   const ws = new WebSocket(`ws://${clokiExtUrl}/loki/api/v1/tail?query={test_id="${testID}_ws"}&uptrace-project-id=1`)
@@ -321,7 +328,7 @@ it('e2e', async () => {
       console.log(e)
     }
   })
-  await new Promise(resolve => setTimeout(resolve, 2000))
+  await new Promise(resolve => setTimeout(resolve, 1000))
   const wsStart = Math.floor(Date.now() / 1000) * 1000
   for (let i = 0; i < 5; i++) {
     const points = createPoints(testID + '_ws', 1, wsStart + i * 1000, wsStart + i * 1000 + 1000, {}, {},
@@ -329,7 +336,7 @@ it('e2e', async () => {
     await sendPoints(`http://${clokiWriteUrl}`, points)
     await new Promise(resolve => setTimeout(resolve, 1000))
   }
-  await new Promise(resolve => setTimeout(resolve, 10000))
+  await new Promise(resolve => setTimeout(resolve, 2000))
   ws.close()
   for (const res of resp.data.data.result) {
     res.values.sort()
@@ -394,24 +401,30 @@ it('e2e', async () => {
     // , 'stdvar_over_time', 'stddev_over_time', 'quantile_over_time', 'absent_over_time'
   ]) {
     resp = await runRequest(`${fn}({test_id="${testID}_logfmt"}|logfmt` +
-        '|lbl_repl_extracted="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
+        '|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
     try {
       expect(resp.data.data.result.length).toBeTruthy()
     } catch (e) {
       console.log(`${fn}({test_id="${testID}_logfmt"}|logfmt` +
-          '|lbl_repl_extracted="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
+          '|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)')
       throw e
     }
   }
   resp = await runRequest(`rate({test_id="${testID}"}` +
-      '| line_format "str=\\"{{_entry}}\\" freq2={{divide freq 2}}"' +
+      '| line_format "str=\\"{{._entry}}\\" freq2={{div .freq 2}}"' +
       '| logfmt | unwrap freq2 [1s]) by (test_id, freq2)')
   adjustMatrixResult(resp, testID)
+  resp.data.data.result.sort((a,b) => {
+    return JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric))
+  })
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`rate({test_id="${testID}"}` +
-      '| line_format "str=\\"{{_entry}}\\" freq2={{divide freq 2}}"' +
+      '| line_format "str=\\"{{._entry}}\\" freq2={{div .freq 2}}"' +
       '| logfmt | unwrap freq2 [1s]) by (test_id, freq2)', 60)
   adjustMatrixResult(resp, testID)
+  resp.data.data.result.sort((a,b) => {
+    return JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric))
+  })
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`sum(rate({test_id="${testID}_logfmt"}| logfmt [5s])) by (test_id)`)
   adjustMatrixResult(resp, testID + '_logfmt')
