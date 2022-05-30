@@ -337,7 +337,9 @@ it('e2e', async () => {
     await new Promise(resolve => setTimeout(resolve, 1000))
   }
   await new Promise(resolve => setTimeout(resolve, 2000))
+  ws.off('message')
   ws.close()
+  ws.terminate()
   for (const res of resp.data.data.result) {
     res.values.sort()
   }
