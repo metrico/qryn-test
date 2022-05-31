@@ -303,7 +303,7 @@ it('e2e', async () => {
       }
     }
   }
-  ws.on('message', (msg) => {
+  const wsListener = (msg) => {
     console.log("GOT MESSAGE!!!!")
     if (!msg || msg === 'undefined') {
       return
@@ -327,7 +327,8 @@ it('e2e', async () => {
       console.log(msg.toString())
       console.log(e)
     }
-  })
+  }
+  ws.on('message', wsListener)
   await new Promise(resolve => setTimeout(resolve, 1000))
   const wsStart = Math.floor(Date.now() / 1000) * 1000
   for (let i = 0; i < 5; i++) {
@@ -337,7 +338,7 @@ it('e2e', async () => {
     await new Promise(resolve => setTimeout(resolve, 1000))
   }
   await new Promise(resolve => setTimeout(resolve, 2000))
-  ws.off('message')
+  ws.off('message', wsListener)
   ws.close()
   ws.terminate()
   for (const res of resp.data.data.result) {
