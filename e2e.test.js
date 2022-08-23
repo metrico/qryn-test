@@ -486,8 +486,9 @@ const checkTempo = async () => {
   console.log(url)
 
   const test = await axios.post(url, data)
+  console.log(`sending ${data}`)
 
-  expect(test).toHaveProperty('status', 204)
+  expect(test).toHaveProperty('status', 200)
   console.log('Tempo Insertion Successful')
   // Query data and confirm it's there
   await new Promise(resolve => setTimeout(resolve, 5000)) // CI is slow
