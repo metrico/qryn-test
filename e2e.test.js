@@ -463,7 +463,7 @@ const tsNow = parseInt(Date.now() * 1000)
 const checkTempo = async () => {
   // Send Tempo data and expect status code 200
   const obj = {
-    id: '1234er4',
+    id: '1234ef4',
     traceId: 'd6e9329d67b6146c',
     timestamp: tsNow,
     duration: 1000,
@@ -497,7 +497,7 @@ const checkTempo = async () => {
   const validation = res.data
   const id = validation['resourceSpans'][0]['instrumentationLibrarySpans'][0]['spans'][0]['spanID']
   console.log('Checking Tempo API Reading inserted data')
-  expect(id).toMatch('1234er4')
+  expect(id).toMatch('1234ef4')
 }
 
 /**
