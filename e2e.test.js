@@ -37,12 +37,13 @@ afterAll(() => {
 
 const clokiExtUrl = process.env.CLOKI_EXT_URL || 'localhost:3100'
 const clokiWriteUrl = process.env.CLOKI_WRITE_URL || process.env.CLOKI_EXT_URL || 'localhost:3100'
-const runRequestFunc = (start, end) => (req, _step, _start, _end) => {
+const runRequestFunc = (start, end) => (req, _step, _start, _end, _limit) => {
   _start = _start || start
   _end = _end || end
   _step = _step || 2
+  _limit = _limit || 2000
   return axios.get(
-      `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=2000&query=${encodeURIComponent(req)}&start=${_start}000000&end=${_end}000000&step=${_step}`
+      `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=${_limit}&query=${encodeURIComponent(req)}&start=${_start}000000&end=${_end}000000&step=${_step}`
   )
 }
 
@@ -102,7 +103,7 @@ it('e2e', async () => {
   }
 
   // ok limited res
-  let resp = await runRequest(`{test_id="${testID}"}`)
+  let resp = await runRequest(`{test_id="${testID}"}`, 0, 0, 0, 2002)
   console.log('TEST ID=' + testID)
   adjustResult(resp)
   expect(resp.data).toMatchSnapshot()
@@ -194,7 +195,7 @@ it('e2e', async () => {
   adjustMatrixResult(resp, testID + '_json')
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`{test_id="${testID}"}| line_format ` +
-      '"{ \\"str\\":\\"{{_entry}}\\", \\"freq2\\": {{divide freq 2}} }"')
+      '"{ \\"str\\":\\"{{_entry}}\\", \\"freq2\\": {{divide freq 2}} }"', 0, 0, 0, 2002)
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`rate({test_id="${testID}"}` +
@@ -251,16 +252,16 @@ it('e2e', async () => {
   resp = await runRequest(`{test_id="${testID}_json"} | json | str_id >= 598`)
   adjustResult(resp, testID + '_json')
   expect(resp.data).toMatchSnapshot()
-  resp = await runRequest(`test_macro("${testID}")`)
+  resp = await runRequest(`test_macro("${testID}")`, 0, 0, 0, 2002)
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
-  resp = await runRequest(`{test_id="${testID}"} | regexp "^(?<e>[^0-9]+)[0-9]+$"`)
+  resp = await runRequest(`{test_id="${testID}"} | regexp "^(?<e>[^0-9]+)[0-9]+$"`, 0, 0, 0, 2002)
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
-  resp = await runRequest(`{test_id="${testID}"} | regexp "^[^0-9]+(?<e>[0-9])+$"`)
+  resp = await runRequest(`{test_id="${testID}"} | regexp "^[^0-9]+(?<e>[0-9])+$"`, 0, 0, 0, 2002)
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
-  resp = await runRequest(`{test_id="${testID}"} | regexp "^[^0-9]+([0-9]+(?<e>[0-9]))$"`)
+  resp = await runRequest(`{test_id="${testID}"} | regexp "^[^0-9]+([0-9]+(?<e>[0-9]))$"`, 0, 0, 0, 2002)
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
   resp = await runRequest(`first_over_time({test_id="${testID}", freq="0.5"} | regexp "^[^0-9]+(?<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`, 1)
@@ -277,6 +278,7 @@ it('e2e', async () => {
   ws.on('message', (msg) => {
     try {
       const _msg = JSON.parse(msg)
+      console.log(JSON.stringify(_msg))
       for (const stream of _msg.streams) {
         let _stream = resp.data.data.result.find(res =>
             JSON.stringify(res.stream) === JSON.stringify(stream.stream)
@@ -408,7 +410,7 @@ it('e2e', async () => {
   expect(resp.data.data.result.length > 0).toBeTruthy()
   process.env.LINE_FMT = 'go_native'
   resp = await runRequest(`{test_id="${testID}"}| line_format_native ` +
-      '"{ \\"str\\":\\"{{ ._entry }}\\", \\"freq2\\": {{ .freq }} }"')
+      '"{ \\"str\\":\\"{{ ._entry }}\\", \\"freq2\\": {{ .freq }} }"', 0, 0, 0, 2002)
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
   process.env.LINE_FMT = 'handlebars'
