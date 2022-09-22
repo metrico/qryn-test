@@ -532,7 +532,34 @@ async function pbCheck (testID) {
   await axios.post(`http://${clokiWriteUrl}/loki/api/v1/push`, body, {
     headers: { 'Content-Type': 'application/x-protobuf' }
   })
-  const resp = await runRequest(`{test_id="${testID}_PB"}`, 1, start, end)
+  let resp = await runRequest(`{test_id="${testID}_PB"}`, 1, start, end)
   adjustResult(resp, testID + '_PB')
+  expect(resp.data).toMatchSnapshot()
+  // PUSH with no quoted values
+  let _testid = testID.replaceAll(/\W/g, "_")
+  points = createPoints(_testid+'_PB', 0.5, start, end, {}, {})
+  points = {
+    streams: Object.values(points).map(stream => {
+      return {
+        labels: '{' + Object.entries(stream.stream)
+          .map(s => [s[0], s[1].replaceAll(/\W/g, "_")])
+          .map(s => `${s[0]}=t${s[1]}`).join(',') + '}',
+        entries: stream.values.map(v => ({
+          timestamp: { seconds: Math.floor(v[0] / 1e9).toString(), nanos: parseInt(v[0]) % 1e9 },
+          line: v[1]
+        }))
+      }
+    })
+  }
+  console.log(JSON.stringify(points))
+  body = PushRequest.encode(points).finish()
+  body = require('snappyjs').compress(body)
+  await axios.post(`http://${clokiWriteUrl}/loki/api/v1/push`, body, {
+    headers: { 'Content-Type': 'application/x-protobuf' }
+  })
+  resp = await runRequest(`{test_id="t${_testid}_PB"}`, 1, start, end)
+  console.log(`{test_id="${_testid}_PB"}`)
+  adjustResult(resp, 't' + _testid + '_PB')
+  console.log('PBNEW' + JSON.stringify(resp.data))
   expect(resp.data).toMatchSnapshot()
 }
