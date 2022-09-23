@@ -536,13 +536,13 @@ async function pbCheck (testID) {
   adjustResult(resp, testID + '_PB')
   expect(resp.data).toMatchSnapshot()
   // PUSH with no quoted values
-  let _testid = testID.replaceAll(/\W/g, "_")
+  let _testid = testID.replace(/\W/g, "_")
   points = createPoints(_testid+'_PB', 0.5, start, end, {}, {})
   points = {
     streams: Object.values(points).map(stream => {
       return {
         labels: '{' + Object.entries(stream.stream)
-          .map(s => [s[0], s[1].replaceAll(/\W/g, "_")])
+          .map(s => [s[0], s[1].replace(/\W/g, "_")])
           .map(s => `${s[0]}=t${s[1]}`).join(',') + '}',
         entries: stream.values.map(v => ({
           timestamp: { seconds: Math.floor(v[0] / 1e9).toString(), nanos: parseInt(v[0]) % 1e9 },
