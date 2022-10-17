@@ -48,7 +48,7 @@ const runRequestFunc = (start, end) => async (req, _step, _start, _end, oid) => 
         `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=2000&query=${encodeURIComponent(req)}&start=${_start}000000&end=${_end}000000&step=${_step}`,
         {
           headers: {
-            "uptrace-project-id": oid
+            "X-Scope-OrgID": oid
           }
         }
     )
@@ -70,7 +70,7 @@ const adjustResultFunc = (start, testID) => (resp, id, _start) => {
 
 const axiosGet = async (req) => {
   try {
-    return await axios.get(req, {headers: {'uptrace-project-id': '1'}})
+    return await axios.get(req, {headers: {'X-Scope-OrgID': '1'}})
   } catch(e) {
     console.log(req)
     throw new Error(e)
@@ -295,7 +295,7 @@ it('e2e', async () => {
   resp = await runRequest(`first_over_time({test_id="${testID}", freq="0.5"} | regexp "^[^0-9]+(?P<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`, 1)
   adjustMatrixResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
-  const ws = new WebSocket(`ws://${clokiExtUrl}/loki/api/v1/tail?query={test_id="${testID}_ws"}&uptrace-project-id=1`)
+  const ws = new WebSocket(`ws://${clokiExtUrl}/loki/api/v1/tail?query={test_id="${testID}_ws"}&X-Scope-OrgID=1`)
   resp = {
     data: {
       data: {
@@ -573,7 +573,7 @@ async function pbCheck (testID) {
   let body = PushRequest.encode(points).finish()
   body = require('snappyjs').compress(body)
   await axios.post(`http://${clokiWriteUrl}/loki/api/v1/push`, body, {
-    headers: { 'Content-Type': 'application/x-protobuf', 'uptrace-project-id': '1'}
+    headers: { 'Content-Type': 'application/x-protobuf', 'X-Scope-OrgID': '1'}
   })
   const resp = await runRequest(`{test_id="${testID}_PB"}`, 1, start, end)
   adjustResult(resp, testID + '_PB')
