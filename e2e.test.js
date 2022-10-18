@@ -613,7 +613,7 @@ const otlpCheck = async (testID) => {
   const tracer = opentelemetry.trace.getTracer('connect-example');
 
   const span = tracer.startSpan('test_span', {
-    attributes: {testId: testID}
+    attributes: {testId: '__TEST__'}
   })
   await new Promise(f => setTimeout(f, 100));
   span.addEvent('test event', new Date())
