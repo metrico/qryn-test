@@ -5,6 +5,7 @@ const yaml = require('yaml')
 const { message } = require('protocol-buffers/compile')
 const protobufjs = require('protobufjs')
 const path = require('path')
+const {EventEmitter} = require('events')
 // const pb = require("protobufjs");
 const e2e = () => process.env.INTEGRATION_E2E || process.env.INTEGRATION
 const clokiLocal = () => process.env.CLOKI_LOCAL || process.env.CLOKI_EXT_URL || false
@@ -57,6 +58,33 @@ const runRequestFunc = (start, end) => async (req, _step, _start, _end, oid) => 
   }
 }
 
+const _it = (() => {
+  const finished = {}
+  const emitter = new EventEmitter()
+  const onFinish = (name) => {
+    if (finished[name]) {
+      return Promise.resolve()
+    }
+    return new Promise(f => emitter.once(name, f))
+  }
+  const fireFinish = (name) => {
+    finished[name] = true
+    emitter.emit(name)
+  }
+  return (name, fn, deps) => {
+    it(name, async () => {
+      if (!e2e) {
+        return
+      }
+      if (deps) {
+        await Promise.all(deps.map(d => onFinish(d)))
+      }
+      await fn()
+      fireFinish(name)
+    })
+  }
+})()
+
 const adjustResultFunc = (start, testID) => (resp, id, _start) => {
   _start = _start || start
   id = id || testID
@@ -79,16 +107,14 @@ const axiosGet = async (req) => {
 
 jest.setTimeout(300000)
 
-it('e2e', async () => {
-  if (!e2e()) {
-    return
-  }
+const testID = Math.random() + ''
+const start = Math.floor((Date.now() - 60 * 1000 * 10) / 60 / 1000) * 60 * 1000
+const end = Math.floor(Date.now() / 60 / 1000) * 60 * 1000
+
+_it('send', async () => {
   console.log('Waiting 2s before all inits')
   await new Promise(resolve => setTimeout(resolve, 2000))
-  const testID = Math.random() + ''
   console.log(testID)
-  const start = Math.floor((Date.now() - 60 * 1000 * 10) / 60 / 1000) * 60 * 1000
-  const end = Math.floor(Date.now() / 60 / 1000) * 60 * 1000
   let points = createPoints(testID, 0.5, start, end, {}, {})
   points = createPoints(testID, 1, start, end, {}, points)
   points = createPoints(testID, 2, start, end, {}, points)
@@ -109,6 +135,9 @@ it('e2e', async () => {
   )
   await sendPoints(`http://${clokiWriteUrl}`, points)
   await new Promise(resolve => setTimeout(resolve, 4000))
+})
+
+_it('e2e', async () => {
   const runRequest = runRequestFunc(start, end)
   const adjustResult = adjustResultFunc(start, testID)
   const adjustMatrixResult = (resp, id) => {
@@ -465,7 +494,7 @@ it('e2e', async () => {
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
   await otlpCheck(testID)
-})
+}, ['send'])
 
 const checkAlertConfig = async () => {
   try {
