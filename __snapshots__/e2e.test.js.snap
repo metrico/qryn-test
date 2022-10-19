@@ -155779,3 +155779,73 @@ Object {
   "status": "success",
 }
 `;
+
+exports[`e2e 56`] = `
+Object {
+  "resource_spans": Array [
+    Object {
+      "scope_spans": Array [
+        Object {
+          "spans": Array [
+            Object {
+              "ServiceName": "testSvc",
+              "Span": Object {
+                "attributes": Array [
+                  Object {
+                    "key": "service.name",
+                    "value": Object {
+                      "Value": Object {
+                        "StringValue": "testSvc",
+                      },
+                    },
+                  },
+                  Object {
+                    "key": "telemetry.sdk.language",
+                    "value": Object {
+                      "Value": Object {
+                        "StringValue": "nodejs",
+                      },
+                    },
+                  },
+                  Object {
+                    "key": "telemetry.sdk.name",
+                    "value": Object {
+                      "Value": Object {
+                        "StringValue": "opentelemetry",
+                      },
+                    },
+                  },
+                  Object {
+                    "key": "telemetry.sdk.version",
+                    "value": Object {
+                      "Value": Object {
+                        "StringValue": "0.25.0",
+                      },
+                    },
+                  },
+                  Object {
+                    "key": "testId",
+                    "value": Object {
+                      "Value": Object {
+                        "StringValue": "__TEST__",
+                      },
+                    },
+                  },
+                ],
+                "events": Array [
+                  Object {
+                    "name": "test event",
+                  },
+                ],
+                "kind": 1,
+                "name": "test_span",
+                "status": Object {},
+              },
+            },
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;

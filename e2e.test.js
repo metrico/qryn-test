@@ -464,6 +464,7 @@ it('e2e', async () => {
   resp = await runRequest(`{test_id="${testID}"}`, null, null, null, "2")
   adjustResult(resp, testID)
   expect(resp.data).toMatchSnapshot()
+  await otlpCheck(testID)
 })
 
 const checkAlertConfig = async () => {
@@ -578,4 +579,75 @@ async function pbCheck (testID) {
   const resp = await runRequest(`{test_id="${testID}_PB"}`, 1, start, end)
   adjustResult(resp, testID + '_PB')
   expect(resp.data).toMatchSnapshot()
+}
+
+/**
+ *
+ * @param testID {string}
+ * @returns {Promise<void>}
+ */
+const otlpCheck = async (testID) => {
+  const opentelemetry = require('@opentelemetry/api');
+
+  const { diag, DiagConsoleLogger, DiagLogLevel } = opentelemetry;
+  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
+
+  const { Resource } = require('@opentelemetry/resources');
+  const { ResourceAttributes: SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
+  const { registerInstrumentations } = require('@opentelemetry/instrumentation');
+  const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
+  const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
+  const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-proto');
+
+  const { ConnectInstrumentation } = require('@opentelemetry/instrumentation-connect');
+  const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http');
+
+  const provider = new NodeTracerProvider({
+    resource: new Resource({
+      'service.name': 'testSvc',
+    }),
+  });
+  const connectInstrumentation = new ConnectInstrumentation();
+  registerInstrumentations({
+    tracerProvider: provider,
+    instrumentations: [
+      // Connect instrumentation expects HTTP layer to be instrumented
+      HttpInstrumentation,
+      connectInstrumentation,
+    ],
+  });
+
+  const exporter = new OTLPTraceExporter({
+    headers: {
+      'X-Scope-OrgID': '1'
+    },
+    url: 'http://' + clokiWriteUrl + '/v1/traces'
+  });
+
+  provider.addSpanProcessor(new SimpleSpanProcessor(exporter));
+
+  // Initialize the OpenTelemetry APIs to use the NodeTracerProvider bindings
+  provider.register({});
+  const tracer = opentelemetry.trace.getTracer('connect-example');
+
+  const span = tracer.startSpan('test_span', {
+    attributes: {testId: '__TEST__'}
+  })
+  await new Promise(f => setTimeout(f, 100));
+  span.addEvent('test event', new Date())
+  span.end();
+  await new Promise(f => setTimeout(f, 1000));
+  const res = await axios.get(`http://${clokiExtUrl}/tempo/api/traces/${span.spanContext().traceId.toUpperCase()}`, {
+    headers: {
+      'X-Scope-OrgID': '1'
+    }
+  })
+  const data = res.data
+  data.resource_spans[0].scope_spans[0].spans[0].Span.attributes.sort((a,b) => a.key.localeCompare(b.key))
+  delete data.resource_spans[0].scope_spans[0].spans[0].Span.trace_id
+  delete data.resource_spans[0].scope_spans[0].spans[0].Span.span_id
+  delete data.resource_spans[0].scope_spans[0].spans[0].Span.start_time_unix_nano
+  delete data.resource_spans[0].scope_spans[0].spans[0].Span.end_time_unix_nano
+  delete data.resource_spans[0].scope_spans[0].spans[0].Span.events[0].time_unix_nano
+  expect(data).toMatchSnapshot()
 }

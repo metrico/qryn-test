@@ -43,7 +43,16 @@
     "ws": "^8.4.0",
     "xxhash-wasm": "^0.4.2",
     "yaml": "^1.10.2",
-    "json-stable-stringify": "^1.0.1"
+    "json-stable-stringify": "^1.0.1",
+    "@opentelemetry/api": "^1.0.2",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.33.0",
+    "@opentelemetry/instrumentation": "^0.25.0",
+    "@opentelemetry/instrumentation-connect": "^0.30.0",
+    "@opentelemetry/instrumentation-http": "^0.25.0",
+    "@opentelemetry/sdk-trace-node": "^0.25.0",
+    "@opentelemetry/resources": "^0.25.0",
+    "@opentelemetry/semantic-conventions": "^0.25.0",
+    "@opentelemetry/sdk-trace-base": "^0.25.0"
   },
   "devDependencies": {
     "casual": "^1.6.2",
