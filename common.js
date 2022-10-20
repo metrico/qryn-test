@@ -1,4 +1,5 @@
 const axios = require('axios')
+const {EventEmitter} = require("events");
 /**
  *
  * @param id {string}
@@ -49,4 +50,77 @@ module.exports.sendPoints = async (endpoint, points) => {
     console.log(e.response)
     throw e
   }
+}
+const e2e = () => process.env.INTEGRATION_E2E || process.env.INTEGRATION
+
+const clokiExtUrl = process.env.CLOKI_EXT_URL || 'localhost:3100'
+const clokiWriteUrl = process.env.CLOKI_WRITE_URL || process.env.CLOKI_EXT_URL || 'localhost:3100'
+
+jest.setTimeout(300000)
+
+const _it = (() => {
+  const finished = {}
+  const emitter = new EventEmitter()
+  const onFinish = (name) => {
+    if (finished[name]) {
+      return Promise.resolve()
+    }
+    return new Promise(f => emitter.once(name, f))
+  }
+  const fireFinish = (name) => {
+    finished[name] = true
+    emitter.emit(name)
+  }
+  return (name, fn, deps) => {
+    it(name, async () => {
+      try {
+        if (!e2e) {
+          return
+        }
+        if (deps) {
+          await Promise.all(deps.map(d => onFinish(d)))
+        }
+        await fn()
+      } finally {
+        fireFinish(name)
+      }
+    })
+  }
+})()
+
+const testID = Math.random() + ''
+const start = Math.floor((Date.now() - 60 * 1000 * 10) / 60 / 1000) * 60 * 1000
+const end = Math.floor(Date.now() / 60 / 1000) * 60 * 1000
+
+beforeAll(() => {
+  jest.setTimeout(300000)
+})
+
+afterAll(() => {
+  if (!e2e()) {
+    return
+  }
+})
+
+const axiosGet = async (req) => {
+  try {
+    return await axios.get(req, {headers: {'X-Scope-OrgID': '1'}})
+  } catch(e) {
+    console.log(req)
+    throw new Error(e)
+  }
+}
+
+const storage = {}
+
+module.exports = {
+  ...module.exports,
+  clokiWriteUrl,
+  clokiExtUrl,
+  _it,
+  testID,
+  start,
+  end,
+  axiosGet,
+  storage
 }
