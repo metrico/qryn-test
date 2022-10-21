@@ -140,6 +140,38 @@ _it('should send zipkin', async () => {
     console.log('Tempo Insertion Successful')
 })
 
+_it('should post /tempo/spans', async () => {
+    // Send Tempo data and expect status code 200
+    const obj = {
+        id: '1234ef46',
+        traceId: 'd6e9329d67b6146d',
+        timestamp: Date.now() * 1000,
+        duration: 1000,
+        name: 'span from http',
+        tags: {
+            'http.method': 'GET',
+            'http.path': '/tempo/spans'
+        },
+        localEndpoint: {
+            serviceName: 'node script'
+        }
+    }
+
+    const arr = [obj]
+    const data = JSON.stringify(arr)
+    console.log(data)
+    const url = `http://${clokiWriteUrl}/tempo/spans`
+    console.log(url)
+
+    const test = await axios.post(url, data, {
+        headers: {
+            "X-Scope-OrgID": '1'
+        }
+    })
+    expect(test.status).toEqual(202)
+    console.log('Tempo Insertion Successful')
+})
+
 _it('should send influx', async () => {
     const {InfluxDB, Point} = require('@influxdata/influxdb-client')
     const writeAPI = new InfluxDB({

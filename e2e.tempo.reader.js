@@ -23,3 +23,14 @@ _it('should read zipkin', async () => {
     delete validation.Span.end_time_unix_nano
     expect(validation).toMatchSnapshot()
 }, ['should send zipkin'])
+
+_it('should read /tempo/spans', async () => {
+    await new Promise(resolve => setTimeout(resolve, 500))
+    const res = await axiosGet(`http://${clokiExtUrl}/tempo/api/traces/d6e9329d67b6146d0000000000000000`)
+    console.log(res.data)
+    const data = res.data
+    const validation = data.resource_spans[0].scope_spans[0].spans[0]
+    delete validation.Span.start_time_unix_nano
+    delete validation.Span.end_time_unix_nano
+    expect(validation).toMatchSnapshot()
+}, ['should post /tempo/spans'])
