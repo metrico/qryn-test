@@ -3,6 +3,7 @@ const protobufjs = require("protobufjs");
 const path = require("path");
 const axios = require("axios");
 const {Point} = require("@influxdata/influxdb-client");
+const {pushTimeseries} = require("prometheus-remote-write");
 
 
 _it('push logs http', async () => {
@@ -158,4 +159,32 @@ _it('should send influx', async () => {
     }
     writeAPI.writePoints(points)
     await writeAPI.close()
+})
+
+_it('should send prometheus.remote.write', async () => {
+    const {pushTimeseries} = require('prometheus-remote-write')
+    const fetch = require('node-fetch')
+    const ts = []
+    for (let i = start; i < end; i += 15000) {
+        ts.push({
+            labels: {
+                __name__: "test_metric",
+                test_id: testID + '_RWR'
+            },
+            samples: [
+                {
+                    value: 123,
+                    timestamp: i,
+                },
+            ],
+        })
+    }
+    const res = await pushTimeseries(ts, {
+        url: `http://${clokiWriteUrl}/prom/remote/write`,
+        fetch: (input, opts) => {
+            opts.headers['X-Scope-OrgID'] = '1'
+            return fetch(input, opts)
+        }
+    })
+    expect(res.status).toEqual(204)
 })

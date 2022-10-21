@@ -384,3 +384,10 @@ _it ('should read influx', async () => {
     adjustResult(resp)
     expect(resp.data).toMatchSnapshot()
 }, ['should send influx'])
+
+
+_it ('should read prometheus.remote.write', async () => {
+    let resp = await runRequest(`first_over_time({test_id="${testID}_RWR"} | unwrap_value [15s])`)
+    adjustMatrixResult(resp)
+    expect(resp.data).toMatchSnapshot()
+}, ['should send prometheus.remote.write'])
