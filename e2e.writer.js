@@ -165,26 +165,33 @@ _it('should send prometheus.remote.write', async () => {
     const {pushTimeseries} = require('prometheus-remote-write')
     const fetch = require('node-fetch')
     const ts = []
-    for (let i = start; i < end; i += 15000) {
-        ts.push({
-            labels: {
-                __name__: "test_metric",
-                test_id: testID + '_RWR'
-            },
-            samples: [
-                {
-                    value: 123,
-                    timestamp: i,
+    for (const route of ['v1/prom/remote/write',
+        'api/v1/prom/remote/write',
+        'prom/remote/write',
+        'api/prom/remote/write']) {
+        for (let i = start; i < end; i += 15000) {
+            ts.push({
+                labels: {
+                    __name__: "test_metric",
+                    test_id: testID + '_RWR',
+                    route: route
                 },
-            ],
-        })
-    }
-    const res = await pushTimeseries(ts, {
-        url: `http://${clokiWriteUrl}/prom/remote/write`,
-        fetch: (input, opts) => {
-            opts.headers['X-Scope-OrgID'] = '1'
-            return fetch(input, opts)
+                samples: [
+                    {
+                        value: 123,
+                        timestamp: i,
+                    },
+                ],
+            })
         }
-    })
-    expect(res.status).toEqual(204)
+        const res = await pushTimeseries(ts, {
+            url: `http://${clokiWriteUrl}/${route}`,
+            fetch: (input, opts) => {
+                opts.headers['X-Scope-OrgID'] = '1'
+                return fetch(input, opts)
+            }
+        })
+        expect(res.status).toEqual(204)
+    }
+    await new Promise(f => setTimeout(f, 500))
 })
