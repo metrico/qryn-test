@@ -379,3 +379,8 @@ _it('read protobuff', async () => {
     expect(resp.data).toMatchSnapshot()
 }, ['push protobuff'])
 
+_it ('should read influx', async () => {
+    let resp = await runRequest(`{test_id="${testID}FLX"}`)
+    adjustResult(resp)
+    expect(resp.data).toMatchSnapshot()
+}, ['should send influx'])

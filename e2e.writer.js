@@ -2,11 +2,10 @@ const {_it, createPoints, sendPoints, clokiWriteUrl, testID, start, end, storage
 const protobufjs = require("protobufjs");
 const path = require("path");
 const axios = require("axios");
+const {Point} = require("@influxdata/influxdb-client");
 
 
 _it('push logs http', async () => {
-    console.log('Waiting 2s before all inits')
-    await new Promise(resolve => setTimeout(resolve, 2000))
     console.log(testID)
     let points = createPoints(testID, 0.5, start, end, {}, {})
     points = createPoints(testID, 1, start, end, {}, points)
@@ -138,4 +137,24 @@ _it('should send zipkin', async () => {
     })
     expect(test.status).toEqual(202)
     console.log('Tempo Insertion Successful')
+})
+
+_it('should send influx', async () => {
+    const {InfluxDB, Point} = require('@influxdata/influxdb-client')
+    const writeAPI = new InfluxDB({
+        url: `http://${clokiWriteUrl}/influx`,
+        headers: {
+            'X-Scope-OrgID': 1
+        }
+    }).getWriteApi('', '', 'ns')
+    writeAPI.useDefaultTags({'test_id': testID + 'FLX'})
+    const points = []
+    for (let i = start; i < end; i += 60000) {
+        points.push(new Point('syslog')
+            .tag('tag1', 'val1')
+            .stringField('message', 'FLX_TEST')
+            .timestamp(new Date(i)))
+    }
+    writeAPI.writePoints(points)
+    await writeAPI.close()
 })
