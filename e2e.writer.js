@@ -144,7 +144,8 @@ _it('should send influx', async () => {
     const writeAPI = new InfluxDB({
         url: `http://${clokiWriteUrl}/influx`,
         headers: {
-            'X-Scope-OrgID': 1
+            'X-Scope-OrgID': 1,
+            'X-Sender': 'influx'
         }
     }).getWriteApi('', '', 'ns')
     writeAPI.useDefaultTags({'test_id': testID + 'FLX'})
