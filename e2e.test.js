@@ -669,10 +669,18 @@ const hugeTraceTest = async (testID) => {
   expect(test).toHaveProperty('status', 200)
   console.log('Tempo Insertion Successful')
   // Query data and confirm it's there
-  await new Promise(resolve => setTimeout(resolve, 15000)) // CI is slow
-
-  const res = await axios.get(`http://${clokiExtUrl}/api/traces/${traceId}/json`)
-  let validation = res.data.resourceSpans[0].instrumentationLibrarySpans[0].spans
+  await new Promise(resolve => setTimeout(resolve, 10000)) // CI is slow
+  let len = 0
+  let tries = 0
+  let validation = null
+  while (len < 2000 && tries < 20) {
+    const res = await axios.get(`http://${clokiExtUrl}/api/traces/${traceId}/json`)
+    validation = res.data.resourceSpans[0].instrumentationLibrarySpans[0].spans
+    await new Promise(resolve => setTimeout(resolve, 1000)) // CI is slow
+    tries++
+    len = validation.length
+    console.log(`GOT: ${len}; retries: ${tries}`)
+  }
   expect(validation.length).toEqual(2000)
   validation.forEach(s => expect(s.traceID).toEqual(traceId))
   validation = validation.slice(0, 10).map(s => ({
