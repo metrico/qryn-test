@@ -669,7 +669,7 @@ const hugeTraceTest = async (testID) => {
   expect(test).toHaveProperty('status', 200)
   console.log('Tempo Insertion Successful')
   // Query data and confirm it's there
-  await new Promise(resolve => setTimeout(resolve, 10000)) // CI is slow
+  await new Promise(resolve => setTimeout(resolve, 15000)) // CI is slow
 
   const res = await axios.get(`http://${clokiExtUrl}/api/traces/${traceId}/json`)
   let validation = res.data.resourceSpans[0].instrumentationLibrarySpans[0].spans
