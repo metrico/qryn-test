@@ -692,6 +692,5 @@ const hugeTraceTest = async (testID) => {
     startTimeUnixNano: '',
     endTimeUnixNano: '',
   }))
-  console.log(JSON.stringify(validation))
-  //expect(validation).toMatchSnapshot()
+  expect(validation).toMatchSnapshot()
 }
