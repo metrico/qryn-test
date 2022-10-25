@@ -422,6 +422,7 @@ it('e2e', async () => {
   await checkTempo()
   await pbCheck(testID)
   await otlpCheck(testID)
+  await hugeTraceTest(testID)
 })
 
 const checkAlertConfig = async () => {
@@ -630,4 +631,58 @@ const otlpCheck = async (testID) => {
   delete data.resourceSpans[0].instrumentationLibrarySpans[0].spans[0].events[0].timeUnixNano
   expect(data).toMatchSnapshot()
   console.log(JSON.stringify(res.data))
+}
+
+const hugeTraceTest = async (testID) => {
+  const strToId = (str, len) => {
+    let id = (new Array(len)).fill('0').join('') + Buffer.from(str).toString('hex')
+    return id.substring(id.length - len)
+  }
+  let traceId = strToId(testID, 32)
+  console.log(traceId)
+
+  // Send Tempo data and expect status code 200
+  const spans = []
+  for (let i=0; i<2500; i++) {
+    spans.push({
+      id: strToId(i.toString(), 16),
+      traceId: traceId,
+      timestamp: Date.now(),
+      duration: 1000,
+      name: 'span from http',
+      tags: {
+        'http.method': 'GET',
+        'http.path': '/api'
+      },
+      localEndpoint: {
+        serviceName: 'node script'
+      }
+    })
+  }
+
+
+  const url = `http://${clokiWriteUrl}/tempo/api/push`
+  console.log(url)
+
+  const test = await axios.post(url, spans)
+
+  expect(test).toHaveProperty('status', 200)
+  console.log('Tempo Insertion Successful')
+  // Query data and confirm it's there
+  await new Promise(resolve => setTimeout(resolve, 10000)) // CI is slow
+
+  const res = await axios.get(`http://${clokiExtUrl}/api/traces/${traceId}/json`)
+  let validation = res.data.resourceSpans[0].instrumentationLibrarySpans[0].spans
+  expect(validation.length).toEqual(2000)
+  validation.forEach(s => expect(s.traceID).toEqual(traceId))
+  validation = validation.slice(0, 10).map(s => ({
+    ...s,
+    traceID: '',
+    traceId: '',
+    spanID: '',
+    spanId: '',
+    startTimeUnixNano: '',
+    endTimeUnixNano: '',
+  }))
+  expect(validation).toMatchSnapshot()
 }
