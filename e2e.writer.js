@@ -206,7 +206,7 @@ _it('should send prometheus.remote.write', async () => {
                 labels: {
                     __name__: "test_metric",
                     test_id: testID + '_RWR',
-                    route: route
+                    route: route,
                 },
                 samples: [
                     {
@@ -226,4 +226,35 @@ _it('should send prometheus.remote.write', async () => {
         expect(res.status).toEqual(204)
     }
     await new Promise(f => setTimeout(f, 500))
+})
+
+_it('should /api/v2/spans', async () => {
+    // Send Tempo data and expect status code 200
+    const obj = {
+        id: '1234ef46',
+        traceId: 'd6e9329d67b6146e',
+        timestamp: Date.now() * 1000,
+        duration: 1000000,
+        name: 'span from http',
+        tags: {
+            'http.method': 'GET',
+            'http.path': '/tempo/spans'
+        },
+        localEndpoint: {
+            serviceName: 'node script'
+        }
+    }
+
+    const arr = [obj]
+    const data = JSON.stringify(arr)
+    console.log(data)
+    const url = `http://${clokiWriteUrl}/tempo/spans`
+    console.log(url)
+
+    const test = await axios.post(url, data, {
+        headers: {
+            "X-Scope-OrgID": '1'
+        }
+    })
+    console.log('Tempo Insertion Successful')
 })

@@ -4,6 +4,8 @@ const yaml = require('yaml')
 require('./e2e.writer')
 require('./e2e.logql.reader')
 require('./e2e.tempo.reader')
+require('./e2e.prom.reader')
+require('./e2e.misc')
 
 const checkAlertConfig = async () => {
   try {
