@@ -391,3 +391,15 @@ _it ('should read prometheus.remote.write', async () => {
     adjustMatrixResult(resp)
     expect(resp.data).toMatchSnapshot()
 }, ['should send prometheus.remote.write'])
+
+_it ('should read _ and % logs', async () => {
+    let resp = await runRequest(`{test_id="${testID}_like"}`)
+    adjustResult(resp)
+    expect(resp.data).toMatchSnapshot()
+    resp = await runRequest(`{test_id="${testID}_like"} |= "%"`)
+    adjustResult(resp)
+    expect(resp.data).toMatchSnapshot()
+    resp = await runRequest(`{test_id="${testID}_like"} |= "_"`)
+    adjustResult(resp)
+    expect(resp.data).toMatchSnapshot()
+}, ['should send _ and % logs'])

@@ -258,3 +258,10 @@ _it('should /api/v2/spans', async () => {
     })
     console.log('Tempo Insertion Successful')
 })
+
+_it('should send _ and % logs', async () => {
+    let points = createPoints(testID+"_like", 150, start, end, {}, {},
+        (i) => i % 2 ? "l_p%": "l1p2")
+    await sendPoints(`http://${clokiWriteUrl}`, points)
+    await new Promise(resolve => setTimeout(resolve, 1000))
+})
