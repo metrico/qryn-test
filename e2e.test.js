@@ -423,6 +423,7 @@ it('e2e', async () => {
   await pbCheck(testID)
   await otlpCheck(testID)
   await hugeTraceTest(testID)
+  await checkCSV(testID, start, end);
 })
 
 const checkAlertConfig = async () => {
@@ -693,4 +694,23 @@ const hugeTraceTest = async (testID) => {
     endTimeUnixNano: '',
   }))
   expect(validation).toMatchSnapshot()
+}
+
+async function checkCSV(testID, start, end) {
+  let req = `{test_id="${testID}"}`
+  let res = await axios.get(
+    `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=${100}&query=${encodeURIComponent(req)}&start=${start}000000&end=${end}000000&step=1&csv=1`
+  )
+  let data = res.data
+    .replace(/^\d+,/gm, (str) => (parseInt(str.substring(0, str.length-1)) / 1000000 - start)+',')
+    .replace(new RegExp(testID, 'g'), "test_id")
+  expect(data).toMatchSnapshot()
+  req = `rate({test_id="${testID}"}[10s])`
+  res = await axios.get(
+    `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=${100}&query=${encodeURIComponent(req)}&start=${start}000000&end=${end}000000&step=1&csv=1`
+  )
+  data = res.data
+    .replace(/^\d+,/gm, (str) => (parseInt(str.substring(0, str.length-1)) / 1000000 - start)+',')
+    .replace(new RegExp(testID, 'g'), "test_id")
+  expect(data).toMatchSnapshot()
 }
