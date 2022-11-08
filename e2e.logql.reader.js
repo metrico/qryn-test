@@ -403,3 +403,33 @@ _it ('should read _ and % logs', async () => {
     adjustResult(resp)
     expect(resp.data).toMatchSnapshot()
 }, ['should send _ and % logs'])
+
+_it('should query_instant', async () => {
+    const req = `{test_id="${testID}"}`
+    const resp = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/query?direction=BACKWARD&limit=100&query=${encodeURIComponent(req)}&time=${end}000000`)
+    adjustResult(resp)
+    expect(resp.data).toMatchSnapshot()
+}, ['push logs http'])
+
+_it('should query_instant vector', async () => {
+    const req = `count_over_time({test_id="${testID}"}[1m])`
+    const resp = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/query?direction=BACKWARD&limit=100&query=${encodeURIComponent(req)}&time=${end}000000`)
+    resp.data.data.result.forEach(m => {
+        expect(m.metric.test_id).toEqual(testID)
+        m.metric.test_id = '_TEST_'
+        m.value[0] -= start / 1000
+    })
+    expect(resp.data).toMatchSnapshot()
+}, ['push logs http'])
+
+_it('should query_instant vector+internal channel', async () => {
+    const req = `count_over_time({test_id="${testID}"} | line_format "{{.freq}}" [1m])`
+    const resp = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/query?direction=BACKWARD&limit=100&query=${encodeURIComponent(req)}&time=${end}000000`)
+    resp.data.data.result.forEach(m => {
+        expect(m.metric.test_id).toEqual(testID)
+        m.metric.test_id = '_TEST_'
+        m.value[0] -= start / 1000
+    })
+    resp.data.data.result.sort((a,b) => JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))
+    expect(resp.data).toMatchSnapshot()
+}, ['push logs http'])
