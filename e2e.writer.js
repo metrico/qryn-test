@@ -265,3 +265,28 @@ _it('should send _ and % logs', async () => {
     await sendPoints(`http://${clokiWriteUrl}`, points)
     await new Promise(resolve => setTimeout(resolve, 1000))
 })
+
+_it('should write elastic', async () => {
+    const { Client } = require('@elastic/elasticsearch')
+    const client = new Client({
+        node: `http://${clokiWriteUrl}`,
+        headers: {'X-Scope-OrgID': '1'}
+    })
+    const resp = await client.bulk({
+        refresh: true,
+
+        operations: [
+            {index: {_index: `test_${testID}`}},
+            {id: 1, text: 'If I fall, don\'t bring me back.', user: 'jon'},
+            {index: {_index: `test_${testID}`}},
+            {id: 2, text: 'Winter is coming', user: 'ned'},
+            {index: {_index: `test_${testID}`}},
+            {id: 3, text: 'A Lannister always pays his debts.', user: 'tyrion'},
+            {index: {_index: `test_${testID}`}},
+            {id: 4, text: 'I am the blood of the dragon.', user: 'daenerys'},
+            {index: {_index: `test_${testID}`}},
+            {id: 5, text: 'A girl is Arya Stark of Winterfell. And I\'m going home.', user: 'arya'}
+        ]
+    })
+    expect(resp.errors).toBeFalsy()
+})

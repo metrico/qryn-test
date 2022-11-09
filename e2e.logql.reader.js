@@ -433,3 +433,19 @@ _it('should query_instant vector+internal channel', async () => {
     resp.data.data.result.sort((a,b) => JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))
     expect(resp.data).toMatchSnapshot()
 }, ['push logs http'])
+
+_it('should read elastic log', async () => {
+    const req = `{_index="test_${testID}"}`
+    const resp = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=2000&query=${encodeURIComponent(req)}&start=${start}000000&end=${Date.now()}000000`)
+    resp.data.data.result.forEach(m => {
+        expect(m.stream._index).toEqual('test_' + testID)
+        m.stream._index = '_TEST_'
+        m.values.forEach(v => {
+            expect(parseInt(v[0]) / 1000000 > start).toBeTruthy()
+            expect(parseInt(v[0]) / 1000000 < Date.now()).toBeTruthy()
+            v[0] = ''
+        })
+    })
+    resp.data.data.result.sort((a,b) => JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))
+    expect(resp.data).toMatchSnapshot()
+}, ['should write elastic'])
