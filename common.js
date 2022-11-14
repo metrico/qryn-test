@@ -44,7 +44,7 @@ module.exports.sendPoints = async (endpoint, points) => {
     await axios.post(`${endpoint}/loki/api/v1/push`, {
       streams: Object.values(points)
     }, {
-      headers: { 'Content-Type': 'application/json', "X-Scope-OrgID": "1" }
+      headers: { 'Content-Type': 'application/json', "X-Scope-OrgID": "1", 'X-Shard': shard }
     })
   } catch (e) {
     console.log(e.response)
@@ -111,6 +111,8 @@ const axiosGet = async (req) => {
   }
 }
 
+const shard = -1
+
 const storage = {}
 
 module.exports = {
@@ -122,5 +124,6 @@ module.exports = {
   start,
   end,
   axiosGet,
-  storage
+  storage,
+  shard
 }

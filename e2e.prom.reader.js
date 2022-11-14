@@ -1,5 +1,5 @@
 const axios = require('axios')
-const {clokiExtUrl, _it, testID, clokiWriteUrl} = require('./common')
+const {clokiExtUrl, _it, testID, clokiWriteUrl, shard} = require('./common')
 const {pushTimeseries} = require("prometheus-remote-write");
 const fetch = require("node-fetch");
 
@@ -19,6 +19,7 @@ _it('should post /api/v1/labels', async () => {
         url: `http://${clokiWriteUrl}/v1/prom/remote/write`,
         fetch: (input, opts) => {
             opts.headers['X-Scope-OrgID'] = '1'
+            opts.headers['X-Shard'] = shard
             return fetch(input, opts)
         }
     })
@@ -30,7 +31,8 @@ _it('should post /api/v1/labels', async () => {
     const labels = await axios.post(`http://${clokiExtUrl}/api/v1/labels`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
-            'Content-Type': 'application/x-www-form-urlencoded'
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Shard': shard
         }
     })
     console.log(labels.data.data)

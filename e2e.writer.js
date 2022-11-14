@@ -1,4 +1,4 @@
-const {_it, createPoints, sendPoints, clokiWriteUrl, testID, start, end, storage} = require('./common')
+const {_it, createPoints, sendPoints, clokiWriteUrl, testID, start, end, storage, shard} = require('./common')
 const protobufjs = require("protobufjs");
 const path = require("path");
 const axios = require("axios");
@@ -49,7 +49,11 @@ _it('push protobuff', async () => {
     let body = PushRequest.encode(points).finish()
     body = require('snappyjs').compress(body)
     await axios.post(`http://${clokiWriteUrl}/loki/api/v1/push`, body, {
-        headers: { 'Content-Type': 'application/x-protobuf', 'X-Scope-OrgID': '1'}
+        headers: {
+            'Content-Type': 'application/x-protobuf',
+            'X-Scope-OrgID': '1',
+            'X-Shard': shard
+        }
     })
     await new Promise(f => setTimeout(f, 500))
 })
@@ -87,7 +91,8 @@ _it('should send otlp', async () => {
 
     const exporter = new OTLPTraceExporter({
         headers: {
-            'X-Scope-OrgID': '1'
+            'X-Scope-OrgID': '1',
+            'X-Shard': shard
         },
         url: 'http://' + clokiWriteUrl + '/v1/traces'
     });
@@ -133,7 +138,8 @@ _it('should send zipkin', async () => {
 
     const test = await axios.post(url, data, {
         headers: {
-            "X-Scope-OrgID": '1'
+            "X-Scope-OrgID": '1',
+            'X-Shard': shard
         }
     })
     expect(test.status).toEqual(202)
@@ -165,7 +171,8 @@ _it('should post /tempo/spans', async () => {
 
     const test = await axios.post(url, data, {
         headers: {
-            "X-Scope-OrgID": '1'
+            "X-Scope-OrgID": '1',
+            'X-Shard': shard
         }
     })
     expect(test.status).toEqual(202)
@@ -178,7 +185,8 @@ _it('should send influx', async () => {
         url: `http://${clokiWriteUrl}/influx`,
         headers: {
             'X-Scope-OrgID': 1,
-            'X-Sender': 'influx'
+            'X-Sender': 'influx',
+            'X-Shard': shard
         }
     }).getWriteApi('', '', 'ns')
     writeAPI.useDefaultTags({'test_id': testID + 'FLX'})
@@ -220,6 +228,7 @@ _it('should send prometheus.remote.write', async () => {
             url: `http://${clokiWriteUrl}/${route}`,
             fetch: (input, opts) => {
                 opts.headers['X-Scope-OrgID'] = '1'
+                opts.headers['X-Shard'] = shard
                 return fetch(input, opts)
             }
         })
@@ -253,7 +262,8 @@ _it('should /api/v2/spans', async () => {
 
     const test = await axios.post(url, data, {
         headers: {
-            "X-Scope-OrgID": '1'
+            "X-Scope-OrgID": '1',
+            'X-Shard': shard
         }
     })
     console.log('Tempo Insertion Successful')
