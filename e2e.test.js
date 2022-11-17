@@ -424,6 +424,9 @@ it('e2e', async () => {
   await otlpCheck(testID)
   await hugeTraceTest(testID)
   await checkCSV(testID, start, end);
+  resp = await runRequest(`{test_id="${testID}_json"}| json f="str_id" | f =~ "4.." | f !~ "4[0-8]."`)
+  adjustResult(resp, testID+"_json")
+  expect(resp.data).toMatchSnapshot()
 })
 
 const checkAlertConfig = async () => {
