@@ -424,9 +424,15 @@ it('e2e', async () => {
   await otlpCheck(testID)
   await hugeTraceTest(testID)
   await checkCSV(testID, start, end);
+  //TODO: ADD TO GO!!!!!
   resp = await runRequest(`{test_id="${testID}_json"}| json f="str_id" | f =~ "4.." | f !~ "4[0-8]."`)
   adjustResult(resp, testID+"_json")
   expect(resp.data).toMatchSnapshot()
+  resp = await runRequest(`first_over_time({test_id="${testID}_json", freq="1"} | unwrap freq [1s])`)
+  adjustMatrixResult(resp, testID+"_json")
+  expect(resp.data).toMatchSnapshot()
+  await expect(runRequest(`first_over_time({test_id="${testID}_json", freq="1"} | unwrap freq [1sddaad])`))
+    .rejects.toThrow()
 })
 
 const checkAlertConfig = async () => {
