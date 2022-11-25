@@ -26,8 +26,8 @@ _it('should post /api/v1/labels', async () => {
     expect(res.status).toEqual(204)
     const fd = new URLSearchParams()
     await new Promise(resolve => setTimeout(resolve, 1000))
-    fd.append('start', `${Date.now() - 10000}`)
-    fd.append('end', `${Date.now()}`)
+    fd.append('start', `${Math.floor(Date.now() / 1000) - 10}`)
+    fd.append('end', `${Math.floor(Date.now() / 1000)}`)
     const labels = await axios.post(`http://${clokiExtUrl}/api/v1/labels`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
