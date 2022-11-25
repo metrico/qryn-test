@@ -433,6 +433,7 @@ it('e2e', async () => {
   expect(resp.data).toMatchSnapshot()
   await expect(runRequest(`first_over_time({test_id="${testID}_json", freq="1"} | unwrap freq [1sddaad])`))
     .rejects.toThrow()
+  await checkNewRelic(testID, start, end)
 })
 
 const checkAlertConfig = async () => {
@@ -722,4 +723,45 @@ async function checkCSV(testID, start, end) {
     .replace(/^\d+,/gm, (str) => (parseInt(str.substring(0, str.length-1)) / 1000000 - start)+',')
     .replace(new RegExp(testID, 'g'), "test_id")
   expect(data).toMatchSnapshot()
+}
+
+async function checkNewRelic(testID, start, end) {
+  let body = {
+    timestamp: start,
+    test_id: testID + '_newrelic',
+    message: 'TEST NEWRELIC SINGLE'
+  }
+  let res = await axios.post(`http://${clokiExtUrl}/log/v1`, body)
+  expect(res.status).toEqual(200)
+  const runRequest = runRequestFunc(start, end)
+  res = await runRequest(`{test_id="${testID}_newrelic"}`)
+  const adjustResult = adjustResultFunc(start, testID)
+  adjustResult(res, testID + '_newrelic')
+  expect(res.data.data).toMatchSnapshot()
+  body = [{
+    'common': {
+      'attributes': {
+        test_id: testID + '_newrelic_multi',
+        logtype: 'accesslogs',
+        service: 'login-service',
+        hostname: 'login.example.com'
+      }
+    },
+    logs: [
+      {
+        timestamp: start,
+        message: 'User \'xyz\' logged in'
+      }, {
+        timestamp: start + 1,
+        message: 'User \'xyz\' logged out',
+        attributes: {
+          auditId: 123
+        }
+      }]
+  }]
+  res = await axios.post(`http://${clokiExtUrl}/log/v1`, body)
+  expect(res.status).toEqual(200)
+  res = await runRequest(`{test_id="${testID}_newrelic_multi"}`)
+  adjustResult(res, testID + '_newrelic_multi')
+  expect(res.data.data).toMatchSnapshot()
 }
