@@ -4,13 +4,16 @@ _it('should read otlp', async () => {
     const span = storage.test_span
     const res = await axiosGet(`http://${clokiExtUrl}/tempo/api/traces/${span.spanContext().traceId.toUpperCase()}`)
     const data = res.data
-    data.resource_spans[0].scope_spans[0].spans[0].Span.attributes.sort((a,b) => a.key.localeCompare(b.key))
-    delete data.resource_spans[0].scope_spans[0].spans[0].Span.trace_id
-    delete data.resource_spans[0].scope_spans[0].spans[0].Span.span_id
-    delete data.resource_spans[0].scope_spans[0].spans[0].Span.start_time_unix_nano
-    delete data.resource_spans[0].scope_spans[0].spans[0].Span.end_time_unix_nano
-    delete data.resource_spans[0].scope_spans[0].spans[0].Span.events[0].time_unix_nano
-    expect(data).toMatchSnapshot()
+    data.resourceSpans[0].instrumentationLibrarySpans[0].spans[0].attributes.sort((a,b) => a.key.localeCompare(b.key))
+    const validation = data.resourceSpans[0].instrumentationLibrarySpans[0].spans[0]
+    delete validation.traceID
+    delete validation.traceId
+    delete validation.spanID
+    delete validation.spanId
+    delete validation.startTimeUnixNano
+    delete validation.endTimeUnixNano
+    delete validation.events[0].timeUnixNano
+    expect(validation).toMatchSnapshot()
 }, ['should send otlp'])
 
 _it('should read zipkin', async () => {
@@ -18,9 +21,13 @@ _it('should read zipkin', async () => {
     const res = await axiosGet(`http://${clokiExtUrl}/tempo/api/traces/d6e9329d67b6146c0000000000000000`)
     console.log(res.data)
     const data = res.data
-    const validation = data.resource_spans[0].scope_spans[0].spans[0]
-    delete validation.Span.start_time_unix_nano
-    delete validation.Span.end_time_unix_nano
+    const validation = data.resourceSpans[0].instrumentationLibrarySpans[0].spans[0]
+    expect(validation.spanID).toEqual('1234ef4500000000')
+    delete validation.traceID
+    delete validation.spanID
+    delete validation.spanId
+    delete validation.startTimeUnixNano
+    delete validation.endTimeUnixNano
     expect(validation).toMatchSnapshot()
 }, ['should send zipkin'])
 
@@ -30,9 +37,13 @@ _it('should read /tempo/spans', async () => {
     const res = await axiosGet(`http://${clokiExtUrl}/tempo/api/traces/d6e9329d67b6146d0000000000000000`)
     console.log(res.data)
     const data = res.data
-    const validation = data.resource_spans[0].scope_spans[0].spans[0]
-    delete validation.Span.start_time_unix_nano
-    delete validation.Span.end_time_unix_nano
+    const validation = data.resourceSpans[0].instrumentationLibrarySpans[0].spans[0]
+    expect(validation.spanID).toEqual('1234ef4600000000')
+    delete validation.traceID
+    delete validation.spanID
+    delete validation.spanId
+    delete validation.startTimeUnixNano
+    delete validation.endTimeUnixNano
     expect(validation).toMatchSnapshot()
 }, ['should post /tempo/spans'])
 
@@ -40,9 +51,13 @@ _it('should read /api/v2/spans', async () => {
     await new Promise(resolve => setTimeout(resolve, 500))
     const res = await axiosGet(`http://${clokiExtUrl}/tempo/api/traces/d6e9329d67b6146e0000000000000000`)
     const data = res.data
-    const validation = data.resource_spans[0].scope_spans[0].spans[0]
-    delete validation.Span.start_time_unix_nano
-    delete validation.Span.end_time_unix_nano
+    const validation = data.resourceSpans[0].instrumentationLibrarySpans[0].spans[0]
+    expect(validation.spanID).toEqual('1234ef4600000000')
+    delete validation.traceID
+    delete validation.spanID
+    delete validation.spanId
+    delete validation.startTimeUnixNano
+    delete validation.endTimeUnixNano
     expect(validation).toMatchSnapshot()
 }, ['should post /tempo/spans'])
 
