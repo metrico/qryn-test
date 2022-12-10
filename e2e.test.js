@@ -434,6 +434,8 @@ it('e2e', async () => {
   await expect(runRequest(`first_over_time({test_id="${testID}_json", freq="1"} | unwrap freq [1sddaad])`))
     .rejects.toThrow()
   await checkNewRelic(testID, start, end)
+  await checkGZIPCompression(testID, start, end)
+  // HERE STOPS TESTS
 })
 
 const checkAlertConfig = async () => {
@@ -763,5 +765,33 @@ async function checkNewRelic(testID, start, end) {
   expect(res.status).toEqual(200)
   res = await runRequest(`{test_id="${testID}_newrelic_multi"}`)
   adjustResult(res, testID + '_newrelic_multi')
+  expect(res.data.data).toMatchSnapshot()
+}
+
+/**
+ *
+ * @param testID {string}
+ * @param startMs {number}
+ * @param endMs {number}
+ * @returns {Promise<void>}
+ */
+async function checkGZIPCompression(testID, startMs, endMs) {
+  console.log("Check GZIP compressed")
+  const {gzip} = require('node-gzip')
+  const points = createPoints(testID + "_gzipped", 1, startMs, endMs)
+  const zippedPoints = await gzip(JSON.stringify({
+    streams: Object.values(points)
+  }));
+  const resp = await axios.post(`http://${clokiWriteUrl}/loki/api/v1/push`,
+    zippedPoints, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Encoding': 'gzip'
+    }
+  })
+  expect(resp.status).toEqual(204)
+  const runRequest = runRequestFunc(startMs, endMs)
+  const res = await runRequest(`{test_id="${testID}_gzipped"}`)
+  adjustResultFunc(startMs, testID)(res, testID + '_gzipped')
   expect(res.data.data).toMatchSnapshot()
 }
