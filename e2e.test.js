@@ -436,6 +436,7 @@ it('e2e', async () => {
   await checkNewRelic(testID, start, end)
   await checkGZIPCompression(testID, start, end)
   // HERE STOPS TESTS
+  await checkGZIPOutput(testID, start, end)
 })
 
 const checkAlertConfig = async () => {
@@ -794,4 +795,21 @@ async function checkGZIPCompression(testID, startMs, endMs) {
   const res = await runRequest(`{test_id="${testID}_gzipped"}`)
   adjustResultFunc(startMs, testID)(res, testID + '_gzipped')
   expect(res.data.data).toMatchSnapshot()
+}
+
+async function checkGZIPOutput(testID, start, end) {
+  const req = `{test_id="${testID}"}`
+  const resp = await axios.get(
+    `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=1000&query=${encodeURIComponent(req)}&start=${start}000000&end=${end}000000`,
+    {
+      decompress: false,
+      responseType: 'arraybuffer',
+      headers: {
+        'Accept-Encoding': 'gzip'
+      }
+    }
+  )
+  const { ungzip } = require('node-gzip')
+  const data = await ungzip(resp.data)
+  expect(JSON.parse(data.toString()).data.result.length).toBeTruthy()
 }
