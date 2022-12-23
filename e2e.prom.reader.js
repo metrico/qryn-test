@@ -39,9 +39,10 @@ _it('should get /api/v1/labels with empty result', async () => {
     fd = new URLSearchParams()
     fd.append('start', `${Math.floor((Date.now() - 25 * 3600 * 1000) / 1000)}`)
     fd.append('end', `${Math.floor((Date.now() - 24 * 3600 * 1000) / 1000)}`)
+    console.log(`--------------------- http://${clokiExtUrl}/api/v1/labels?${fd}`)
     labels = await axios.get(`http://${clokiExtUrl}/api/v1/labels?${fd}`, {
         headers: {
-            'X-Scope-OrgID': '1',
+            'X-Scope-OrgID': '1'
         }
     })
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
