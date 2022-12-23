@@ -20,3 +20,11 @@ _it('should get /api/v1/rules', async () => {
     expect((await axiosGet(`http://${clokiExtUrl}/api/v1/rules`)).status).toEqual(200)
 })
 
+_it('should get /api/v1/metadata', async () => {
+    expect((await axiosGet(`http://${clokiExtUrl}/api/v1/metadata`)).status).toEqual(200)
+})
+
+_it('should get /api/v1/status/buildinfo', async () => {
+    expect((await axiosGet(`http://${clokiExtUrl}/api/v1/status/buildinfo`)).status).toEqual(200)
+})
+
