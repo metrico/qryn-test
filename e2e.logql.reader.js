@@ -449,3 +449,48 @@ _it('should read elastic log', async () => {
     resp.data.data.result.sort((a,b) => JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))
     expect(resp.data).toMatchSnapshot()
 }, ['should write elastic'])
+
+_it('should get /loki/api/v1/labels with time context', async () => {
+    let labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/labels?end=${Date.now()}000000&start=${Date.now() - 1 * 3600 * 1000}000000`, {
+        headers: {
+            'X-Scope-OrgID': '1'
+        }
+    })
+    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
+    labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/labels?start=${Date.now() - 25 * 3600 * 1000}000000&end=${Date.now() - 24 * 3600 * 1000}000000`, {
+        headers: {
+            'X-Scope-OrgID': '1'
+        }
+    })
+    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
+}, ['should post /api/v1/labels'])
+
+_it('should get /loki/api/v1/label/:name/values with time context', async () => {
+    let labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values?end=${Date.now()}000000&start=${Date.now() - 3600 * 1000}000000`, {
+        headers: {
+            'X-Scope-OrgID': '1'
+        }
+    })
+    expect(labels.data.data).toEqual(['ok'])
+    labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values?start=${Date.now() - 25 * 3600 * 1000}000000&end=${Date.now() - 24 * 3600 * 1000}000000`, {
+        headers: {
+            'X-Scope-OrgID': '1'
+        }
+    })
+    expect(labels.data.data).toEqual([])
+}, ['should post /api/v1/labels'])
+
+_it('should get /loki/api/v1/label with time context', async () => {
+    let labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label?end=${Date.now()}000000&start=${Date.now() - 1 * 3600 * 1000}000000`, {
+        headers: {
+            'X-Scope-OrgID': '1'
+        }
+    })
+    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
+    labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label?start=${Date.now() - 25 * 3600 * 1000}000000&end=${Date.now() - 24 * 3600 * 1000}000000`, {
+        headers: {
+            'X-Scope-OrgID': '1'
+        }
+    })
+    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
+}, ['should post /api/v1/labels'])

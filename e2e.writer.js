@@ -1,10 +1,10 @@
-const {_it, createPoints, sendPoints, clokiWriteUrl, testID, start, end, storage, shard} = require('./common')
+const {_it, createPoints, sendPoints, clokiWriteUrl, testID, start, end, storage, shard, clokiExtUrl} = require('./common')
 const protobufjs = require("protobufjs");
 const path = require("path");
 const axios = require("axios");
 const {Point} = require("@influxdata/influxdb-client");
 const {pushTimeseries} = require("prometheus-remote-write");
-
+const fetch = require("node-fetch");
 
 _it('push logs http', async () => {
     console.log(testID)
@@ -299,4 +299,39 @@ _it('should write elastic', async () => {
         ]
     })
     expect(resp.errors).toBeFalsy()
+})
+
+_it('should post /api/v1/labels', async () => {
+    const {pushTimeseries} = require('prometheus-remote-write')
+    const res = await pushTimeseries({
+        labels: {
+            [`${testID}_LBL`]: 'ok'
+        },
+        samples: [
+            {
+                value: 123,
+                timestamp: Date.now(),
+            },
+        ],
+    }, {
+        url: `http://${clokiWriteUrl}/v1/prom/remote/write`,
+        fetch: (input, opts) => {
+            opts.headers['X-Scope-OrgID'] = '1'
+            opts.headers['X-Shard'] = shard
+            return fetch(input, opts)
+        }
+    })
+    expect(res.status).toEqual(204)
+    const fd = new URLSearchParams()
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    fd.append('start', `${Math.floor(Date.now() / 1000) - 10}`)
+    fd.append('end', `${Math.floor(Date.now() / 1000)}`)
+    const labels = await axios.post(`http://${clokiExtUrl}/api/v1/labels`, fd, {
+        headers: {
+            'X-Scope-OrgID': '1',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Shard': shard
+        }
+    })
+    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
 })
