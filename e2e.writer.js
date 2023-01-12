@@ -328,6 +328,10 @@ _it('should post /api/v1/labels', async () => {
         fetch: (input, opts) => {
             opts.headers['X-Scope-OrgID'] = '1'
             opts.headers['X-Shard'] = shard
+            opts.headers = {
+                ...opts.headers,
+                ...extraHeaders
+            }
             return fetch(input, opts)
         }
     })
