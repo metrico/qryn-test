@@ -1,5 +1,5 @@
 const axios = require('axios')
-const {clokiExtUrl, _it, testID, clokiWriteUrl, shard, axiosPost} = require('./common')
+const {clokiExtUrl, _it, testID, clokiWriteUrl, shard, axiosPost, extraHeaders} = require('./common')
 
 _it('should post /api/v1/labels with empty result', async () => {
     let fd = new URLSearchParams()
