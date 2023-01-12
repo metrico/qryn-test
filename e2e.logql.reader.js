@@ -1,4 +1,4 @@
-const {_it, start, end, testID, clokiExtUrl, createPoints, sendPoints, clokiWriteUrl, axiosGet} = require("./common");
+const {_it, start, end, testID, clokiExtUrl, createPoints, sendPoints, clokiWriteUrl, axiosGet, axiosPost} = require("./common");
 const {WebSocket} = require("ws");
 const protobufjs = require("protobufjs");
 const path = require("path");
@@ -544,7 +544,7 @@ _it('should post /loki/api/v1/labels with time context', async () => {
     let fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
-    let labels = await axios.post(`http://${clokiExtUrl}/loki/api/v1/labels`, fd, {
+    let labels = await axiosPost(`http://${clokiExtUrl}/loki/api/v1/labels`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -554,7 +554,7 @@ _it('should post /loki/api/v1/labels with time context', async () => {
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
-    labels = await axios.post(`http://${clokiExtUrl}/loki/api/v1/labels`, fd, {
+    labels = await axiosPost(`http://${clokiExtUrl}/loki/api/v1/labels`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -569,7 +569,7 @@ _it('should post /loki/api/v1/label/:name/values with time context', async () =>
     let fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
-    let labels = await axios.post(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values`, fd, {
+    let labels = await axiosPost(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -579,7 +579,7 @@ _it('should post /loki/api/v1/label/:name/values with time context', async () =>
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
-    labels = await axios.post(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values`, fd, {
+    labels = await axiosPost(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -592,7 +592,7 @@ _it('should post /loki/api/v1/label with time context', async () => {
     let fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 1 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
-    let labels = await axios.post(`http://${clokiExtUrl}/loki/api/v1/label`, fd, {
+    let labels = await axiosPost(`http://${clokiExtUrl}/loki/api/v1/label`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -602,7 +602,7 @@ _it('should post /loki/api/v1/label with time context', async () => {
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
-    labels = await axios.post(`http://${clokiExtUrl}/loki/api/v1/label`, fd, {
+    labels = await axiosPost(`http://${clokiExtUrl}/loki/api/v1/label`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -616,7 +616,7 @@ _it('should post /loki/api/v1/series with time context', async () => {
     fd.append("start", `${Date.now() - 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
     fd.append("match[]", `{test_id="${testID}"}`)
-    let labels = await axios.post(`http://${clokiExtUrl}/loki/api/v1/series`, fd, {
+    let labels = await axiosPost(`http://${clokiExtUrl}/loki/api/v1/series`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -627,7 +627,7 @@ _it('should post /loki/api/v1/series with time context', async () => {
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
     fd.append("match[]", `{test_id="${testID}"}`)
-    labels = await axios.post(`http://${clokiExtUrl}/loki/api/v1/series`, fd, {
+    labels = await axiosPost(`http://${clokiExtUrl}/loki/api/v1/series`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'

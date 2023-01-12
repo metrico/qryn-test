@@ -41,7 +41,7 @@ module.exports.createPoints = (id, frequencySec,
 module.exports.sendPoints = async (endpoint, points) => {
   try {
     console.log(`${endpoint}/loki/api/v1/push`)
-    await axios.post(`${endpoint}/loki/api/v1/push`, {
+    await axiosPost(`${endpoint}/loki/api/v1/push`, {
       streams: Object.values(points)
     }, {
       headers: { 'Content-Type': 'application/json', "X-Scope-OrgID": "1", 'X-Shard': shard }
@@ -111,6 +111,29 @@ const axiosGet = async (req) => {
   }
 }
 
+const axiosPost = async (req, data, conf) => {
+  try {
+    return await axios.post(req, data, {
+      ...(conf || {}),
+      headers: {
+        ...(conf.headers || {}),
+        ...extraHeaders
+      }
+    })
+  } catch(e) {
+    console.log(req)
+    throw new Error(e)
+  }
+}
+
+const extraHeaders = (() => {
+  const res = {}
+  if (process.env.DSN) {
+    res['X-CH-DSN'] = process.env.DSN
+  }
+  return res
+})()
+
 const shard = -1
 
 const storage = {}
@@ -124,6 +147,8 @@ module.exports = {
   start,
   end,
   axiosGet,
+  axiosPost,
+  extraHeaders,
   storage,
   shard
 }

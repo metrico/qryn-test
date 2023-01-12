@@ -1,11 +1,11 @@
 const axios = require('axios')
-const {clokiExtUrl, _it, testID, clokiWriteUrl, shard} = require('./common')
+const {clokiExtUrl, _it, testID, clokiWriteUrl, shard, axiosPost} = require('./common')
 
 _it('should post /api/v1/labels with empty result', async () => {
     let fd = new URLSearchParams()
     fd.append('start', `${Math.floor(Date.now() / 1000)}`)
     fd.append('end', `${Math.floor((Date.now() - 1 * 3600 * 1000) / 1000)}`)
-    let labels = await axios.post(`http://${clokiExtUrl}/api/v1/labels`, fd, {
+    let labels = await axiosPost(`http://${clokiExtUrl}/api/v1/labels`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -16,7 +16,7 @@ _it('should post /api/v1/labels with empty result', async () => {
     fd = new URLSearchParams()
     fd.append('start', `${Math.floor((Date.now() - 25 * 3600 * 1000) / 1000)}`)
     fd.append('end', `${Math.floor((Date.now() - 24 * 3600 * 1000) / 1000)}`)
-    labels = await axios.post(`http://${clokiExtUrl}/api/v1/labels`, fd, {
+    labels = await axiosPost(`http://${clokiExtUrl}/api/v1/labels`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -53,7 +53,7 @@ _it('should post /api/v1/series with time context', async () => {
     fd.append('match[]', `{test_id="${testID}"}`)
     fd.append('start', `${Math.floor(Date.now() / 1000)}`)
     fd.append('end', `${Math.floor((Date.now() - 3600 * 1000) / 1000)}`)
-    let labels = await axios.post(`http://${clokiExtUrl}/api/v1/series`, fd, {
+    let labels = await axiosPost(`http://${clokiExtUrl}/api/v1/series`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -65,7 +65,7 @@ _it('should post /api/v1/series with time context', async () => {
     fd.append('match[]', `{test_id="${testID}"}`)
     fd.append('start', `${Math.floor((Date.now() - 25 * 3600 * 1000) / 1000)}`)
     fd.append('end', `${Math.floor((Date.now() - 24 * 3600 * 1000) / 1000)}`)
-    labels = await axios.post(`http://${clokiExtUrl}/api/v1/series`, fd, {
+    labels = await axiosPost(`http://${clokiExtUrl}/api/v1/series`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'

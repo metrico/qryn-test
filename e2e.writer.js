@@ -1,4 +1,6 @@
-const {_it, createPoints, sendPoints, clokiWriteUrl, testID, start, end, storage, shard, clokiExtUrl} = require('./common')
+const {_it, createPoints, sendPoints, clokiWriteUrl, testID, start, end, storage, shard, clokiExtUrl, axiosPost,
+    extraHeaders
+} = require('./common')
 const protobufjs = require("protobufjs");
 const path = require("path");
 const axios = require("axios");
@@ -48,7 +50,7 @@ _it('push protobuff', async () => {
     }
     let body = PushRequest.encode(points).finish()
     body = require('snappyjs').compress(body)
-    await axios.post(`http://${clokiWriteUrl}/loki/api/v1/push`, body, {
+    await axiosPost(`http://${clokiWriteUrl}/loki/api/v1/push`, body, {
         headers: {
             'Content-Type': 'application/x-protobuf',
             'X-Scope-OrgID': '1',
@@ -136,7 +138,7 @@ _it('should send zipkin', async () => {
     const url = `http://${clokiWriteUrl}/tempo/api/push`
     console.log(url)
 
-    const test = await axios.post(url, data, {
+    const test = await axiosPost(url, data, {
         headers: {
             "X-Scope-OrgID": '1',
             'X-Shard': shard
@@ -169,7 +171,7 @@ _it('should post /tempo/spans', async () => {
     const url = `http://${clokiWriteUrl}/tempo/spans`
     console.log(url)
 
-    const test = await axios.post(url, data, {
+    const test = await axiosPost(url, data, {
         headers: {
             "X-Scope-OrgID": '1',
             'X-Shard': shard
@@ -186,7 +188,8 @@ _it('should send influx', async () => {
         headers: {
             'X-Scope-OrgID': 1,
             'X-Sender': 'influx',
-            'X-Shard': shard
+            'X-Shard': shard,
+            ...extraHeaders
         }
     }).getWriteApi('', '', 'ns')
     writeAPI.useDefaultTags({'test_id': testID + 'FLX'})
@@ -229,6 +232,10 @@ _it('should send prometheus.remote.write', async () => {
             fetch: (input, opts) => {
                 opts.headers['X-Scope-OrgID'] = '1'
                 opts.headers['X-Shard'] = shard
+                opts.headers = {
+                    ...opts.headers,
+                    ...extraHeaders
+                }
                 return fetch(input, opts)
             }
         })
@@ -260,7 +267,7 @@ _it('should /api/v2/spans', async () => {
     const url = `http://${clokiWriteUrl}/tempo/spans`
     console.log(url)
 
-    const test = await axios.post(url, data, {
+    const test = await axiosPost(url, data, {
         headers: {
             "X-Scope-OrgID": '1',
             'X-Shard': shard
@@ -280,7 +287,10 @@ _it('should write elastic', async () => {
     const { Client } = require('@elastic/elasticsearch')
     const client = new Client({
         node: `http://${clokiWriteUrl}`,
-        headers: {'X-Scope-OrgID': '1'}
+        headers: {
+            'X-Scope-OrgID': '1',
+            ...extraHeaders
+        }
     })
     const resp = await client.bulk({
         refresh: true,
@@ -326,7 +336,7 @@ _it('should post /api/v1/labels', async () => {
     await new Promise(resolve => setTimeout(resolve, 1000))
     fd.append('start', `${Math.floor(Date.now() / 1000) - 10}`)
     fd.append('end', `${Math.floor(Date.now() / 1000)}`)
-    const labels = await axios.post(`http://${clokiExtUrl}/api/v1/labels`, fd, {
+    const labels = await axiosPost(`http://${clokiExtUrl}/api/v1/labels`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded',
