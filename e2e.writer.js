@@ -94,7 +94,8 @@ _it('should send otlp', async () => {
     const exporter = new OTLPTraceExporter({
         headers: {
             'X-Scope-OrgID': '1',
-            'X-Shard': shard
+            'X-Shard': shard,
+            ...extraHeaders
         },
         url: 'http://' + clokiWriteUrl + '/v1/traces'
     });
