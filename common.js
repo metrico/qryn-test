@@ -102,9 +102,13 @@ afterAll(() => {
   }
 })
 
-const axiosGet = async (req) => {
+const axiosGet = async (req, conf) => {
   try {
-    return await axios.get(req, {headers: {'X-Scope-OrgID': '1'}})
+    conf = conf || {}
+    return await axios.get(req, {headers: {
+      'X-Scope-OrgID': '1',
+        ...extraHeaders
+    }})
   } catch(e) {
     console.log(req)
     throw new Error(e)

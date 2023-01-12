@@ -1,4 +1,4 @@
-const {_it, start, end, testID, clokiExtUrl, createPoints, sendPoints, clokiWriteUrl, axiosGet, axiosPost} = require("./common");
+const {_it, start, end, testID, clokiExtUrl, createPoints, sendPoints, clokiWriteUrl, axiosGet, axiosPost, extraHeaders} = require("./common");
 const {WebSocket} = require("ws");
 const protobufjs = require("protobufjs");
 const path = require("path");
@@ -16,7 +16,8 @@ const runRequestFunc = (start, end) => async (req, _step, _start, _end, oid) => 
             `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=2000&query=${encodeURIComponent(req)}&start=${_start}000000&end=${_end}000000&step=${_step}`,
             {
                 headers: {
-                    "X-Scope-OrgID": oid
+                    "X-Scope-OrgID": oid,
+                    ...extraHeaders
                 }
             }
         )
@@ -458,7 +459,8 @@ _it('should get /loki/api/v1/labels with time context', async () => {
     fd.append("end", `${Date.now()}000000`)
     let labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/labels?${fd}`, {
         headers: {
-            'X-Scope-OrgID': '1'
+            'X-Scope-OrgID': '1',
+            ...extraHeaders
         }
     })
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
@@ -467,7 +469,8 @@ _it('should get /loki/api/v1/labels with time context', async () => {
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
     labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/labels?${fd}`, {
         headers: {
-            'X-Scope-OrgID': '1'
+            'X-Scope-OrgID': '1',
+            ...extraHeaders
         }
     })
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
@@ -479,7 +482,8 @@ _it('should get /loki/api/v1/label/:name/values with time context', async () => 
     fd.append("end", `${Date.now()}000000`)
     let labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values?${fd}`, {
         headers: {
-            'X-Scope-OrgID': '1'
+            'X-Scope-OrgID': '1',
+            ...extraHeaders
         }
     })
     expect(labels.data.data).toEqual(['ok'])
@@ -488,7 +492,8 @@ _it('should get /loki/api/v1/label/:name/values with time context', async () => 
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
     labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values?${fd}`, {
         headers: {
-            'X-Scope-OrgID': '1'
+            'X-Scope-OrgID': '1',
+            ...extraHeaders
         }
     })
     expect(labels.data.data).toEqual([])
@@ -500,7 +505,8 @@ _it('should get /loki/api/v1/label with time context', async () => {
     fd.append("end", `${Date.now()}000000`)
     let labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label?${fd}`, {
         headers: {
-            'X-Scope-OrgID': '1'
+            'X-Scope-OrgID': '1',
+            ...extraHeaders
         }
     })
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
@@ -509,7 +515,8 @@ _it('should get /loki/api/v1/label with time context', async () => {
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
     labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label?${fd}`, {
         headers: {
-            'X-Scope-OrgID': '1'
+            'X-Scope-OrgID': '1',
+            ...extraHeaders
         }
     })
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
@@ -522,7 +529,8 @@ _it('should get /loki/api/v1/series with time context', async () => {
     fd.append("match[]", `{test_id="${testID}"}`)
     let labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/series?${fd}`, {
         headers: {
-            'X-Scope-OrgID': '1'
+            'X-Scope-OrgID': '1',
+            ...extraHeaders
         }
     })
     expect(labels.data.data && labels.data.data.length).toBeTruthy()
@@ -532,7 +540,8 @@ _it('should get /loki/api/v1/series with time context', async () => {
     fd.append("match[]", `{test_id="${testID}"}`)
     labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/series?${fd}`, {
         headers: {
-            'X-Scope-OrgID': '1'
+            'X-Scope-OrgID': '1',
+            ...extraHeaders
         }
     })
     expect(labels.data.data && labels.data.data.length).toBeFalsy()

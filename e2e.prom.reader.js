@@ -31,7 +31,8 @@ _it('should get /api/v1/labels with empty result', async () => {
     fd.append('start', `${Math.floor((Date.now() - 3600 * 1000) / 1000)}`)
     let labels = await axios.get(`http://${clokiExtUrl}/api/v1/labels?${fd}`, {
         headers: {
-            'X-Scope-OrgID': '1'
+            'X-Scope-OrgID': '1',
+            ...extraHeaders
         }
     })
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
@@ -42,7 +43,8 @@ _it('should get /api/v1/labels with empty result', async () => {
     console.log(`--------------------- http://${clokiExtUrl}/api/v1/labels?${fd}`)
     labels = await axios.get(`http://${clokiExtUrl}/api/v1/labels?${fd}`, {
         headers: {
-            'X-Scope-OrgID': '1'
+            'X-Scope-OrgID': '1',
+            ...extraHeaders
         }
     })
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
@@ -81,7 +83,8 @@ _it('should get /api/v1/series with time context', async () => {
     fd.append('start', `${Math.floor((Date.now() - 3600 * 1000) / 1000)}`)
     let labels = await axios.get(`http://${clokiExtUrl}/api/v1/series?${fd}`, {
         headers: {
-            'X-Scope-OrgID': '1'
+            'X-Scope-OrgID': '1',
+            ...extraHeaders
         }
     })
     expect(labels.data.data && labels.data.data.length).toBeTruthy()
@@ -92,7 +95,8 @@ _it('should get /api/v1/series with time context', async () => {
     fd.append('end', `${Math.floor((Date.now() - 24 * 3600 * 1000) / 1000)}`)
     labels = await axios.get(`http://${clokiExtUrl}/api/v1/series?${fd}`, {
         headers: {
-            'X-Scope-OrgID': '1'
+            'X-Scope-OrgID': '1',
+            ...extraHeaders
         }
     })
     expect(labels.data.data && labels.data.data.length).toBeFalsy()
