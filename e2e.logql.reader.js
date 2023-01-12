@@ -226,7 +226,7 @@ _itShouldMatrixReq({
 
 _it('should ws', async () => {
     const ws = new WebSocket(`ws://${clokiExtUrl}/loki/api/v1/tail?query={test_id="${testID}_ws"}&X-Scope-OrgID=1` +
-        (process.env.DSN ? '&dsn='+process.env.DSN : ''))
+        (process.env.DSN ? '&dsn='+encodeURIComponent(process.env.DSN) : ''))
     const resp = {
         data: {
             data: {
