@@ -3,8 +3,8 @@ const {clokiExtUrl, _it, testID, clokiWriteUrl, shard, axiosPost} = require('./c
 
 _it('should post /api/v1/labels with empty result', async () => {
     let fd = new URLSearchParams()
-    fd.append('start', `${Math.floor(Date.now() / 1000)}`)
-    fd.append('end', `${Math.floor((Date.now() - 1 * 3600 * 1000) / 1000)}`)
+    fd.append('end', `${Math.floor(Date.now() / 1000)}`)
+    fd.append('start', `${Math.floor((Date.now() - 1 * 3600 * 1000) / 1000)}`)
     let labels = await axiosPost(`http://${clokiExtUrl}/api/v1/labels`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
@@ -27,8 +27,8 @@ _it('should post /api/v1/labels with empty result', async () => {
 
 _it('should get /api/v1/labels with empty result', async () => {
     let fd = new URLSearchParams()
-    fd.append('start', `${Math.floor(Date.now() / 1000)}`)
-    fd.append('end', `${Math.floor((Date.now() - 3600 * 1000) / 1000)}`)
+    fd.append('end', `${Math.floor(Date.now() / 1000)}`)
+    fd.append('start', `${Math.floor((Date.now() - 3600 * 1000) / 1000)}`)
     let labels = await axios.get(`http://${clokiExtUrl}/api/v1/labels?${fd}`, {
         headers: {
             'X-Scope-OrgID': '1'
@@ -51,8 +51,8 @@ _it('should get /api/v1/labels with empty result', async () => {
 _it('should post /api/v1/series with time context', async () => {
     let fd = new URLSearchParams()
     fd.append('match[]', `{test_id="${testID}"}`)
-    fd.append('start', `${Math.floor(Date.now() / 1000)}`)
-    fd.append('end', `${Math.floor((Date.now() - 3600 * 1000) / 1000)}`)
+    fd.append('end', `${Math.floor(Date.now() / 1000)}`)
+    fd.append('start', `${Math.floor((Date.now() - 3600 * 1000) / 1000)}`)
     let labels = await axiosPost(`http://${clokiExtUrl}/api/v1/series`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
@@ -77,8 +77,8 @@ _it('should post /api/v1/series with time context', async () => {
 _it('should get /api/v1/series with time context', async () => {
     let fd = new URLSearchParams()
     fd.append('match[]', `{test_id="${testID}"}`)
-    fd.append('start', `${Math.floor(Date.now() / 1000)}`)
-    fd.append('end', `${Math.floor((Date.now() - 3600 * 1000) / 1000)}`)
+    fd.append('end', `${Math.floor(Date.now() / 1000)}`)
+    fd.append('start', `${Math.floor((Date.now() - 3600 * 1000) / 1000)}`)
     let labels = await axios.get(`http://${clokiExtUrl}/api/v1/series?${fd}`, {
         headers: {
             'X-Scope-OrgID': '1'
