@@ -547,7 +547,7 @@ async function pbCheck (testID) {
   let body = PushRequest.encode(points).finish()
   body = require('snappyjs').compress(body)
   await axios.post(`http://${clokiWriteUrl}/loki/api/v1/push`, body, {
-    headers: { 'Content-Type': 'application/x-protobuf' }
+    headers: { 'Content-Type': 'application/x-protobuf', 'Content-Encoding': 'snappy' }
   })
   let resp = await runRequest(`{test_id="${testID}_PB"}`, 1, start, end)
   adjustResult(resp, testID + '_PB')
