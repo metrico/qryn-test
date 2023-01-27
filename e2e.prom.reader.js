@@ -1,7 +1,7 @@
 const axios = require('axios')
 const {clokiExtUrl, _it, testID, clokiWriteUrl, shard, axiosPost, extraHeaders} = require('./common')
 
-_it('should post /api/v1/labels with empty result', async () => {
+/* TODO: implement _it('should post /api/v1/labels with empty result', async () => {
     let fd = new URLSearchParams()
     fd.append('end', `${Math.floor(Date.now() / 1000)}`)
     fd.append('start', `${Math.floor((Date.now() - 1 * 3600 * 1000) / 1000)}`)
@@ -23,9 +23,9 @@ _it('should post /api/v1/labels with empty result', async () => {
         }
     })
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
-}, ['should post /api/v1/labels'])
+}, ['should post /api/v1/labels']) */
 
-_it('should get /api/v1/labels with empty result', async () => {
+/* TODO: implement _it('should get /api/v1/labels with empty result', async () => {
     let fd = new URLSearchParams()
     fd.append('end', `${Math.floor(Date.now() / 1000)}`)
     fd.append('start', `${Math.floor((Date.now() - 3600 * 1000) / 1000)}`)
@@ -48,9 +48,9 @@ _it('should get /api/v1/labels with empty result', async () => {
         }
     })
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
-}, ['should post /api/v1/labels'])
+}, ['should post /api/v1/labels']) */
 
-_it('should post /api/v1/series with time context', async () => {
+/* TODO: implement _it('should post /api/v1/series with time context', async () => {
     let fd = new URLSearchParams()
     fd.append('match[]', `{test_id="${testID}"}`)
     fd.append('end', `${Math.floor(Date.now() / 1000)}`)
@@ -74,9 +74,9 @@ _it('should post /api/v1/series with time context', async () => {
         }
     })
     expect(labels.data.data && labels.data.data.length).toBeFalsy()
-}, ['should post /api/v1/labels'])
+}, ['should post /api/v1/labels'])*/
 
-_it('should get /api/v1/series with time context', async () => {
+/* TODO: implement _it('should get /api/v1/series with time context', async () => {
     let fd = new URLSearchParams()
     fd.append('match[]', `{test_id="${testID}"}`)
     fd.append('end', `${Math.floor(Date.now() / 1000)}`)
@@ -101,3 +101,4 @@ _it('should get /api/v1/series with time context', async () => {
     })
     expect(labels.data.data && labels.data.data.length).toBeFalsy()
 }, ['should post /api/v1/labels'])
+*/

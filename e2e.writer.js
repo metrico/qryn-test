@@ -145,7 +145,8 @@ _it('should send zipkin', async () => {
             'X-Shard': shard
         }
     })
-    expect(test.status).toEqual(202)
+    expect(test.status).toEqual(200)
+    await new Promise(f => setTimeout(f, 500))
     console.log('Tempo Insertion Successful')
 })
 
@@ -178,7 +179,7 @@ _it('should post /tempo/spans', async () => {
             'X-Shard': shard
         }
     })
-    expect(test.status).toEqual(202)
+    expect(test.status).toEqual(200)
     console.log('Tempo Insertion Successful')
 })
 

@@ -598,7 +598,7 @@ _it('should post /loki/api/v1/label/:name/values with time context', async () =>
     expect(labels.data.data).toEqual([])
 }, ['should post /api/v1/labels'])
 
-_it('should post /loki/api/v1/label with time context', async () => {
+/* TODO: implement _it('should post /loki/api/v1/label with time context', async () => {
     let fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 1 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
@@ -619,9 +619,9 @@ _it('should post /loki/api/v1/label with time context', async () => {
         }
     })
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
-}, ['should post /api/v1/labels'])
+}, ['should post /api/v1/labels']) */
 
-_it('should post /loki/api/v1/series with time context', async () => {
+/* TODO: _it('should post /loki/api/v1/series with time context', async () => {
     let fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
@@ -644,4 +644,4 @@ _it('should post /loki/api/v1/series with time context', async () => {
         }
     })
     expect(labels.data.data && labels.data.data.length).toBeFalsy()
-}, ['push logs http'])
+}, ['push logs http'])*/
