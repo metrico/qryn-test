@@ -350,3 +350,12 @@ _it('should post /api/v1/labels', async () => {
     })
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
 })
+
+_it('should send broken labels', async () => {
+    await sendPoints(`http://${clokiWriteUrl}`, {
+        'a': {
+            stream: Object.fromEntries([[`0.${testID}`, 'l123']]),
+            values: [[`${start+1}000000`, 'TEST!!!']]
+        }
+    })
+})

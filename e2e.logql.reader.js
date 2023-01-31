@@ -645,3 +645,16 @@ _it('should post /loki/api/v1/series with time context', async () => {
     })
     expect(labels.data.data && labels.data.data.length).toBeFalsy()
 }, ['push logs http'])
+
+_it('should read broken labels', async () => {
+    const runRequest = runRequestFunc(start, end)
+    const resp = await runRequest(`{__${testID}="l123"}`, 1, start, end)
+    expect(resp.data.data.result.length).toBeTruthy()
+    resp.data.data.result = resp.data.data.result.map(stream => {
+        expect(stream.stream[`__${testID}`]).toEqual('l123')
+        delete stream.stream[`__${testID}`]
+        stream.values = stream.values.map(v => [v[0] - start * 1000000, v[1]])
+        return stream
+    })
+    expect(resp.data).toMatchSnapshot()
+}, ['should send broken labels'])
