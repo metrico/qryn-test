@@ -88,7 +88,7 @@ const _it = (() => {
   }
 })()
 
-const testID = Math.random() + ''
+const testID = 'id' + (Math.random() + '').substring(2)
 const start = Math.floor((Date.now() - 60 * 1000 * 10) / 60 / 1000) * 60 * 1000
 const end = Math.floor(Date.now() / 60 / 1000) * 60 * 1000
 
