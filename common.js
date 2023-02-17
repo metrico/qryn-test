@@ -73,6 +73,7 @@ const _it = (() => {
   }
   return (name, fn, deps) => {
     it(name, async () => {
+      console.log("!!!!!!" + name)
       try {
         if (!e2e) {
           return
@@ -88,7 +89,7 @@ const _it = (() => {
   }
 })()
 
-const testID = Math.random() + ''
+const testID = 'id' + (Math.random() + '').substring(2)
 const start = Math.floor((Date.now() - 60 * 1000 * 10) / 60 / 1000) * 60 * 1000
 const end = Math.floor(Date.now() / 60 / 1000) * 60 * 1000
 
@@ -105,7 +106,7 @@ afterAll(() => {
 const axiosGet = async (req, conf) => {
   try {
     conf = conf || {}
-    return await axios.get(req, {headers: {
+    return await axios.get(req, {timeout: 30000, headers: {
       'X-Scope-OrgID': '1',
         ...extraHeaders
     }})
