@@ -101,3 +101,34 @@ _it('should get /api/v1/series with time context', async () => {
     })
     expect(labels.data.data && labels.data.data.length).toBeFalsy()
 }, ['should post /api/v1/labels'])
+
+_it('should read datadog metrics', async () => {
+    const fd = new URLSearchParams()
+    fd.append('query', `DDMetric_${testID}{}`)
+    fd.append('end', Math.floor(Date.now()/1000+1))
+    fd.append('start', Math.floor(Date.now() / 1000 - 600))
+    fd.append('step', '15s')
+    let res = null
+    console.log(`http://${clokiExtUrl}/api/v1/query_range?${fd}`)
+    try {
+        res = await axios.get(`http://${clokiExtUrl}/api/v1/query_range?${fd}`, {
+            headers: {
+                'X-Scope-OrgID': '1',
+                ...extraHeaders
+            }
+        })
+        expect(res.status).toEqual(200)
+        res.data.data.stats = null;
+        res.data.data.result.forEach(r => {
+            expect(r.metric.__name__).toEqual(`DDMetric_${testID}`)
+            r.metric.__name__ = null
+            r.values.forEach(v => {
+                v[0] = 0
+            })
+        })
+        expect(res.data).toMatchSnapshot()
+    } catch (e) {
+        console.log(JSON.stringify(e.response?.data, null, 1))
+        throw e
+    }
+}, ['should send datadog metrics'])

@@ -359,3 +359,94 @@ _it('should send broken labels', async () => {
         }
     })
 })
+
+_it('should send datadog logs', async () => {
+    const resp = await axiosPost(`http://${clokiWriteUrl}/api/v2/logs`, JSON.stringify([
+        {
+            "ddsource": `ddtest_${testID}`,
+            "ddtags": "env:staging,version:5.1",
+            "hostname": "i-012345678",
+            "message": "2019-11-19T14:37:58,995 INFO [process.name][20081] Hello World",
+            "service": "payment"
+        }
+    ]), {
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Scope-OrgID': '1'
+        }
+    });
+    expect(resp.status).toEqual(202)
+    await new Promise(f => setTimeout(f, 500))
+})
+
+_it('should send datadog metrics', async () => {
+    try {
+        const resp = await axiosPost(`http://${clokiWriteUrl}/api/v2/series`, JSON.stringify({
+            "series": [
+                {
+                    "metric": `DDMetric_${testID}`,
+                    "type": 0,
+                    "points": [
+                        {
+                            "timestamp": Math.floor(Date.now() / 1000),
+                            "value": 0.7
+                        }
+                    ],
+                    "resources": [
+                        {
+                            "name": "dummyhost",
+                            "type": "host"
+                        }
+                    ]
+                }
+            ]
+        }), {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Scope-OrgID': '1'
+            }
+        });
+        expect(resp.status).toEqual(202)
+        await new Promise(f => setTimeout(f, 500))
+    } catch (e) {
+        console.log(JSON.stringify(e.response));
+        throw e;
+    }
+})
+
+_it('should send cf logs', async () => {
+    const resp = await axiosPost(`http://${clokiWriteUrl}/cf/v1/insert?ddsource=ddtest_${testID}_CF`, JSON.stringify({
+        "DispatchNamespace": "",
+        "Event": {
+            "RayID": "7a036192bc93eb57",
+            "Request": {
+                "Method": "POST",
+                "URL": "https://cflogs.a.b/"
+            },
+            "Response": {
+                "Status": 500
+            }
+        },
+        "EventTimestampMs": Date.now(),
+        "EventType": "fetch",
+        "Exceptions": [],
+        "Logs": [
+            {
+                "Level": "log",
+                "Message": [
+                    "Agent v 1.0.5 handling request"
+                ],
+                "TimestampMs": 1677526710198
+            }
+        ],
+        "Outcome": "ok",
+        "ScriptName": "qryn-edgerouter-cf",
+        "ScriptTags": []
+    }), {
+        headers: {
+            'X-Scope-OrgID': '1'
+        }
+    });
+    expect(resp.status).toEqual(200)
+    await new Promise(f => setTimeout(f, 500))
+})

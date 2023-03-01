@@ -115,6 +115,13 @@ const axiosGet = async (req, conf) => {
   }
 }
 
+/**
+ *
+ * @param req {string}
+ * @param data {string | undefined}
+ * @param conf {Object | undefined}
+ * @returns {AxiosResponse<any>}
+ */
 const axiosPost = async (req, data, conf) => {
   try {
     return await axios.post(req, data, {
