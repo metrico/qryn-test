@@ -124,7 +124,9 @@ _it('should read datadog metrics', async () => {
             r.metric.__name__ = null
             r.values.forEach(v => {
                 v[0] = 0
+                expect(parseFloat(v[1])).toEqual(0.7)
             })
+            r.values = [r.values[0]]
         })
         expect(res.data).toMatchSnapshot()
     } catch (e) {
