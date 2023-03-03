@@ -1,4 +1,5 @@
 const axios = require('axios')
+const {EventEmitter} = require("events");
 /**
  *
  * @param id {string}
@@ -40,13 +41,118 @@ module.exports.createPoints = (id, frequencySec,
 module.exports.sendPoints = async (endpoint, points) => {
   try {
     console.log(`${endpoint}/loki/api/v1/push`)
-    await axios.post(`${endpoint}/loki/api/v1/push`, {
+    await axiosPost(`${endpoint}/loki/api/v1/push`, {
       streams: Object.values(points)
     }, {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', "X-Scope-OrgID": "1", 'X-Shard': shard }
     })
   } catch (e) {
     console.log(e.response)
     throw e
   }
+}
+const e2e = () => process.env.INTEGRATION_E2E || process.env.INTEGRATION
+
+const clokiExtUrl = process.env.CLOKI_EXT_URL || 'localhost:3100'
+const clokiWriteUrl = process.env.CLOKI_WRITE_URL || process.env.CLOKI_EXT_URL || 'localhost:3100'
+
+jest.setTimeout(300000)
+
+const _it = (() => {
+  const finished = {}
+  const emitter = new EventEmitter()
+  const onFinish = (name) => {
+    if (finished[name]) {
+      return Promise.resolve()
+    }
+    return new Promise(f => emitter.once(name, f))
+  }
+  const fireFinish = (name) => {
+    finished[name] = true
+    emitter.emit(name)
+  }
+  return (name, fn, deps) => {
+    it(name, async () => {
+      try {
+        if (!e2e) {
+          return
+        }
+        if (deps) {
+          await Promise.all(deps.map(d => onFinish(d)))
+        }
+        await fn()
+      } finally {
+        fireFinish(name)
+      }
+    })
+  }
+})()
+
+const testID = 'id' + (Math.random() + '').substring(2)
+const start = Math.floor((Date.now() - 60 * 1000 * 10) / 60 / 1000) * 60 * 1000
+const end = Math.floor(Date.now() / 60 / 1000) * 60 * 1000
+
+beforeAll(() => {
+  jest.setTimeout(300000)
+})
+
+afterAll(() => {
+  if (!e2e()) {
+    return
+  }
+})
+
+const axiosGet = async (req, conf) => {
+  try {
+    conf = conf || {}
+    return await axios.get(req, {timeout: 30000, headers: {
+      'X-Scope-OrgID': '1',
+        ...extraHeaders
+    }})
+  } catch(e) {
+    console.log(req)
+    throw new Error(e)
+  }
+}
+
+const axiosPost = async (req, data, conf) => {
+  try {
+    return await axios.post(req, data, {
+      ...(conf || {}),
+      headers: {
+        ...(conf?.headers || {}),
+        ...extraHeaders
+      }
+    })
+  } catch(e) {
+    console.log(req)
+    throw new Error(e)
+  }
+}
+
+const extraHeaders = (() => {
+  const res = {}
+  if (process.env.DSN) {
+    res['X-CH-DSN'] = process.env.DSN
+  }
+  return res
+})()
+
+const shard = -1
+
+const storage = {}
+
+module.exports = {
+  ...module.exports,
+  clokiWriteUrl,
+  clokiExtUrl,
+  _it,
+  testID,
+  start,
+  end,
+  axiosGet,
+  axiosPost,
+  extraHeaders,
+  storage,
+  shard
 }
