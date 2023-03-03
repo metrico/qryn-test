@@ -73,7 +73,6 @@ const _it = (() => {
   }
   return (name, fn, deps) => {
     it(name, async () => {
-      console.log("!!!!!!" + name)
       try {
         if (!e2e) {
           return
@@ -121,7 +120,7 @@ const axiosPost = async (req, data, conf) => {
     return await axios.post(req, data, {
       ...(conf || {}),
       headers: {
-        ...(conf.headers || {}),
+        ...(conf?.headers || {}),
         ...extraHeaders
       }
     })

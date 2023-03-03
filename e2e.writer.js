@@ -357,3 +357,13 @@ expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
 */
 })
 
+_it('should send newrelic', async () => {
+    let body = {
+        timestamp: start,
+        test_id: testID + '_newrelic',
+        message: 'TEST NEWRELIC SINGLE'
+    }
+    const res = await axiosPost(`http://${clokiExtUrl}/log/v1`, body)
+    expect(res.status).toEqual(200)
+})
+

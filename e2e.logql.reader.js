@@ -3,17 +3,19 @@ const {WebSocket} = require("ws");
 const protobufjs = require("protobufjs");
 const path = require("path");
 const axios = require("axios");
+const {test} = require("handlebars-helpers/lib/regex");
 
 
-const runRequestFunc = (start, end) => async (req, _step, _start, _end, oid) => {
+const runRequestFunc = (start, end) => async (req, _step, _start, _end, oid, limit) => {
     console.log(req)
     oid = oid || "1"
+    limit = limit || 2000
     try {
         _start = _start || start
         _end = _end || end
         _step = _step || 2
         return await axios.get(
-            `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=2000&query=${encodeURIComponent(req)}&start=${_start}000000&end=${_end}000000&step=${_step}`,
+            `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=${limit}&query=${encodeURIComponent(req)}&start=${_start}000000&end=${_end}000000&step=${_step}`,
             {
                 headers: {
                     "X-Scope-OrgID": oid,
@@ -52,7 +54,17 @@ const adjustMatrixResult = (resp, id) => {
 }
 /**
  *
- * @param optsOrName {{name: string, req: string, step: number|undefined, start: number|undefined, end: number|undefined, testID: string|undefined} | string}
+ * @param optsOrName {{
+ *   name: string,
+ *   req: string,
+ *   step: number|undefined,
+ *   start: number|undefined,
+ *   end: number|undefined,
+ *   testID: string|undefined | string,
+ *   oid: {string},
+ *   limit: {number},
+ *   deps: {[string]}
+ * } | string}
  * @param req {string | undefined}
  * @private
  */
@@ -63,10 +75,10 @@ const _itShouldStdReq = (optsOrName, req) => {
         req: typeof optsOrName === 'object' ? optsOrName.req : req
     }
     _it (opts.name, async () => {
-        let resp = await runRequest(opts.req, opts.step, opts.start, opts.end)
+        let resp = await runRequest(opts.req, opts.step, opts.start, opts.end, opts.oid, opts.limit)
         adjustResult(resp)
         expect(resp.data).toMatchSnapshot()
-    }, ['push logs http'])
+    }, opts.deps || ['push logs http'])
 }
 
 /**
@@ -350,6 +362,12 @@ _itShouldMatrixReq({
     step: 0.05
 })
 
+_itShouldStdReq({
+    name: `macro`,
+    req: `test_macro("${testID}")`,
+    limit: 2002
+})
+
 _it('native linefmt', async () => {
     process.env.LINE_FMT = 'go_native'
     const resp = await runRequest(`{test_id="${testID}"}| line_format ` +
@@ -556,6 +574,50 @@ _it('should get /loki/api/v1/series with time context', async () => {
 
      */
 }, ['push logs http'])
+
+_it('should response CSV', async () => {
+    let req = `{test_id="${testID}"}`
+    let res = await axios.get(
+        `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=${100}&query=${encodeURIComponent(req)}&start=${start}000000&end=${end}000000&step=1&csv=1`
+    );
+    let data = res.data
+        .replace(/^\d+,/gm, (str) => (parseInt(str.substring(0, str.length-1)) / 1000000 - start)+',')
+        .replace(new RegExp(testID, 'g'), "test_id");
+    expect(data).toMatchSnapshot()
+}, ['push logs http'])
+
+_it('should response CSV matrix', async () => {
+    const req = `rate({test_id="${testID}"}[10s])`
+    const res = await axios.get(
+        `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=${100}&query=${encodeURIComponent(req)}&start=${start}000000&end=${end}000000&step=1&csv=1`
+    )
+    const data = res.data
+        .replace(/^\d+,/gm, (str) => (parseInt(str.substring(0, str.length-1)) / 1000000 - start)+',')
+        .replace(new RegExp(testID, 'g'), "test_id")
+    expect(data).toMatchSnapshot()
+}, ['push logs http'])
+
+_itShouldStdReq({
+    name: 'should read newrelic',
+    req: `{test_id="${testID}_newrelic"}`,
+    deps: ['should send newrelic']
+})
+
+_itShouldMatrixReq('topk', `topk(1, rate({test_id="${testID}"}[5s]))`)
+
+_itShouldMatrixReq('topk + sum',
+    `topk(1, sum(count_over_time({test_id="${testID}"}[5s])) by (test_id))`)
+
+_itShouldMatrixReq('topk + unwrap',
+    `topk(1, sum_over_time({test_id="${testID}_json"} | json f="int_val" | unwrap f [5s]) by (test_id))`)
+
+_itShouldMatrixReq('topk + unwrap + sum',
+    `topk(1, sum(sum_over_time({test_id=~"${testID}_json"} | json f="int_val" | unwrap f [5s])) by (test_id))`)
+
+_itShouldMatrixReq('bottomk', `bottomk(1, rate({test_id="${testID}"}[5s]))`)
+
+_itShouldMatrixReq('quantile',
+    `quantile_over_time(0.5, {test_id=~"${testID}_json"} | json f="int_val" | unwrap f [5s]) by (test_id)`)
 
 //--- POST
 /* TODO not supported
