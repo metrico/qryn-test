@@ -687,3 +687,19 @@ _it('should read cf logs', async () => {
     expect(resp.data).toMatchSnapshot();
 }, ['should send cf logs'])
 
+_itShouldMatrixReq('topk', `topk(1, rate({test_id="${testID}"}[5s]))`)
+
+_itShouldMatrixReq('topk + sum',
+    `topk(1, sum(count_over_time({test_id="${testID}"}[5s])) by (test_id))`)
+
+_itShouldMatrixReq('topk + unwrap',
+    `topk(1, sum_over_time({test_id="${testID}_json"} | json f="int_val" | unwrap f [5s]) by (test_id))`)
+
+_itShouldMatrixReq('topk + unwrap + sum',
+    `topk(1, sum(sum_over_time({test_id=~"${testID}_json"} | json f="int_val" | unwrap f [5s])) by (test_id))`)
+
+_itShouldMatrixReq('bottomk', `bottomk(1, rate({test_id="${testID}"}[5s]))`)
+
+_itShouldMatrixReq('quantile',
+    `quantile_over_time(0.5, {test_id=~"${testID}_json"} | json f="int_val" | unwrap f [5s]) by (test_id)`)
+
