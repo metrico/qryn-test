@@ -260,7 +260,7 @@ _it('should ws', async () => {
         }
     }
     ws.on('message', wsListener)
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise(resolve => setTimeout(resolve, 2000))
     const wsStart = Math.floor(Date.now() / 1000) * 1000
     for (let i = 0; i < 5; i++) {
         const points = createPoints(testID + '_ws', 1, wsStart + i * 1000, wsStart + i * 1000 + 1000, {}, {},
