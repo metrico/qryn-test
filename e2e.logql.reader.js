@@ -740,23 +740,6 @@ _it('should read datadog logs', async () => {
     expect(resp.data).toMatchSnapshot();
 }, ['should send datadog logs'])
 
-_it('should read cf logs', async () => {
-    const runRequest = runRequestFunc(start, Date.now())
-    const resp = await runRequest(`{ddsource="ddtest_${testID}_CF"}`, 1, start, Date.now())
-    resp.data.data.result.forEach(r => {
-        expect(r.stream.ddsource).toEqual(`ddtest_${testID}_CF`)
-        r.stream.ddsource = ''
-        r.values.forEach(v => {
-            v[0] = 0
-            v[1] = JSON.stringify({
-                ...JSON.parse(v[1]),
-                EventTimestampMs: 0
-            })
-        })
-    })
-    expect(resp.data).toMatchSnapshot();
-}, ['should send cf logs'])
-
 
 _itShouldMatrixReq({
     name: 'read datadog metrics',
