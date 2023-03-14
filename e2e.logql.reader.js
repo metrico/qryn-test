@@ -83,7 +83,15 @@ const _itShouldStdReq = (optsOrName, req) => {
 
 /**
  *
- * @param optsOrName {{name: string, req: string, step: number|undefined, start: number|undefined, end: number|undefined, testID: string|undefined} | string}
+ * @param optsOrName {{
+ *   name: string,
+ *   req: string,
+ *   step: number|undefined,
+ *   start: number|undefined,
+ *   end: number|undefined,
+ *   testID: string|undefined,
+ *   deps: string[]
+ * } | string}
  * @param req {string | undefined}
  * @private
  */
@@ -91,13 +99,14 @@ const _itShouldMatrixReq = (optsOrName, req) => {
     const opts = {
         ...(typeof optsOrName === 'object' ? optsOrName : {}),
         name: typeof optsOrName === 'object' ? optsOrName.name : optsOrName,
-        req: typeof optsOrName === 'object' ? optsOrName.req : req
+        req: typeof optsOrName === 'object' ? optsOrName.req : req,
+        deps: typeof optsOrName === 'object' ? optsOrName.deps || ['push logs http'] : ['push logs http']
     }
     _it (opts.name, async () => {
         let resp = await runRequest(opts.req, opts.step, opts.start, opts.end)
         adjustMatrixResult(resp)
         expect(resp.data).toMatchSnapshot()
-    }, ['push logs http'])
+    }, opts.deps)
 }
 
 _itShouldStdReq('ok limited res', `{test_id="${testID}"}`)
@@ -718,3 +727,40 @@ _it('should post /loki/api/v1/label/:name/values with time context', async () =>
     })
     expect(labels.data.data && labels.data.data.length).toBeFalsy()
 }, ['push logs http'])*/
+
+_it('should read datadog logs', async () => {
+    const runRequest = runRequestFunc(start, Date.now())
+    const resp = await runRequest(`{ddsource="ddtest_${testID}"}`, 1, start, Date.now())
+    resp.data.data.result.forEach(r => {
+        expect(r.stream.ddsource).toEqual(`ddtest_${testID}`)
+        r.stream.ddsource = ''
+        r.values.forEach(v => { v[0] = 0 })
+    })
+    expect(resp.data.data.result && resp.data.data.result.length).toBeTruthy()
+    expect(resp.data).toMatchSnapshot();
+}, ['should send datadog logs'])
+
+_it('should read cf logs', async () => {
+    const runRequest = runRequestFunc(start, Date.now())
+    const resp = await runRequest(`{ddsource="ddtest_${testID}_CF"}`, 1, start, Date.now())
+    resp.data.data.result.forEach(r => {
+        expect(r.stream.ddsource).toEqual(`ddtest_${testID}_CF`)
+        r.stream.ddsource = ''
+        r.values.forEach(v => {
+            v[0] = 0
+            v[1] = JSON.stringify({
+                ...JSON.parse(v[1]),
+                EventTimestampMs: 0
+            })
+        })
+    })
+    expect(resp.data).toMatchSnapshot();
+}, ['should send cf logs'])
+
+
+_itShouldMatrixReq({
+    name: 'read datadog metrics',
+    req: `first_over_time({__name__="DDMetric", test_id="${testID}_DDMetric"} | unwrap_value [15s])`,
+    deps: ['should send datadog metrics'],
+    testID: `${testID}_DDMetric`
+  })
