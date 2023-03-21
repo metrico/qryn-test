@@ -110,7 +110,10 @@ _it('should send otlp', async () => {
         attributes: {testId: '__TEST__'}
     })
     await new Promise(f => setTimeout(f, 100));
-    span.addEvent('test event', new Date())
+    span.addEvent('test event', new Date());
+    span.status = {
+        code: 1
+    }
     span.end();
     storage.test_span = span
     await new Promise(f => setTimeout(f, 500))
