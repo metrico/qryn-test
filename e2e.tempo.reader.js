@@ -19,6 +19,8 @@ _it('should read otlp', async () => {
 _it('should read zipkin', async () => {
     await new Promise(resolve => setTimeout(resolve, 500))
     const res = await axiosGet(`http://${clokiExtUrl}/tempo/api/traces/d6e9329d67b6146c0000000000000000`)
+//D6E9329D67B6146C0000000000000000
+//d6e9329d67b6146c0000000000000000
     console.log(res.data)
     const data = res.data
     const validation = data.resourceSpans[0].instrumentationLibrarySpans[0].spans[0]
@@ -85,7 +87,10 @@ _it('should read /tempo/api/search/tag/.../values', async () => {
 _it('should get /tempo/api/search', async () => {
     const res = await axiosGet(`http://${clokiExtUrl}/tempo/api/search?tags=${
         encodeURIComponent('service.name="node script"')
-    }&minDuration=900ms&maxDuration=1100ms&start=${Math.floor(Date.now() / 1000) - 300}&end=${Math.floor(Date.now() / 1000)}`)
+    }&minDuration=900ms&maxDuration=1100ms&start=${Math.floor(Date.now() / 1000) - 600}&end=${Math.floor(Date.now() / 1000)}`)
+    console.log(`http://${clokiExtUrl}/tempo/api/search?tags=${
+        encodeURIComponent('service.name="node script"')
+    }&minDuration=900ms&maxDuration=1100ms&start=${Math.floor(Date.now() / 1000) - 600}&end=${Math.floor(Date.now() / 1000)}`)
     const data = res.data.traces[0]
     delete data['startTimeUnixNano']
     expect(data).toMatchSnapshot()

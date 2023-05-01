@@ -351,6 +351,17 @@ _it('should post /api/v1/labels', async () => {
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
 })
 
+_it('should post /loki/api/v1/labels', async () => {
+    await sendPoints(`http://${clokiWriteUrl}`, {
+        1: {
+            stream: {
+                [`${testID}_LOG_LBL`]: 'ok'
+            },
+            values: [[`${start+1}000000`, 'qweqwe']]
+        }
+    })
+})
+
 _it('should send broken labels', async () => {
     await sendPoints(`http://${clokiWriteUrl}`, {
         'a': {

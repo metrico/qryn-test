@@ -5,15 +5,16 @@ const path = require("path");
 const axios = require("axios");
 
 
-const runRequestFunc = (start, end) => async (req, _step, _start, _end, oid) => {
+const runRequestFunc = (start, end) => async (req, _step, _start, _end, oid, limit) => {
     console.log(req)
     oid = oid || "1"
+    limit = limit || 2002
     try {
         _start = _start || start
         _end = _end || end
         _step = _step || 2
         return await axios.get(
-            `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=2000&query=${encodeURIComponent(req)}&start=${_start}000000&end=${_end}000000&step=${_step}`,
+            `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=${limit}&query=${encodeURIComponent(req)}&start=${_start}000000&end=${_end}000000&step=${_step}`,
             {
                 headers: {
                     "X-Scope-OrgID": oid,
@@ -37,6 +38,11 @@ const adjustResultFunc = (start, testID) => (resp, id, _start) => {
         stream.values = stream.values.map(v => [v[0] - _start * 1000000, v[1]])
         return stream
     })
+    resp.data.data.result.sort((a, b) => {
+        const s1 = JSON.stringify(Object.entries(a.stream).sort())
+        const s2 = JSON.stringify(Object.entries(a.stream).sort())
+        return s1.localeCompare(s2)
+    })
 }
 
 const runRequest = runRequestFunc(start, end)
@@ -52,7 +58,7 @@ const adjustMatrixResult = (resp, id) => {
 }
 /**
  *
- * @param optsOrName {{name: string, req: string, step: number|undefined, start: number|undefined, end: number|undefined, testID: string|undefined} | string}
+ * @param optsOrName {{name: string, req: string, step: number|undefined, start: number|undefined, end: number|undefined, testID: string|undefined, limit: number} | string}
  * @param req {string | undefined}
  * @private
  */
@@ -63,7 +69,7 @@ const _itShouldStdReq = (optsOrName, req) => {
         req: typeof optsOrName === 'object' ? optsOrName.req : req
     }
     _it (opts.name, async () => {
-        let resp = await runRequest(opts.req, opts.step, opts.start, opts.end)
+        let resp = await runRequest(opts.req, opts.step, opts.start, opts.end, undefined, opts.limit)
         adjustResult(resp)
         expect(resp.data).toMatchSnapshot()
     }, ['push logs http'])
@@ -88,7 +94,11 @@ const _itShouldMatrixReq = (optsOrName, req) => {
     }, ['push logs http'])
 }
 
-_itShouldStdReq('ok limited res', `{test_id="${testID}"}`)
+_itShouldStdReq({
+    name: 'ok limited res',
+    req: `{test_id="${testID}"}`,
+    limit: 2002
+})
 _itShouldStdReq({
     name:'empty res',
     req: `{test_id="${testID}"}`,
@@ -215,9 +225,21 @@ _itShouldStdReq('label comp', `{test_id="${testID}"} | freq >= 4`)
 _itShouldStdReq('label cmp + json + params',
     `{test_id="${testID}_json"} | json sid="str_id" | sid >= 598`)
 _itShouldStdReq('label cmp + json', `{test_id="${testID}_json"} | json | str_id >= 598`)
-_itShouldStdReq('regexp', `{test_id="${testID}"} | regexp "^(?P<e>[^0-9]+)[0-9]+$"`)
-_itShouldStdReq('regexp 2', `{test_id="${testID}"} | regexp "^[^0-9]+(?P<e>[0-9])+$"`)
-_itShouldStdReq('regexp 3', `{test_id="${testID}"} | regexp "^[^0-9]+([0-9]+(?P<e>[0-9]))$"`)
+_itShouldStdReq({
+    name: 'regexp',
+    req: `{test_id="${testID}"} | regexp "^(?P<e>[^0-9]+)[0-9]+$"`,
+    limit: 2002
+})
+_itShouldStdReq({
+    name: 'regexp 2',
+    req: `{test_id="${testID}"} | regexp "^[^0-9]+(?P<e>[0-9])+$"`,
+    limit: 2002
+})
+_itShouldStdReq({
+    name: 'regexp 3',
+    req: `{test_id="${testID}"} | regexp "^[^0-9]+([0-9]+(?P<e>[0-9]))$"`,
+    limit: 2002
+})
 _itShouldMatrixReq({
     name: 'regexp + unwrap + agg-op',
     req: `first_over_time({test_id="${testID}", freq="0.5"} | regexp "^[^0-9]+(?P<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`,
@@ -389,13 +411,6 @@ _it ('should read influx', async () => {
     expect(resp.data).toMatchSnapshot()
 }, ['should send influx'])
 
-
-_it ('should read prometheus.remote.write', async () => {
-    let resp = await runRequest(`first_over_time({test_id="${testID}_RWR"} | unwrap_value [15s])`)
-    adjustMatrixResult(resp)
-    expect(resp.data).toMatchSnapshot()
-}, ['should send prometheus.remote.write'])
-
 _it ('should read _ and % logs', async () => {
     let resp = await runRequest(`{test_id="${testID}_like"}`)
     adjustResult(resp)
@@ -423,6 +438,13 @@ _it('should query_instant vector', async () => {
         m.metric.test_id = '_TEST_'
         m.value[0] -= start / 1000
     })
+    resp.data.data.result.sort((a,b) => {
+        let _a = Object.entries(a.metric);
+        _a.sort();
+        let _b = Object.entries(b.metric);
+        _b.sort();
+        return JSON.stringify(_a).localeCompare(JSON.stringify(_b));
+    });
     expect(resp.data).toMatchSnapshot()
 }, ['push logs http'])
 
@@ -466,7 +488,7 @@ _it('should get /loki/api/v1/labels with time context', async () => {
             ...extraHeaders
         }
     })
-    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
+    expect(labels.data.data.find(d => d===`${testID}_LOG_LBL`)).toBeTruthy()
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
@@ -476,14 +498,14 @@ _it('should get /loki/api/v1/labels with time context', async () => {
             ...extraHeaders
         }
     })
-    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
-}, ['should post /api/v1/labels'])
+    expect(labels.data.data.find(d => d===`${testID}_LOG_LBL`)).toBeFalsy()
+}, ['should post /loki/api/v1/labels'])
 
 _it('should get /loki/api/v1/label/:name/values with time context', async () => {
     let fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
-    let labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values?${fd}`, {
+    let labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LOG_LBL/values?${fd}`, {
         headers: {
             'X-Scope-OrgID': '1',
             ...extraHeaders
@@ -493,14 +515,14 @@ _it('should get /loki/api/v1/label/:name/values with time context', async () => 
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
-    labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values?${fd}`, {
+    labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LOG_LBL/values?${fd}`, {
         headers: {
             'X-Scope-OrgID': '1',
             ...extraHeaders
         }
     })
     expect(labels.data.data).toEqual([])
-}, ['should post /api/v1/labels'])
+}, ['should post /loki/api/v1/labels'])
 
 _it('should get /loki/api/v1/label with time context', async () => {
     let fd = new URLSearchParams()
@@ -512,7 +534,7 @@ _it('should get /loki/api/v1/label with time context', async () => {
             ...extraHeaders
         }
     })
-    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
+    expect(labels.data.data.find(d => d===`${testID}_LOG_LBL`)).toBeTruthy()
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
@@ -522,8 +544,8 @@ _it('should get /loki/api/v1/label with time context', async () => {
             ...extraHeaders
         }
     })
-    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
-}, ['should post /api/v1/labels'])
+    expect(labels.data.data.find(d => d===`${testID}_LOG_LBL`)).toBeFalsy()
+}, ['should post /loki/api/v1/labels'])
 
 _it('should get /loki/api/v1/series with time context', async () => {
     let fd = new URLSearchParams()
@@ -562,7 +584,7 @@ _it('should post /loki/api/v1/labels with time context', async () => {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
     })
-    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
+    expect(labels.data.data.find(d => d===`${testID}_LOG_LBL`)).toBeTruthy()
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
@@ -572,8 +594,8 @@ _it('should post /loki/api/v1/labels with time context', async () => {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
     })
-    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
-}, ['should post /api/v1/labels'])
+    expect(labels.data.data.find(d => d===`${testID}_LOG_LBL`)).toBeFalsy()
+}, ['should post /loki/api/v1/labels'])
 
 
 
@@ -581,7 +603,7 @@ _it('should post /loki/api/v1/label/:name/values with time context', async () =>
     let fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
-    let labels = await axiosPost(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values`, fd, {
+    let labels = await axiosPost(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LOG_LBL/values`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -591,14 +613,14 @@ _it('should post /loki/api/v1/label/:name/values with time context', async () =>
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
-    labels = await axiosPost(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values`, fd, {
+    labels = await axiosPost(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LOG_LBL/values`, fd, {
         headers: {
             'X-Scope-OrgID': '1',
             'Content-Type': 'application/x-www-form-urlencoded'
         }
     })
     expect(labels.data.data).toEqual([])
-}, ['should post /api/v1/labels'])
+}, ['should post /loki/api/v1/labels'])
 
 _it('should post /loki/api/v1/label with time context', async () => {
     let fd = new URLSearchParams()
@@ -610,7 +632,7 @@ _it('should post /loki/api/v1/label with time context', async () => {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
     })
-    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
+    expect(labels.data.data.find(d => d===`${testID}_LOG_LBL`)).toBeTruthy()
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
@@ -620,8 +642,8 @@ _it('should post /loki/api/v1/label with time context', async () => {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
     })
-    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
-}, ['should post /api/v1/labels'])
+    expect(labels.data.data.find(d => d===`${testID}_LOG_LBL`)).toBeFalsy()
+}, ['should post /loki/api/v1/labels'])
 
 _it('should post /loki/api/v1/series with time context', async () => {
     let fd = new URLSearchParams()

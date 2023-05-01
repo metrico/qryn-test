@@ -132,6 +132,7 @@ const axiosPost = async (req, data, conf) => {
       }
     })
   } catch(e) {
+    console.log(e.response);
     console.log(req)
     throw new Error(e)
   }
