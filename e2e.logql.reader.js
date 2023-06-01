@@ -40,7 +40,7 @@ const adjustResultFunc = (start, testID) => (resp, id, _start) => {
     })
     resp.data.data.result.sort((a, b) => {
         const s1 = JSON.stringify(Object.entries(a.stream).sort())
-        const s2 = JSON.stringify(Object.entries(a.stream).sort())
+        const s2 = JSON.stringify(Object.entries(b.stream).sort())
         return s1.localeCompare(s2)
     })
 }
@@ -221,7 +221,7 @@ _itShouldMatrixReq('value_comp + json + unwrap + 2 x agg-op',
     `sum(sum_over_time({test_id="${testID}_json"}| json | unwrap str_id [10s]) by (test_id, str_id)) by (test_id) > 1000`)
 _itShouldMatrixReq('value comp + linefmt + LRA',
     `rate({test_id="${testID}"} | line_format "12345" [1s]) == 2`)
-_itShouldStdReq('label comp', `{test_id="${testID}"} | freq >= 4`)
+_itShouldStdReq('label cmp', `{test_id="${testID}"} | freq >= 4`)
 _itShouldStdReq('label cmp + json + params',
     `{test_id="${testID}_json"} | json sid="str_id" | sid >= 598`)
 _itShouldStdReq('label cmp + json', `{test_id="${testID}_json"} | json | str_id >= 598`)
