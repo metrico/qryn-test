@@ -258,3 +258,32 @@ _it('should read prometheus style series 2', async () => {
         throw e
     }
 }, ['should send datadog metrics'])
+
+_it('should read prometheus style series 3', async () => {
+    const fd = new URLSearchParams()
+    fd.append('match[]', `DDMetric_${testID}{resource1_name="dummyhost"}`)
+    fd.append('end', Math.floor(Date.now()/1000+1))
+    fd.append('start', Math.floor(Date.now() / 1000 - 600))
+    fd.append('step', '15s')
+    let res = null
+    console.log(`http://${clokiExtUrl}/api/v1/query_range?${fd}`)
+    try {
+        res = await axios.get(`http://${clokiExtUrl}/api/v1/series?${fd}`, {
+            headers: {
+                'X-Scope-OrgID': '1',
+                ...extraHeaders
+            }
+        })
+        expect(res.status).toEqual(200)
+        console.log(res.data)
+        res.data.data.stats = null;
+        res.data.data.forEach(r => {
+            expect(r.__name__).toEqual(`DDMetric_${testID}`)
+            r.__name__ = null
+        })
+        expect(res.data).toMatchSnapshot()
+    } catch (e) {
+        console.log(JSON.stringify(e.response?.data, null, 1))
+        throw e
+    }
+}, ['should send datadog metrics'])
