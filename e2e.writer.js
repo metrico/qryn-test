@@ -461,3 +461,58 @@ _it('should send cf logs', async () => {
     expect(resp.status).toEqual(200)
     await new Promise(f => setTimeout(f, 500))
 })
+
+_it('should limit FP', async () => {
+    const orgid = `org_${testID}`
+    console.log(orgid)
+    let points = {}
+    for (let i = 0; i < 95; i++) {
+        points[i] = {
+            stream: {
+                test_id: `${testID}_limit`,
+                id: `${i}`
+            },
+            values: [[`${start}000000`, 'qweqwe']]
+        }
+    }
+    await sendPoints(`http://${clokiWriteUrl}`, points, {
+        'X-Scope-OrgID': orgid,
+        'X-FP-LIMIT': 100
+    })
+    await new Promise(resolve => setTimeout(resolve, 60000))
+    points = {}
+    let denied = 0
+    let ok = 0
+    for (let i = 95; i < 110; i++) {
+        points[i] = {
+            stream: {
+                test_id: `${testID}_limit`,
+                id: `${i}`
+            },
+            values: [[`${start}000000`, 'qweqwe']]
+        }
+        try {
+            await sendPoints(`http://${clokiWriteUrl}`, points, {
+                'X-Scope-OrgID': orgid,
+                'X-FP-LIMIT': 100
+            })
+            ok++
+        } catch (e) {
+            denied++
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000))
+    }
+    expect(ok).toEqual(5)
+    expect(denied).toEqual(10)
+
+    const res = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label/id/values`, {
+        headers: {
+            'X-Scope-OrgID': orgid
+        }
+    })
+    console.log(res.data.data)
+    let data = res.data.data.map(e => parseFloat(e))
+    console.log(data)
+    data.sort((a, b) => a-b)
+    expect(data).toEqual([...new Array(100).keys()])
+})
