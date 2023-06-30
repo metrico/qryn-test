@@ -727,3 +727,27 @@ _itShouldMatrixReq('bottomk', `bottomk(1, rate({test_id="${testID}"}[5s]))`)
 _itShouldMatrixReq('quantile',
     `quantile_over_time(0.5, {test_id=~"${testID}_json"} | json f="int_val" | unwrap f [5s]) by (test_id)`)
 
+_it('should delete fingerprints', async () => {
+    await axiosPost(`http://${clokiExtUrl}/loki/api/v1/delete`+
+        `?query=${encodeURIComponent('{id=~"^1.$"}')}`+
+        `&start=${Math.floor(start/1000/3600/24)*3600*24}&end=${(Math.floor(start/1000/3600/24)+1)*3600*24}`,
+        '', {
+        headers:{
+            'X-Scope-OrgID': `org_${testID}`,
+        }}
+    )
+    const values = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/label/id/values`, {
+        headers:{
+            'X-Scope-OrgID': `org_${testID}`,
+        }
+    });
+    const data = values.data.data.map(parseFloat)
+    data.sort((a, b) => a - b)
+    expect(data).toEqual(
+        [
+            ...Array(10).keys(),
+            ...[...Array(80).keys()].map(a => a+20),
+        ]
+    )
+}, ['should limit FP'])
+

@@ -510,9 +510,7 @@ _it('should limit FP', async () => {
             'X-Scope-OrgID': orgid
         }
     })
-    console.log(res.data.data)
     let data = res.data.data.map(e => parseFloat(e))
-    console.log(data)
     data.sort((a, b) => a-b)
     expect(data).toEqual([...new Array(100).keys()])
 })

@@ -111,9 +111,11 @@ afterAll(() => {
 const axiosGet = async (req, conf) => {
   try {
     conf = conf || {}
+    conf.headers = conf.headers || {}
     return await axios.get(req, {headers: {
       'X-Scope-OrgID': '1',
-        ...extraHeaders
+        ...extraHeaders,
+        ...conf.headers
     }})
   } catch(e) {
     console.log(req)
@@ -133,8 +135,8 @@ const axiosPost = async (req, data, conf) => {
     return await axios.post(req, data, {
       ...(conf || {}),
       headers: {
-        ...(conf.headers || {}),
-        ...extraHeaders
+        ...extraHeaders,
+        ...(conf.headers || {})
       }
     })
   } catch(e) {
