@@ -113,7 +113,8 @@ const axiosGet = async (req, conf) => {
     conf = conf || {}
     return await axios.get(req, {headers: {
       'X-Scope-OrgID': '1',
-        ...extraHeaders
+        ...extraHeaders,
+        ...conf.headers
     }})
   } catch(e) {
     console.log(req)

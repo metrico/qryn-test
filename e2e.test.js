@@ -6,6 +6,7 @@ require('./e2e.logql.reader')
 require('./e2e.tempo.reader')
 require('./e2e.prom.reader')
 require('./e2e.misc')
+require('./e2e.traceql')
 
 const checkAlertConfig = async () => {
   try {
