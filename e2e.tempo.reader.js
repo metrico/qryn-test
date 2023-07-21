@@ -67,7 +67,7 @@ _it('should read /tempo/api/search/tags', async () => {
     const res = await axiosGet(`http://${clokiExtUrl}/tempo/api/search/tags`)
     const data = res.data
     for (const tagname of ['http.method', 'http.path', 'service.name', 'name']) {
-        expect(data.find(t => t === tagname)).toBeTruthy();
+        expect(data.tagNames.find(t => t === tagname)).toBeTruthy();
     }
 }, ['should post /tempo/spans', 'should send zipkin', 'should post /tempo/spans'])
 
