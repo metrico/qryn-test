@@ -727,3 +727,14 @@ _itShouldMatrixReq('bottomk', `bottomk(1, rate({test_id="${testID}"}[5s]))`)
 _itShouldMatrixReq('quantile',
     `quantile_over_time(0.5, {test_id=~"${testID}_json"} | json f="int_val" | unwrap f [5s]) by (test_id)`)
 
+_it ('sum by absent label', async () => {
+    let resp = await runRequest(`sum by (nothing) (rate({test_id="${testID}"}[1m]))`, 60)
+    resp.data.data.result = resp.data.data.result.map(stream => {
+        stream.values = stream.values.map(v => [v[0] - Math.floor(start / 1000), v[1]])
+        return stream
+    })
+    expect(resp.data).toMatchSnapshot()
+}, ['push logs http'])
+
+_itShouldStdReq('json corrupted message', `{test_id="${testID}"} | json`)
+
