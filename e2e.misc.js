@@ -32,6 +32,22 @@ _it('should get /influx/api/v2/write/health', async () => {
     expect((await axiosGet(`http://${clokiExtUrl}/influx/api/v2/write/health`)).status).toEqual(200)
 })
 
+_it('should return 401 if no basic auth', async () => {
+    if (!process.env.QRYN_LOGIN) {
+        return
+    }
+    let e;
+    try {
+        await axiosGet(
+          `http://${clokiExtUrl}/influx/api/v2/write/health`,
+          {headers: {Authorization: 'Basic a'}}
+        )
+    } catch (err) {
+        e = err
+    }
+    expect(e.message).toEqual("Error: Request failed with status code 401")
+})
+
 /* TODO: implement _it('should get /influx/health', async () => {
     expect((await axiosGet(`http://${clokiExtUrl}/influx/health`)).status).toEqual(200)
 }) */

@@ -1,4 +1,6 @@
-const {_it, start, end, testID, clokiExtUrl, createPoints, sendPoints, clokiWriteUrl, axiosGet, axiosPost, extraHeaders} = require("./common");
+const {
+    _it, start, end, testID, clokiExtUrl, createPoints, sendPoints,
+    clokiWriteUrl, axiosGet, axiosPost, extraHeaders} = require("./common");
 const {WebSocket} = require("ws");
 const protobufjs = require("protobufjs");
 const path = require("path");
@@ -14,7 +16,7 @@ const runRequestFunc = (start, end) => async (req, _step, _start, _end, oid, lim
         _start = _start || start
         _end = _end || end
         _step = _step || 2
-        return await axios.get(
+        return await axiosGet(
             `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=${limit}&query=${encodeURIComponent(req)}&start=${_start}000000&end=${_end}000000&step=${_step}`,
             {
                 headers: {
@@ -246,7 +248,9 @@ _itShouldMatrixReq({
 })
 
 _it('should ws', async () => {
-    const ws = new WebSocket(`ws://${clokiExtUrl}/loki/api/v1/tail?query={test_id="${testID}_ws"}&X-Scope-OrgID=1` +
+    let auth = process.env.QRYN_LOGIN || ''
+    auth = auth ? auth + ':' + process.env.QRYN_PASSWORD + '@' : ''
+    const ws = new WebSocket(`ws://${auth}${clokiExtUrl}/loki/api/v1/tail?query={test_id="${testID}_ws"}&X-Scope-OrgID=1` +
         (process.env.DSN ? '&dsn='+encodeURIComponent(process.env.DSN) : ''))
     const resp = {
         data: {
@@ -485,23 +489,13 @@ _it('should get /loki/api/v1/labels with time context', async () => {
     let fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
-    let labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/labels?${fd}`, {
-        headers: {
-            'X-Scope-OrgID': '1',
-            ...extraHeaders
-        }
-    })
+    let labels = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/labels?${fd}`)
     /* TODO not supported
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
-    labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/labels?${fd}`, {
-        headers: {
-            'X-Scope-OrgID': '1',
-            ...extraHeaders
-        }
-    })
+    labels = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/labels?${fd}`)
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
     */
 }, ['should post /api/v1/labels'])
@@ -510,22 +504,12 @@ _it('should get /loki/api/v1/label/:name/values with time context', async () => 
     let fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
-    let labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values?${fd}`, {
-        headers: {
-            'X-Scope-OrgID': '1',
-            ...extraHeaders
-        }
-    })
+    let labels = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values?${fd}`)
     expect(labels.data.data).toEqual(['ok'])
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
-    labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values?${fd}`, {
-        headers: {
-            'X-Scope-OrgID': '1',
-            ...extraHeaders
-        }
-    })
+    labels = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values?${fd}`)
     /* TODO not supported
     expect(labels.data.data).toEqual([])
      */
@@ -535,23 +519,13 @@ _it('should get /loki/api/v1/label with time context', async () => {
     let fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 1 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
-    let labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label?${fd}`, {
-        headers: {
-            'X-Scope-OrgID': '1',
-            ...extraHeaders
-        }
-    })
+    let labels = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/label?${fd}`)
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
     /* TODO not supported
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
-    labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/label?${fd}`, {
-        headers: {
-            'X-Scope-OrgID': '1',
-            ...extraHeaders
-        }
-    })
+    labels = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/label?${fd}`)
     expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeFalsy()
      */
 }, ['should post /api/v1/labels'])
@@ -561,24 +535,14 @@ _it('should get /loki/api/v1/series with time context', async () => {
     fd.append("start", `${Date.now() - 1 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
     fd.append("match[]", `{test_id="${testID}"}`)
-    let labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/series?${fd}`, {
-        headers: {
-            'X-Scope-OrgID': '1',
-            ...extraHeaders
-        }
-    })
+    let labels = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/series?${fd}`)
     expect(labels.data.data && labels.data.data.length).toBeTruthy()
     /* TODO not supported
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
     fd.append("match[]", `{test_id="${testID}"}`)
-    labels = await axios.get(`http://${clokiExtUrl}/loki/api/v1/series?${fd}`, {
-        headers: {
-            'X-Scope-OrgID': '1',
-            ...extraHeaders
-        }
-    })
+    labels = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/series?${fd}`)
     expect(labels.data.data && labels.data.data.length).toBeFalsy()
 
      */
@@ -586,7 +550,7 @@ _it('should get /loki/api/v1/series with time context', async () => {
 
 _it('should response CSV', async () => {
     let req = `{test_id="${testID}"}`
-    let res = await axios.get(
+    let res = await axiosGet(
         `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=${100}&query=${encodeURIComponent(req)}&start=${start}000000&end=${end}000000&step=1&csv=1`
     );
     let data = res.data
@@ -597,7 +561,7 @@ _it('should response CSV', async () => {
 
 _it('should response CSV matrix', async () => {
     const req = `rate({test_id="${testID}"}[10s])`
-    const res = await axios.get(
+    const res = await axiosGet(
         `http://${clokiExtUrl}/loki/api/v1/query_range?direction=BACKWARD&limit=${100}&query=${encodeURIComponent(req)}&start=${start}000000&end=${end}000000&step=1&csv=1`
     )
     const data = res.data

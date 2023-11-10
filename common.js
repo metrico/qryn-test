@@ -102,12 +102,21 @@ afterAll(() => {
   }
 })
 
+const auth = () => {
+  return process.env.QRYN_LOGIN ? {
+    'Authorization':
+      `Basic ${Buffer.from(`${process.env.QRYN_LOGIN}:${process.env.QRYN_PASSWORD}`).toString('base64')}`,
+  } : {}
+}
+
 const axiosGet = async (req, conf) => {
   try {
     conf = conf || {}
-    return await axios.get(req, {timeout: 30000, headers: {
+    return await axios.get(req, {...conf, timeout: 30000, headers: {
       'X-Scope-OrgID': '1',
-        ...extraHeaders
+      ...auth(),
+      ...extraHeaders,
+      ...(conf.headers || {})
     }})
   } catch(e) {
     console.log(req)
@@ -120,8 +129,27 @@ const axiosPost = async (req, data, conf) => {
     return await axios.post(req, data, {
       ...(conf || {}),
       headers: {
-        ...(conf?.headers || {}),
-        ...extraHeaders
+        'X-Scope-OrgID': '1',
+        ...auth(),
+        ...extraHeaders,
+        ...(conf?.headers || {})
+      }
+    })
+  } catch(e) {
+    console.log(req)
+    throw new Error(e)
+  }
+}
+
+const axiosDelete = async (req, conf) => {
+  try {
+    return await axios.delete(req, {
+      ...(conf || {}),
+      headers: {
+        'X-Scope-OrgID': '1',
+        ...auth(),
+        ...extraHeaders,
+        ...(conf?.headers || {})
       }
     })
   } catch(e) {
@@ -131,7 +159,7 @@ const axiosPost = async (req, data, conf) => {
 }
 
 const extraHeaders = (() => {
-  const res = {}
+  const res = auth()
   if (process.env.DSN) {
     res['X-CH-DSN'] = process.env.DSN
   }
@@ -152,6 +180,7 @@ module.exports = {
   end,
   axiosGet,
   axiosPost,
+  axiosDelete,
   extraHeaders,
   storage,
   shard

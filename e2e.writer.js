@@ -3,7 +3,6 @@ const {_it, createPoints, sendPoints, clokiWriteUrl, testID, start, end, storage
 } = require('./common')
 const protobufjs = require("protobufjs");
 const path = require("path");
-const axios = require("axios");
 const {Point} = require("@influxdata/influxdb-client");
 const {pushTimeseries} = require("prometheus-remote-write");
 const fetch = require("node-fetch");
