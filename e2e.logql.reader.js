@@ -111,7 +111,7 @@ const _itShouldMatrixReq = (optsOrName, req) => {
     }, opts.deps)
 }
 
-_itShouldStdReq('ok limited res', `{test_id="${testID}"}`)
+_itShouldStdReq({name: 'ok limited res', limit: 2002, req: `{test_id="${testID}"}`})
 _itShouldStdReq({
     name:'empty res',
     req: `{test_id="${testID}"}`,
@@ -238,9 +238,21 @@ _itShouldStdReq('label comp', `{test_id="${testID}"} | freq >= 4`)
 _itShouldStdReq('label cmp + json + params',
     `{test_id="${testID}_json"} | json sid="str_id" | sid >= 598`)
 _itShouldStdReq('label cmp + json', `{test_id="${testID}_json"} | json | str_id >= 598`)
-_itShouldStdReq('regexp', `{test_id="${testID}"} | regexp "^(?P<e>[^0-9]+)[0-9]+$"`)
-_itShouldStdReq('regexp 2', `{test_id="${testID}"} | regexp "^[^0-9]+(?P<e>[0-9])+$"`)
-_itShouldStdReq('regexp 3', `{test_id="${testID}"} | regexp "^[^0-9]+([0-9]+(?P<e>[0-9]))$"`)
+_itShouldStdReq({
+    name: 'regexp',
+    req: `{test_id="${testID}"} | regexp "^(?P<e>[^0-9]+)[0-9]+$"`,
+    limit: 2002
+})
+_itShouldStdReq({
+    name: 'regexp 2',
+    req: `{test_id="${testID}"} | regexp "^[^0-9]+(?P<e>[0-9])+$"`,
+    limit: 2002
+})
+_itShouldStdReq({
+    name: 'regexp 3',
+    req: `{test_id="${testID}"} | regexp "^[^0-9]+([0-9]+(?P<e>[0-9]))$"`,
+    limit: 2002
+})
 _itShouldMatrixReq({
     name: 'regexp + unwrap + agg-op',
     req: `first_over_time({test_id="${testID}", freq="0.5"} | regexp "^[^0-9]+(?P<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`,
