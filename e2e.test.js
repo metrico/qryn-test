@@ -1,13 +1,13 @@
 const axios = require('axios')
 const yaml = require('yaml')
-const {clokiWriteUrl, clokiExtUrl} = require('./common')
+const {clokiWriteUrl, clokiExtUrl, axiosGet } = require('./common')
 
 it('qryn should work', async () => {
   let retries = 0
   while (true) {
     try {
-      await axios.get(`http://${clokiWriteUrl}/ready`)
-      await axios.get(`http://${clokiExtUrl}/ready`)
+      await axiosGet(`http://${clokiWriteUrl}/ready`)
+      await axiosGet(`http://${clokiExtUrl}/ready`)
       return
     } catch (e) {
       if (retries >= 10) {
