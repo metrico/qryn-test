@@ -343,6 +343,11 @@ _it('should post /api/v1/labels', async () => {
         }
     })
     expect(res.status).toEqual(204)
+
+    await sendPoints(`http://${clokiWriteUrl}`, {0: {
+        stream: { [`${testID}_LBL_LOGS`]: 'ok' },
+        values: [[ `${BigInt(Date.now())*BigInt(1000000)}`, '123']]
+        }})
 /* TODO: POST not supported
 const fd = new URLSearchParams()
 await new Promise(resolve => setTimeout(resolve, 1000))

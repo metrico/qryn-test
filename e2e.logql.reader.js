@@ -516,12 +516,12 @@ _it('should get /loki/api/v1/label/:name/values with time context', async () => 
     let fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
-    let labels = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values?${fd}`)
+    let labels = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL_LOGS/values?${fd}`)
     expect(labels.data.data).toEqual(['ok'])
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now() - 24 * 3600 * 1000}000000`)
-    labels = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL/values?${fd}`)
+    labels = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/label/${testID}_LBL_LOGS/values?${fd}`)
     /* TODO not supported
     expect(labels.data.data).toEqual([])
      */
@@ -532,7 +532,7 @@ _it('should get /loki/api/v1/label with time context', async () => {
     fd.append("start", `${Date.now() - 1 * 3600 * 1000}000000`)
     fd.append("end", `${Date.now()}000000`)
     let labels = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/label?${fd}`)
-    expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
+    expect(labels.data.data.find(d => d===`${testID}_LBL_LOGS`)).toBeTruthy()
     /* TODO not supported
     fd = new URLSearchParams()
     fd.append("start", `${Date.now() - 25 * 3600 * 1000}000000`)
