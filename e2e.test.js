@@ -1,5 +1,23 @@
 const axios = require('axios')
 const yaml = require('yaml')
+const {clokiWriteUrl, clokiExtUrl} = require('./common')
+
+it('qryn should work', async () => {
+  let retries = 0
+  while (true) {
+    try {
+      await axios.get(`http://${clokiWriteUrl}/ready`)
+      await axios.get(`http://${clokiExtUrl}/ready`)
+      return
+    } catch (e) {
+      if (retries >= 10) {
+        throw e;
+      }
+      retries++
+      await new Promise(f => setTimeout(f, 1000))
+    }
+  }
+})
 
 require('./e2e.writer')
 require('./e2e.logql.reader')
