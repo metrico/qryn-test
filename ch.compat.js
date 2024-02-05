@@ -10,7 +10,7 @@ services:
     image: qxip/qryn:__QRYN_VER__
     container_name: loki
     ports:
-      - "3100:3100"
+      - "127.0.0.1:3100:3100"
     environment:
       - CLICKHOUSE_SERVER=clickhouse-seed
       - DEBUG=true
@@ -64,12 +64,16 @@ const execAsync = async (cmd, env, logfile) => {
 }
 
 (async () => {
+  let qrynVersions = process.env.QRYN_VERSIONS_LEN || 5
+  let chVersions = process.env.CH_VERSIONS_LEN || 15
   const {markdownTable} = await import('markdown-table')
-  const chVer = await imageVer('clickhouse/clickhouse-server', 15, 2)
-  const qrynVer = await imageVer('qxip/qryn', 5, 3)
+  const chVer = await imageVer('clickhouse/clickhouse-server', chVersions, 2)
+  const qrynVer = await imageVer('qxip/qryn', qrynVersions, 3)
   console.log(`CH versions: ${chVer.join(', ')}`)
   console.log(`QRYN versions: ${qrynVer.join(', ')}`)
-  const table = new Array(20).fill(0).map(() => new Array(6).fill('X'))
+  const table = new Array(chVersions+1)
+    .fill(0)
+    .map(() => new Array(qrynVersions+1).fill('X'))
   table[0][0] = 'CH \\ qryn'
   for (const [i, _chVer] of chVer.entries()) {
     table[i+1][0] = `${_chVer}`
@@ -92,8 +96,22 @@ const execAsync = async (cmd, env, logfile) => {
         console.log(e)
         table[i+1][j+1] = 'X'
       } finally {
-        await execAsync(`docker logs loki`, null, `qryn.${_chVer}.${_qrynVer}`)
-        await execAsync('docker-compose down')
+        let i = 0
+        while (true) {
+          try {
+            await execAsync(`docker logs loki`, null, `qryn.${_chVer}.${_qrynVer}`)
+            await execAsync('docker-compose down')
+            break
+          } catch (e) {
+            if (i < 5) {
+              i++
+              await new Promise((f) => setTimeout(f, 2000))
+            } else {
+              throw e
+            }
+
+          }
+        }
       }
     }
     try { await execAsync(`docker rmi clickhouse/clickhouse-server:${_chVer}`)} catch (e) {}
