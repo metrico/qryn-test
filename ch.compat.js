@@ -6,6 +6,12 @@ services:
   clickhouse-seed:
     image: clickhouse/clickhouse-server:__CH_VER__
     container_name: clickhouse-seed
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123 || exit 1
+      interval: 60s
+      retries: 5
+      start_period: 2s
+      timeout: 10s
   qryn:
     image: qxip/qryn:__QRYN_VER__
     container_name: loki
@@ -63,6 +69,29 @@ const execAsync = async (cmd, env, logfile) => {
   })
 }
 
+const restoreState = (qrynVersions, chVersions) => {
+  if (fs.existsSync('ch.compat.state.json')) {
+    const contents = fs.readFileSync('ch.compat.state.json')
+    const res = JSON.parse(new TextDecoder().decode(contents))
+    while (res.length < (chVersions + 1)) {
+      res.push(new Array(qrynVersions + 1).fill('0'))
+    }
+    for (let i = 0; i < res.length; i++) {
+      while (res[i].length < (qrynVersions + 1)) {
+        res[i].push('0')
+      }
+    }
+    return res
+  }
+  return new Array(chVersions+1)
+    .fill(0)
+    .map(() => new Array(qrynVersions+1).fill('0'))
+}
+
+const saveState = (table) => {
+  fs.writeFileSync('ch.compat.state.json', new TextEncoder().encode(JSON.stringify(table)))
+}
+
 (async () => {
   let qrynVersions = process.env.QRYN_VERSIONS_LEN || 5
   let chVersions = process.env.CH_VERSIONS_LEN || 15
@@ -71,14 +100,17 @@ const execAsync = async (cmd, env, logfile) => {
   const qrynVer = await imageVer('qxip/qryn', qrynVersions, 3)
   console.log(`CH versions: ${chVer.join(', ')}`)
   console.log(`QRYN versions: ${qrynVer.join(', ')}`)
-  const table = new Array(chVersions+1)
-    .fill(0)
-    .map(() => new Array(qrynVersions+1).fill('X'))
+  const table = restoreState(qrynVersions, chVersions)
   table[0][0] = 'CH \\ qryn'
+
   for (const [i, _chVer] of chVer.entries()) {
     table[i+1][0] = `${_chVer}`
     for (const [j, _qrynVer] of qrynVer.entries()) {
       table[0][j+1] = `${_qrynVer}`
+      if (table[i+1][j+1] !== '0') {
+        continue
+      }
+      await execAsync(`mkdir -p logs/${_chVer}/${_qrynVer}`)
       try {
         fs.writeFileSync('docker-compose.yml', composeYaml
           .replace('__CH_VER__', _chVer)
@@ -89,7 +121,7 @@ const execAsync = async (cmd, env, logfile) => {
           ...process.env,
           INTEGRATION_E2E: 1,
           CLOKI_EXT_URL: '127.0.0.1:3100'
-        }, `jest.${_chVer}.${_qrynVer}`)
+        }, `logs/${_chVer}/${_qrynVer}/jest`)
         table[i+1][j+1] = 'OK'
       } catch (e){
         console.log(`TEST FAILED: CH:${_chVer} Q:${_qrynVer}`)
@@ -99,7 +131,7 @@ const execAsync = async (cmd, env, logfile) => {
         let i = 0
         while (true) {
           try {
-            await execAsync(`docker logs loki`, null, `qryn.${_chVer}.${_qrynVer}`)
+            await execAsync(`docker logs loki`, null, `logs/${_chVer}/${_qrynVer}/qryn`)
             await execAsync('docker-compose down')
             break
           } catch (e) {
@@ -109,9 +141,9 @@ const execAsync = async (cmd, env, logfile) => {
             } else {
               throw e
             }
-
           }
         }
+        saveState(table)
       }
     }
     try { await execAsync(`docker rmi clickhouse/clickhouse-server:${_chVer}`)} catch (e) {}
