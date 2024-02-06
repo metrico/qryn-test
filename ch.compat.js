@@ -8,7 +8,7 @@ services:
     container_name: clickhouse-seed
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:8123 || exit 1
-      interval: 60s
+      interval: 2s
       retries: 5
       start_period: 2s
       timeout: 10s
@@ -21,7 +21,8 @@ services:
       - CLICKHOUSE_SERVER=clickhouse-seed
       - DEBUG=true
     depends_on:
-      - clickhouse-seed
+      clickhouse-seed:
+        condition: service_healthy
 `
 
 const imageVer = async (name, size, verlen) => {
