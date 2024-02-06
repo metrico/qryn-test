@@ -93,8 +93,8 @@ const saveState = (table) => {
 }
 
 (async () => {
-  let qrynVersions = process.env.QRYN_VERSIONS_LEN || 5
-  let chVersions = process.env.CH_VERSIONS_LEN || 15
+  let qrynVersions = parseInt(process.env.QRYN_VERSIONS_LEN) || 5
+  let chVersions = parseInt(process.env.CH_VERSIONS_LEN) || 15
   const {markdownTable} = await import('markdown-table')
   const chVer = await imageVer('clickhouse/clickhouse-server', chVersions, 2)
   const qrynVer = await imageVer('qxip/qryn', qrynVersions, 3)
