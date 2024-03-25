@@ -48,12 +48,13 @@ _it("traceql: initialize", async () => {
             'X-Scope-OrgID': '2'
         }
     })
+    await new Promise(r => setTimeout(r, 1000))
 })
 
 const _itShouldTraceQL = (name, q, conf) => {
     conf = {
         start: Math.floor(start / 1000),
-        end: Math.floor(end/1000),
+        end: Math.floor(end/1000)+1,
         limit: 5,
         q: q,
       ...conf
