@@ -315,6 +315,7 @@ _it('should write elastic', async () => {
         ]
     })
     expect(resp.errors).toBeFalsy()
+    await new Promise(resolve => setTimeout(resolve, 1000))
 })
 
 _it('should post /api/v1/labels', async () => {
