@@ -29,6 +29,7 @@ _it("traceql: initialize", async () => {
             duration: (1000 * spanN) + '',
             name: 'span from http#' + spanN,
             tags: {
+                'tag-with-dash': 'value-with-dash',
                 'http.method': 'GET',
                 'http.path': '/api',
                 'testId': testID,
@@ -115,6 +116,7 @@ _itShouldTraceQL("traceql: count empty result", `{.testId="${testID}" && .spanN>
 _itShouldTraceQL("traceql: count", `{.testId="${testID}" && .spanN>=8.9} | count() > 0`)
 _itShouldTraceQL("traceql: max duration empty result", `{.testId="${testID}"} | max(duration) > 9ms`)
 _itShouldTraceQL("traceql: max duration", `{.testId="${testID}"} | max(duration) > 8ms`)
+_itShouldTraceQL("traceql: tags with dash", `{.testId="${testID}" && .tag-with-dash="value-with-dash"} | max(duration) > 8ms`)
 
 _it("traceql: hammering selectors", async () => {
     for (const op of ['=', '!=', '=~', '!~']) {
