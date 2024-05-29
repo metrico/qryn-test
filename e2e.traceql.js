@@ -48,6 +48,7 @@ _it("traceql: initialize", async () => {
             'X-Scope-OrgID': '2'
         }
     })
+    await new Promise(f => setTimeout(f, 1000))
 })
 
 const _itShouldTraceQL = (name, q, conf) => {
@@ -74,7 +75,7 @@ const _itShouldTraceQL = (name, q, conf) => {
             })
         })
         expect(res.data).toMatchSnapshot()
-    })
+    }, ["traceql: initialize"])
 }
 
 const _itShouldTraceQLTest = (name, q, conf) => {
@@ -146,7 +147,7 @@ _it("traceql: hammering selectors", async () => {
         const res = await axiosGet(req, {headers:{'X-Scope-OrgID': '2'}})
         expect(res.data.traces.length>0).toBeTruthy()
     }
-})
+}, ["traceql: initialize"])
 
 _it("traceql: hammering aggregators", async () => {
     for (const op of ['>', '<', '=', '!=', '>=', '<=']) {
@@ -169,4 +170,4 @@ _it("traceql: hammering aggregators", async () => {
         }
 
     }
-})
+}, ["traceql: initialize"])
