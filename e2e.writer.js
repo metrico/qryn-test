@@ -115,7 +115,7 @@ _it('should send otlp', async () => {
     }
     span.end();
     storage.test_span = span
-    await new Promise(f => setTimeout(f, 500))
+    await new Promise(f => setTimeout(f, 2000))
 })
 
 _it('should send zipkin', async () => {
