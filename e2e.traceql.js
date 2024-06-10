@@ -71,6 +71,9 @@ const _itShouldTraceQL = (name, q, conf) => {
             expect(t.traceID.substring(0, 29)).toEqual(tracePrefix)
             t.traceID = t.traceID.substring(29)
             t.startTimeUnixNano = (BigInt(t.startTimeUnixNano) - (BigInt(start) * 1000000n)).toString()
+            if (t.spanSet) {
+                delete t.spanSet
+            }
             t.spanSets.forEach(s => s.spans.forEach(s => {
                 s.startTimeUnixNano = (BigInt(s.startTimeUnixNano) - (BigInt(start) * 1000000n)).toString()
             }))
