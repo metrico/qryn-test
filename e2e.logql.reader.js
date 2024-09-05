@@ -5,7 +5,6 @@ const {WebSocket} = require("ws");
 const protobufjs = require("protobufjs");
 const path = require("path");
 const axios = require("axios");
-const {test} = require("handlebars-helpers/lib/regex");
 
 
 const runRequestFunc = (start, end) => async (req, _step, _start, _end, oid, limit) => {
