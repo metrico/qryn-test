@@ -1,0 +1,72 @@
+networks:
+  qryn-e2e:
+    driver: bridge
+services:
+  clickhouse1:
+    image: clickhouse/clickhouse-server:24.8
+    hostname: clickhouse1
+    networks:
+      - qryn-e2e
+    volumes:
+      - ./config_1.xml:/etc/clickhouse-server/config.xml
+    healthcheck:
+      test: "wget --no-verbose --tries=1 --spider http://localhost:8123/?query=SELECT%201 || exit 1"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  clickhouse2:
+    image: clickhouse/clickhouse-server:24.8
+    hostname: clickhouse2
+    networks:
+      - qryn-e2e
+    volumes:
+      - ./config_2.xml:/etc/clickhouse-server/config.xml
+    healthcheck:
+      test: "wget --no-verbose --tries=1 --spider http://localhost:8123/?query=SELECT%201 || exit 1"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  qryn:
+    image: "node:${NODE_VERSION}"
+    hostname: qryn
+    networks:
+      - qryn-e2e
+    volumes:
+      - ../../../../:/qryn
+    depends_on:
+      clickhouse1:
+        condition: service_healthy
+      clickhouse2:
+        condition: service_healthy
+    working_dir: /qryn
+    environment:
+      CLICKHOUSE_SERVER: clickhouse1
+      CLICKHOUSE_DB: qryn
+      QRYN_LOGIN: a
+      QRYN_PASSWORD: b
+      CLICKHOUSE_CLUSTER: test_cluster_two_shards
+    ports:
+      - 3100:3100
+    command:
+      - sh
+      - -c
+      - "sleep 5 && npm install && nodejs qryn.mjs"
+    healthcheck:
+      test: "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  otel-collector:
+    image: ghcr.io/metrico/qryn-otel-collector:0.0.11
+    hostname: otel-collector
+    depends_on:
+      - clickhouse1
+      - clickhouse2
+      - qryn
+    networks:
+      - qryn-e2e
+    volumes:
+      - ./otel-collector.yaml:/etc/otel/config.yaml

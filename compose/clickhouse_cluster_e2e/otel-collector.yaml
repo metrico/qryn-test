@@ -1,0 +1,10 @@
+receivers:
+  pyroscopereceiver:
+exporters:
+  clickhouseprofileexporter:
+    dsn: clickhouse://clickhouse1:9000/qryn
+service:
+  pipelines:
+    logs:
+      receivers: [pyroscopereceiver]
+      exporters: [clickhouseprofileexporter]
