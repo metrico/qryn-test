@@ -1,6 +1,6 @@
 docker compose -f test/e2e/compose/clickhouse_sso_e2e/docker-compose.yaml up -d && \
 sleep 5 && \
-docker run -it \
+docker run -i \
   --network clickhouse_sso_e2e_qryn-e2e \
   -v `pwd`:/qryn \
   -e 'INTEGRATION_E2E=1' \
