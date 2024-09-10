@@ -257,7 +257,7 @@ __it('should read pyro render-diff', async () => {
   )
   getParams.append('rightFrom', start+60000)
   getParams.append('rightUntil', end+1)
-  const _res = await axios.get(`http://${clokiExtUrl}/pyroscope/render-diff?${getParams}`)
+  const _res = await axiosGet(`http://${clokiExtUrl}/pyroscope/render-diff?${getParams}`)
   const res = _res.data
   expect(res.metadata).toMatchSnapshot()
 

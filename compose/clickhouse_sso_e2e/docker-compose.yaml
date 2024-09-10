@@ -14,17 +14,20 @@ services:
       retries: 5
 
   qryn:
-    image: node:22-alpine
+    image: "node:${NODE_VERSION}"
+    hostname: qryn
     networks:
       - qryn-e2e
     volumes:
-      - ../../:/qryn
+      - ../../../../:/qryn
     depends_on:
       - clickhouse
     working_dir: /qryn
     environment:
       CLICKHOUSE_SERVER: clickhouse
       CLICKHOUSE_DB: qryn
+      QRYN_LOGIN: a
+      QRYN_PASSWORD: b
     ports:
       - 3100:3100
     command:
@@ -39,6 +42,7 @@ services:
 
   otel-collector:
     image: ghcr.io/metrico/qryn-otel-collector:0.0.11
+    hostname: otel-collector
     depends_on:
       - clickhouse
       - qryn

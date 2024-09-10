@@ -79,7 +79,7 @@ const _itShouldTraceQL = (name, q, conf) => {
             }))
         })
         expect(res.data).toMatchSnapshot()
-    })
+    }, ['traceql: initialize'])
 }
 
 const _itShouldTraceQLTest = (name, q, conf) => {
