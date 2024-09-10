@@ -246,8 +246,8 @@ _it('should send prometheus.remote.write', async () => {
             }
         })
         expect(res.status).toEqual(204)
+        await new Promise(f => setTimeout(f, 500))
     }
-    await new Promise(f => setTimeout(f, 500))
 })
 
 _it('should /api/v2/spans', async () => {
@@ -320,7 +320,7 @@ _it('should write elastic', async () => {
 
 _it('should post /api/v1/labels', async () => {
     const {pushTimeseries} = require('prometheus-remote-write')
-    const res = await pushTimeseries({
+    let res = await pushTimeseries({
         labels: {
             [`${testID}_LBL`]: 'ok'
         },
@@ -345,10 +345,13 @@ _it('should post /api/v1/labels', async () => {
     })
     expect(res.status).toEqual(204)
 
-    await sendPoints(`http://${clokiWriteUrl}`, {0: {
+    await new Promise(f => setTimeout(f, 500))
+
+    res = await sendPoints(`http://${clokiWriteUrl}`, {0: {
         stream: { [`${testID}_LBL_LOGS`]: 'ok' },
         values: [[ `${BigInt(Date.now())*BigInt(1000000)}`, '123']]
         }})
+    expect(Math.floor(res.status / 100)).toEqual(2)
 /* TODO: POST not supported
 const fd = new URLSearchParams()
 await new Promise(resolve => setTimeout(resolve, 1000))
