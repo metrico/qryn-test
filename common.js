@@ -1,5 +1,8 @@
 const axios = require('axios')
 const {EventEmitter} = require("events");
+const http = require('http')
+const https = require('https')
+//const got = require('got')
 /**
  *
  * @param id {string}
@@ -124,6 +127,32 @@ const axiosGet = async (req, conf) => {
   }
 }
 
+const rawGet = (url, conf) => new Promise((resolve, reject) => {
+  const client = url.startsWith('https')? https : http
+  const options = {
+    headers: {
+      'X-Scope-OrgID': '1',
+      ...auth(),
+      ...extraHeaders,
+      ...(conf?.headers || {})
+    }
+  }
+
+  const req = client.get(url, options, (res) => {
+    let responseBody = Buffer.from(new Uint8Array(0));
+    res.on('data', (chunk) => {
+      responseBody = Buffer.concat([responseBody, chunk])
+    });
+    res.on('end', () => resolve({
+      code: res.statusCode,
+      data: responseBody
+    }));
+  });
+
+  req.on('error', (err) => reject(err));
+  req.end();
+})
+
 const axiosPost = async (req, data, conf) => {
   try {
     return await axios.post(req, data, {
@@ -185,5 +214,6 @@ module.exports = {
   axiosDelete,
   extraHeaders,
   storage,
-  shard
+  shard,
+  rawGet
 }

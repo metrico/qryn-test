@@ -1,10 +1,9 @@
 const {
     _it, start, end, testID, clokiExtUrl, createPoints, sendPoints,
-    clokiWriteUrl, axiosGet, axiosPost, extraHeaders} = require("./common");
+    clokiWriteUrl, axiosGet, axiosPost, extraHeaders, rawGet
+} = require("./common");
 const {WebSocket} = require("ws");
-const protobufjs = require("protobufjs");
-const path = require("path");
-const axios = require("axios");
+const zlib = require("zlib");
 
 
 const runRequestFunc = (start, end) => async (req, _step, _start, _end, oid, limit) => {
@@ -334,6 +333,25 @@ _it('should multiple /series/match', async () => {
     })
     resp.data.data.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
     expect(resp.data).toMatchSnapshot()
+}, ['push logs http'])
+
+_it('should /series/match gzipped', async () => {
+    const resp = await rawGet(
+      `http://${clokiExtUrl}/loki/api/v1/series?match[]={test_id="${testID}"}&start=1636008723293000000&end=1636012323293000000`,
+      {
+          headers: {
+              'Accept-Encoding': 'gzip'
+          },
+          responseType: 'arraybuffer'
+      })
+    let data = JSON.parse(zlib.gunzipSync(resp.data).toString('utf-8'))
+    data = data.data.map(l => {
+        expect(l.test_id).toEqual(testID)
+        return { ...l, test_id: 'TEST' }
+    })
+    data.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+    expect(resp.code).toBe(200)
+    expect(data).toMatchSnapshot()
 }, ['push logs http'])
 
 _itShouldStdReq('labels cmp',
