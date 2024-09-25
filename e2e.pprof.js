@@ -54,7 +54,8 @@ __it('should push pprofs', async () => {
     }
     fd.append('from', (start + i * 20000) * 1000000)
     fd.append('until', (start + i * 20000 + 20000 - 1) * 1000000)
-    fd.append('name', `test-client{__session_id__=${testID}}`)
+    fd.append('name',
+      `test-client{__session_id__=${testID},five=${i % 5},ten=${i % 10}${i % 10 === 0 ? ',zero=1': ''}}`)
     fd.append('sampleRate', '100')
     fd.append('spyName', 'gospy')
     console.log(otelCollectorUrl + "/ingest?" + fd)
@@ -85,6 +86,31 @@ __it('should read pyro label names', async () => {
   expect(namesList).toMatchSnapshot()
 }, ['should push pprofs'])
 
+__it('should read pyro label names with matchers', async () => {
+  for (const matcher of [
+    `{service_name="test-client", __session_id__="${testID}", five="1"}`,
+    `{service_name="test-client", __session_id__="${testID}", five="0"}`
+  ]) {
+    const req = new types.LabelNamesRequest()
+    req.setStart(start)
+    req.setEnd(end)
+    req.setMatchersList([matcher])
+    const reqBody = req.serializeBinary()
+    let res = await axiosPost(
+      `http://${clokiExtUrl}/querier.v1.QuerierService/LabelNames`,
+      reqBody, {
+        responseType: 'arraybuffer'
+      }
+    )
+    res = types.LabelNamesResponse.deserializeBinary(res.data)
+    const namesList = res.getNamesList().filter(
+      n => ['__session_id__', 'service_name', 'five', 'zero', 'ten'].indexOf(n) !== -1
+    )
+    namesList.sort()
+    expect(namesList).toMatchSnapshot()
+  }
+}, ['should push pprofs'])
+
 __it('should read pyro LabelValues', async () => {
   const req = new types.LabelValuesRequest()
   req.setName('__session_id__')
@@ -97,6 +123,30 @@ __it('should read pyro LabelValues', async () => {
   )
   const  res = types.LabelValuesResponse.deserializeBinary(_res.data)
   expect(res.getNamesList().filter(n => n === testID)).toBeTruthy()
+}, ['should push pprofs'])
+
+__it('should read pyro LabelValues with matchers', async () => {
+  for (const matcher of [
+    `{service_name="test-client", __session_id__="${testID}", five="1"}`,
+    `{service_name="test-client", __session_id__="${testID}", five="0"}`
+  ]) {
+    const req = new types.LabelValuesRequest()
+    req.setName('ten')
+    req.setStart(start)
+    req.setEnd(end)
+    req.setMatchersList([matcher])
+    const reqBody = req.serializeBinary()
+    let res = await axiosPost(
+      `http://${clokiExtUrl}/querier.v1.QuerierService/LabelValues`,
+      reqBody, {
+        responseType: 'arraybuffer'
+      }
+    )
+    res = types.LabelNamesResponse.deserializeBinary(res.data)
+    const namesList = [...res.getNamesList()]
+    namesList.sort()
+    expect(namesList).toMatchSnapshot()
+  }
 }, ['should push pprofs'])
 
 __it('should read pyro ProfileTypes', async () => {
