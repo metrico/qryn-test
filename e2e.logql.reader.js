@@ -121,6 +121,7 @@ _itShouldStdReq({
 _itShouldStdReq('two clauses', `{test_id="${testID}", freq="2"}`)
 _itShouldStdReq('two clauses and filter', `{test_id="${testID}", freq="2"} |~ "2[0-9]$"`)
 _itShouldMatrixReq('aggregation', `rate({test_id="${testID}", freq="2"} |~ "2[0-9]$" [1s])`)
+_itShouldMatrixReq('aggregation 1m', `rate({test_id="${testID}", freq="2"} [1m])`)
 
 _it('should hammer aggregation', async () => {
     for (const fn of ['count_over_time', 'bytes_rate', 'bytes_over_time']) {
