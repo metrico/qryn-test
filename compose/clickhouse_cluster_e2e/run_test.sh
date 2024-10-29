@@ -1,5 +1,5 @@
 docker compose -f test/e2e/compose/clickhouse_cluster_e2e/docker-compose.yaml up -d && \
-sleep 5 && \
+sleep 45 && \
 docker run -i --rm \
   --network clickhouse_cluster_e2e_qryn-e2e \
   -v `pwd`:/qryn \
