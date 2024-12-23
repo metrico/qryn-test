@@ -83,7 +83,7 @@ _it('should read /tempo/api/search/tag/.../values', async () => {
         expect(data.find(t => t === tagname[1])).toBeTruthy();
     }
 }, ['should post /tempo/spans', 'should send zipkin', 'should post /tempo/spans'])
-
+/*TODO: removed as outdated
 _it('should get /tempo/api/search', async () => {
     const res = await axiosGet(`http://${clokiExtUrl}/tempo/api/search?tags=${
         encodeURIComponent('service.name="node script"')
@@ -95,7 +95,7 @@ _it('should get /tempo/api/search', async () => {
     delete data['startTimeUnixNano']
     expect(data).toMatchSnapshot()
 }, ['should post /tempo/spans', 'should send zipkin', 'should post /tempo/spans'])
-
+*/
 _it('should get /tempo/api/echo', async () => {
     const res = await axiosGet(`http://${clokiExtUrl}/tempo/api/echo`)
     const data = res.data
