@@ -73,6 +73,11 @@ const _itShouldTraceQL = (name, q, conf) => {
             t.spanSet.spans.forEach(s => {
                 s.startTimeUnixNano = (BigInt(s.startTimeUnixNano) - (BigInt(start) * 1000000n)).toString()
             })
+            t.spanSets.forEach(ss => {
+                ss.spans.forEach(s => {
+                    s.startTimeUnixNano = (BigInt(s.startTimeUnixNano) - (BigInt(start) * 1000000n)).toString()
+                })
+            })
         })
         expect(res.data).toMatchSnapshot()
     }, ["traceql: initialize"])

@@ -1,4 +1,4 @@
-const {_it, axiosGet, clokiExtUrl} = require("./common");
+const {_it, axiosGet, clokiExtUrl, clokiWriteUrl} = require("./common");
 
 _it('should get /ready', async () => {
     expect((await axiosGet(`http://${clokiExtUrl}/ready`)).status).toEqual(200)
@@ -29,9 +29,9 @@ _it('should get /api/v1/status/buildinfo', async () => {
 })
 
 _it('should get /influx/api/v2/write/health', async () => {
-    expect((await axiosGet(`http://${clokiExtUrl}/influx/api/v2/write/health`)).status).toEqual(200)
+    expect((await axiosGet(`http://${clokiWriteUrl}/influx/api/v2/write/health`)).status).toEqual(200)
 })
 
 _it('should get /influx/health', async () => {
-    expect((await axiosGet(`http://${clokiExtUrl}/influx/health`)).status).toEqual(200)
+    expect((await axiosGet(`http://${clokiWriteUrl}/influx/health`)).status).toEqual(200)
 })
