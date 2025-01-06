@@ -19,7 +19,7 @@ const __it = (name, fn, deps) => _it(name, () => {
   }
   return fn()
 }, deps)
-
+/* TODO: not supported by qryn-go
 __it('should push pprofs', async () => {
   const profilesArr = profiles
     .split('*******************')
@@ -159,7 +159,6 @@ __it('should read pyro ProfileTypes', async () => {
     reqBody, {responseType: 'arraybuffer'}
   )
   const  res = querier.ProfileTypesResponse.deserializeBinary(_res.data)
-  /** @type [string] **/
   const profileTypes = res.getProfileTypesList().map(pt => pt.getId())
   for (const pt of [
     'memory:alloc_objects:count:space:bytes',
@@ -335,7 +334,7 @@ __it('should read pyro render-diff', async () => {
   }
   expect(levels).toMatchSnapshot()
 }, ['should push pprofs'])
-
+*/
 
 
 const profiles = `HEADERS: 

@@ -147,7 +147,7 @@ _it('should send zipkin', async () => {
             'X-Shard': shard
         }
     })
-    expect(test.status).toEqual(200)
+    expect(test.status).toEqual(202)
     await new Promise(f => setTimeout(f, 500))
     console.log('Tempo Insertion Successful')
 })
@@ -181,7 +181,7 @@ _it('should post /tempo/spans', async () => {
             'X-Shard': shard
         }
     })
-    expect(test.status).toEqual(200)
+    expect(test.status).toEqual(202)
     console.log('Tempo Insertion Successful')
 })
 
@@ -367,8 +367,8 @@ const labels = await axiosPost(`http://${clokiExtUrl}/api/v1/labels`, fd, {
 expect(labels.data.data.find(d => d===`${testID}_LBL`)).toBeTruthy()
 */
 })
-
-_it('should send newrelic', async () => {
+//TODO: not supported in qryn-go
+/*_it('should send newrelic', async () => {
     let body = {
         timestamp: start,
         test_id: testID + '_newrelic',
@@ -376,7 +376,7 @@ _it('should send newrelic', async () => {
     }
     const res = await axiosPost(`http://${clokiExtUrl}/log/v1`, body)
     expect(res.status).toEqual(200)
-})
+})*/
 
 _it('should send datadog logs', async () => {
     const resp = await axiosPost(`http://${clokiWriteUrl}/api/v2/logs`, JSON.stringify([

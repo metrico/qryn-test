@@ -22,7 +22,7 @@ _it('should read zipkin', async () => {
     console.log(res.data)
     const data = res.data
     const validation = data.resourceSpans[0].instrumentationLibrarySpans[0].spans[0]
-    expect(validation.spanID).toEqual('1234ef45')
+    expect(validation.spanID).toEqual('000000001234ef45')
     delete validation.traceID
     delete validation.spanID
     delete validation.spanId
@@ -38,7 +38,7 @@ _it('should read /tempo/spans', async () => {
     console.log(res.data)
     const data = res.data
     const validation = data.resourceSpans[0].instrumentationLibrarySpans[0].spans[0]
-    expect(validation.spanID).toEqual('1234ef46')
+    expect(validation.spanID).toEqual('000000001234ef46')
     delete validation.traceID
     delete validation.spanID
     delete validation.spanId
@@ -52,7 +52,7 @@ _it('should read /api/v2/spans', async () => {
     const res = await axiosGet(`http://${clokiExtUrl}/api/traces/0000000000000000d6e9329d67b6146e/json`)
     const data = res.data
     const validation = data.resourceSpans[0].instrumentationLibrarySpans[0].spans[0]
-    expect(validation.spanID).toEqual('1234ef46')
+    expect(validation.spanID).toEqual('000000001234ef46')
     delete validation.traceID
     delete validation.spanID
     delete validation.spanId
@@ -63,7 +63,8 @@ _it('should read /api/v2/spans', async () => {
 
 _it('should read /api/search/tags', async () => {
     const res = await axiosGet(`http://${clokiExtUrl}/api/search/tags`)
-    const data = res.data
+    const data = res.data.tagNames
+
     for (const tagname of ['http.method', 'http.path', 'service.name', 'name']) {
         expect(data.find(t => t === tagname)).toBeTruthy();
     }

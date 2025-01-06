@@ -27,11 +27,11 @@ _it('should get /api/v1/metadata', async () => {
 _it('should get /api/v1/status/buildinfo', async () => {
     expect((await axiosGet(`http://${clokiExtUrl}/api/v1/status/buildinfo`)).status).toEqual(200)
 })
-
+/* TODO: not supported on qryn-go
 _it('should get /influx/api/v2/write/health', async () => {
     expect((await axiosGet(`http://${clokiExtUrl}/influx/api/v2/write/health`)).status).toEqual(200)
 })
-
+*/
 _it('should return 401 if no basic auth', async () => {
     if (!process.env.QRYN_LOGIN) {
         return

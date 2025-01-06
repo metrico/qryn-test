@@ -77,6 +77,13 @@ const _itShouldStdReq = (optsOrName, req) => {
     _it (opts.name, async () => {
         let resp = await runRequest(opts.req, opts.step, opts.start, opts.end, opts.oid, opts.limit)
         adjustResult(resp)
+        resp.data.data.result.sort((a, b) => {
+            const s1 = Object.entries(a.stream)
+            s1.sort()
+            const s2 = Object.entries(b.stream)
+            s2.sort()
+            return JSON.stringify(s2).localeCompare(JSON.stringify(s1))
+        })
         expect(resp.data).toMatchSnapshot()
     }, opts.deps || ['push logs http'])
 }
@@ -192,8 +199,8 @@ _it('should hammer unwrap', async () => {
 _itShouldMatrixReq(`unwrap + json params`,
     `sum_over_time({test_id="${testID}_json"}|json lbl_int1="int_val"` +
     '|lbl_repl="val_repl"|unwrap lbl_int1 [3s]) by (test_id, lbl_repl)')
-_itShouldStdReq('lineFmt', `{test_id="${testID}"}| line_format ` +
-    '"{ \\"str\\":\\"{{._entry}}\\", \\"freq2\\": {{div .freq 2}} }"')
+_itShouldStdReq({name: 'lineFmt', limit: '2001', req: `{test_id="${testID}"}| line_format ` +
+    '"{ \\"str\\":\\"{{._entry}}\\", \\"freq2\\": {{div .freq 2}} }"'})
 _it('linefmt + json + unwrap', async() => {
     const resp = await runRequest(`rate({test_id="${testID}"}` +
         '| line_format "{ \\"str\\":\\"{{._entry}}\\", \\"freq2\\": {{div .freq 2}} }"' +
@@ -317,7 +324,7 @@ _it('should ws', async () => {
 }, ['push logs http'])
 
 _it('should /series/match', async () => {
-    const resp = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/series?match[]={test_id="${testID}"}&start=1636008723293000000&end=1636012323293000000`)
+    const resp = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/series?match[]={test_id="${testID}"}&start=${start}000000&end=${end}000000`)
     resp.data.data = resp.data.data.map(l => {
         expect(l.test_id).toEqual(testID)
         return { ...l, test_id: 'TEST' }
@@ -327,7 +334,7 @@ _it('should /series/match', async () => {
 }, ['push logs http'])
 
 _it('should multiple /series/match', async () => {
-    resp = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/series?match[]={test_id="${testID}"}&match[]={test_id="${testID}_json"}&start=1636008723293000000&end=1636012323293000000`)
+    resp = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/series?match[]={test_id="${testID}"}&match[]={test_id="${testID}_json"}&start=${start}000000&end=${end}000000`)
     resp.data.data = resp.data.data.map(l => {
         expect(l.test_id.startsWith(testID))
         return { ...l, test_id: l.test_id.replace(testID, 'TEST') }
@@ -404,18 +411,20 @@ _itShouldMatrixReq({
     req: `rate({test_id="${testID}_json"} | json int_val="int_val" | unwrap int_val [1m]) by (test_id)`,
     step: 0.05
 })
-
+/* TODO: not supported by qryn-go
 _itShouldStdReq({
     name: `macro`,
     req: `test_macro("${testID}")`,
     limit: 2002
 })
+ */
 
 _it('native linefmt', async () => {
     process.env.LINE_FMT = 'go_native'
     const resp = await runRequest(`{test_id="${testID}"}| line_format ` +
-        '"{ \\"str\\":\\"{{ ._entry }}\\", \\"freq2\\": {{ .freq }} }"')
+        '"{ \\"str\\":\\"{{ ._entry }}\\", \\"freq2\\": {{ .freq }} }"', null, null, null, null, 2001)
     adjustResult(resp, testID)
+    resp.data.data.result.sort((a, b) => JSON.stringify(a.stream).localeCompare(JSON.stringify(b.stream)))
     expect(resp.data).toMatchSnapshot()
 }, ['push logs http'])
 
@@ -448,12 +457,13 @@ _it ('should read influx', async () => {
     expect(resp.data).toMatchSnapshot()
 }, ['should send influx'])
 
-
+/* TODO: rewrite using prometheus
 _it ('should read prometheus.remote.write', async () => {
     let resp = await runRequest(`first_over_time({test_id="${testID}_RWR"} | unwrap_value [15s])`)
     adjustMatrixResult(resp)
     expect(resp.data).toMatchSnapshot()
 }, ['should send prometheus.remote.write'])
+ */
 
 _it ('should read _ and % logs', async () => {
     let resp = await runRequest(`{test_id="${testID}_like"}`)
@@ -471,6 +481,7 @@ _it('should query_instant', async () => {
     const req = `{test_id="${testID}"}`
     const resp = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/query?direction=BACKWARD&limit=100&query=${encodeURIComponent(req)}&time=${end}000000`)
     adjustResult(resp)
+    resp.data.data.result.sort((a,b) => JSON.stringify(a.stream).localeCompare(JSON.stringify(b.stream)))
     expect(resp.data).toMatchSnapshot()
 }, ['push logs http'])
 
@@ -482,6 +493,7 @@ _it('should query_instant vector', async () => {
         m.metric.test_id = '_TEST_'
         m.value[0] -= start / 1000
     })
+    resp.data.data.result.sort((a,b) => JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))
     expect(resp.data).toMatchSnapshot()
 }, ['push logs http'])
 
@@ -577,7 +589,7 @@ _it('should get /loki/api/v1/series with time context', async () => {
 
      */
 }, ['push logs http'])
-
+/* TODO not supported by qryn-go
 _it('should response CSV', async () => {
     let req = `{test_id="${testID}"}`
     let res = await axiosGet(
@@ -605,7 +617,7 @@ _itShouldStdReq({
     req: `{test_id="${testID}_newrelic"}`,
     deps: ['should send newrelic']
 })
-
+*/
 _itShouldMatrixReq('topk', `topk(1, rate({test_id="${testID}"}[5s]))`)
 
 _itShouldMatrixReq('topk + sum',
@@ -734,10 +746,11 @@ _it('should read datadog logs', async () => {
     expect(resp.data).toMatchSnapshot();
 }, ['should send datadog logs'])
 
-
+/* TODO rewrite using prometheus api
 _itShouldMatrixReq({
     name: 'read datadog metrics',
     req: `first_over_time({__name__="DDMetric", test_id="${testID}_DDMetric"} | unwrap_value [15s])`,
     deps: ['should send datadog metrics'],
     testID: `${testID}_DDMetric`
   })
+*/

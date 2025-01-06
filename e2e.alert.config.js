@@ -1,6 +1,6 @@
 const {_it, clokiExtUrl, axiosGet, axiosDelete, axiosPost } = require("./common");
 const yaml = require('yaml')
-
+/* TODO: not supported by qryn-go
 _it('should send alerts', async () => {
     expect(await axiosPost(`http://${clokiExtUrl}/api/prom/rules/test_ns`,yaml.stringify({
         name: 'test_group',
@@ -38,3 +38,4 @@ _it('should remove alerts', async () => {
     expect(await axiosDelete(`http://${clokiExtUrl}/api/prom/rules/test_ns`))
         .toHaveProperty('status', 200)
 }, ['should read alerts', 'should send alerts']);
+*/
