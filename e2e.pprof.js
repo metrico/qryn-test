@@ -9,9 +9,9 @@ const {
   testID
 } = require('./common')
 const axios = require('axios')
-const types = require('../../pyroscope/types/v1/types_pb')
-const pprof = require('../../pyroscope/profile_pb')
-const querier = require('../../pyroscope/querier_pb')
+const types = require('./pyroscope_pb/types/v1/types_pb')
+const pprof = require('./pyroscope_pb/profile_pb')
+const querier = require('./pyroscope_pb/querier_pb')
 
 const __it = (name, fn, deps) => _it(name, () => {
   if (!otelCollectorUrl) {
@@ -19,8 +19,8 @@ const __it = (name, fn, deps) => _it(name, () => {
   }
   return fn()
 }, deps)
-/* TODO: not supported by qryn-go
-__it('should push pprofs', async () => {
+
+__it('pprof: should push pprofs', async () => {
   const profilesArr = profiles
     .split('*******************')
     .map(p => p.trim())
@@ -66,10 +66,10 @@ __it('should push pprofs', async () => {
     )
   }
   //TODO: set to 5000
-  await new Promise(f => setTimeout(f, 1000))
+  await new Promise(f => setTimeout(f, 5000))
 })
 
-__it('should read pyro label names', async () => {
+__it('pprof: should read pyro label names', async () => {
   const req = new types.LabelNamesRequest()
   req.setStart(start)
   req.setEnd(end)
@@ -84,9 +84,9 @@ __it('should read pyro label names', async () => {
   const namesList = res.getNamesList().filter(n => ['__session_id__', 'service_name'].indexOf(n) !== -1)
   namesList.sort()
   expect(namesList).toMatchSnapshot()
-}, ['should push pprofs'])
+}, ['pprof: should push pprofs'])
 
-__it('should read pyro label names with matchers', async () => {
+__it('pprof: should read pyro label names with matchers', async () => {
   for (const matcher of [
     `{service_name="test-client", __session_id__="${testID}", five="1"}`,
     `{service_name="test-client", __session_id__="${testID}", five="0"}`
@@ -109,9 +109,9 @@ __it('should read pyro label names with matchers', async () => {
     namesList.sort()
     expect(namesList).toMatchSnapshot()
   }
-}, ['should push pprofs'])
+}, ['pprof: should push pprofs'])
 
-__it('should read pyro LabelValues', async () => {
+__it('pprof: should read pyro LabelValues', async () => {
   const req = new types.LabelValuesRequest()
   req.setName('__session_id__')
   req.setStart(start)
@@ -123,9 +123,9 @@ __it('should read pyro LabelValues', async () => {
   )
   const  res = types.LabelValuesResponse.deserializeBinary(_res.data)
   expect(res.getNamesList().filter(n => n === testID)).toBeTruthy()
-}, ['should push pprofs'])
+}, ['pprof: should push pprofs'])
 
-__it('should read pyro LabelValues with matchers', async () => {
+__it('pprof: should read pyro LabelValues with matchers', async () => {
   for (const matcher of [
     `{service_name="test-client", __session_id__="${testID}", five="1"}`,
     `{service_name="test-client", __session_id__="${testID}", five="0"}`
@@ -147,9 +147,9 @@ __it('should read pyro LabelValues with matchers', async () => {
     namesList.sort()
     expect(namesList).toMatchSnapshot()
   }
-}, ['should push pprofs'])
+}, ['pprof: should push pprofs'])
 
-__it('should read pyro ProfileTypes', async () => {
+__it('pprof: should read pyro ProfileTypes', async () => {
   const req = new querier.ProfileTypesRequest()
   req.setStart(start)
   req.setEnd(end)
@@ -170,9 +170,9 @@ __it('should read pyro ProfileTypes', async () => {
   ]) {
     expect(profileTypes.includes(pt)).toBeTruthy()
   }
-}, ['should push pprofs'])
+}, ['pprof: should push pprofs'])
 
-__it('should read pyro Series', async () => {
+__it('pprof: should read pyro Series', async () => {
   const req = new querier.SeriesRequest()
   req.setStart(start)
   req.setEnd(end)
@@ -198,9 +198,9 @@ __it('should read pyro Series', async () => {
   labels = Object.keys(Object.fromEntries(labels.map(l => [l, true])))
   labels.sort()
   expect(labels).toMatchSnapshot()
-}, ['should push pprofs'])
+}, ['pprof: should push pprofs'])
 
-__it('should read pyro SelectMergeStacktraces', async () => {
+__it('pprof: should read pyro SelectMergeStacktraces', async () => {
   const req = new querier.SelectMergeStacktracesRequest()
   req.setProfileTypeid('memory:alloc_objects:count:space:bytes')
   req.setLabelSelector(`{service_name="test-client", __session_id__="${testID}"}`)
@@ -230,9 +230,9 @@ __it('should read pyro SelectMergeStacktraces', async () => {
   }
   expect(names).toMatchSnapshot()
   expect(levels).toMatchSnapshot()
-}, ['should push pprofs'])
-
-__it('should read pyro SelectMergeProfile', async () => {
+}, ['pprof: should push pprofs'])
+//pprof: should read pyro SelectMergeProfile|pprof: should push pprofs
+__it('pprof: should read pyro SelectMergeProfile', async () => {
   const req = new querier.SelectMergeProfileRequest()
   req.setProfileTypeid('memory:alloc_objects:count:space:bytes')
   req.setLabelSelector(`{service_name="test-client", __session_id__="${testID}"}`)
@@ -262,9 +262,9 @@ __it('should read pyro SelectMergeProfile', async () => {
     functions[key].sort((a, b) => a - b)
   }
   expect(functions).toMatchSnapshot()
-}, ['should push pprofs'])
-
-__it('should read pyro SelectSeries', async () => {
+}, ['pprof: should push pprofs'])
+//pprof: should read pyro SelectSeries|pprof: should push pprofs
+__it('pprof: should read pyro SelectSeries', async () => {
   const req = new querier.SelectSeriesRequest()
   req.setProfileTypeid('memory:alloc_objects:count:space:bytes')
   req.setLabelSelector(`{service_name="test-client", __session_id__="${testID}"}`)
@@ -290,10 +290,11 @@ __it('should read pyro SelectSeries', async () => {
     series[JSON.stringify(serie.labelsList)] = serie.pointsList
   }
   expect(series).toMatchSnapshot()
-}, ['should push pprofs'])
-
-__it('should read pyro render-diff', async () => {
+}, ['pprof: should push pprofs'])
+//pprof: should read pyro render-diff|pprof: should push pprofs
+__it('pprof: should read pyro render-diff', async () => {
   const getParams = new URLSearchParams()
+  debugger
   getParams.append(
     'leftQuery',
     `process_cpu:cpu:nanoseconds:cpu:nanoseconds{service_name="test-client",__session_id__="${testID}"}`
@@ -333,8 +334,7 @@ __it('should read pyro render-diff', async () => {
     }
   }
   expect(levels).toMatchSnapshot()
-}, ['should push pprofs'])
-*/
+}, ['pprof: should push pprofs'])
 
 
 const profiles = `HEADERS: 
