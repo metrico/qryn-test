@@ -422,7 +422,7 @@ _itShouldStdReq({
 _it('native linefmt', async () => {
     process.env.LINE_FMT = 'go_native'
     const resp = await runRequest(`{test_id="${testID}"}| line_format ` +
-        '"{ \\"str\\":\\"{{ ._entry }}\\", \\"freq2\\": {{ .freq }} }"', null, null, null, null, 2001)
+        '"{ \\"str\\":\\"{{ ._entry }}\\", \\"freq2\\": {{ .freq }} }"', null, null, null, null, 2002)
     adjustResult(resp, testID)
     resp.data.data.result.sort((a, b) => JSON.stringify(a.stream).localeCompare(JSON.stringify(b.stream)))
     expect(resp.data).toMatchSnapshot()
