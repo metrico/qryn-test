@@ -1,6 +1,6 @@
 const {
     _it, start, end, testID, clokiExtUrl, createPoints, sendPoints,
-    clokiWriteUrl, axiosGet, axiosPost, extraHeaders, rawGet
+    clokiWriteUrl, axiosGet, axiosPost, extraHeaders, rawGet, kOrder
 } = require("./common");
 const {WebSocket} = require("ws");
 const zlib = require("zlib");
@@ -207,7 +207,7 @@ _it('linefmt + json + unwrap', async() => {
         '| json|unwrap freq2 [1s]) by (test_id, freq2)')
     adjustMatrixResult(resp, testID)
     resp.data.data.result.sort((a,b) => {
-        return JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric))
+        return JSON.stringify(kOrder(a.metric)).localeCompare(JSON.stringify(kOrder(b.metric)))
     })
     expect(resp.data).toMatchSnapshot()
 }, ['push logs http'])
@@ -218,7 +218,7 @@ _it('linefmt + json + unwrap + step', async() => {
         '| json|unwrap freq2 [1s]) by (test_id, freq2)', 60)
     adjustMatrixResult(resp, testID)
     resp.data.data.result.sort((a,b) => {
-        return JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric))
+        return JSON.stringify(kOrder(a.metric)).localeCompare(JSON.stringify(kOrder(b.metric)))
     })
     expect(resp.data).toMatchSnapshot()
 }, ['push logs http'])
@@ -286,11 +286,11 @@ _it('should ws', async () => {
             const _msg = JSON.parse(msg)
             for (const stream of _msg.streams) {
                 let _stream = resp.data.data.result.find(res =>
-                    JSON.stringify(res.stream) === JSON.stringify(stream.stream)
+                    JSON.stringify(res.stream) === JSON.stringify(kOrder(stream.stream))
                 )
                 if (!_stream) {
                     _stream = {
-                        stream: stream.stream,
+                        stream: kOrder(stream.stream),
                         values: []
                     }
                     resp.data.data.result.push(_stream)
@@ -379,7 +379,7 @@ _it('logfmt + linefmt + unwrap + agg-op', async () => {
         '| logfmt | unwrap freq2 [1s]) by (test_id, freq2)')
     adjustMatrixResult(resp, testID)
     resp.data.data.result.sort((a,b) => {
-        return JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric))
+        return JSON.stringify(kOrder(a.metric)).localeCompare(JSON.stringify(kOrder(b.metric)))
     })
     expect(resp.data).toMatchSnapshot()
 }, ['push logs http'])
@@ -390,7 +390,7 @@ _it('logfmt + linefmt + unwrap + agg-op + step', async () => {
         '| logfmt | unwrap freq2 [1s]) by (test_id, freq2)', 60)
     adjustMatrixResult(resp, testID)
     resp.data.data.result.sort((a,b) => {
-        return JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric))
+        return JSON.stringify(kOrder(a.metric)).localeCompare(JSON.stringify(kOrder(b.metric)))
     })
     expect(resp.data).toMatchSnapshot()
 }, ['push logs http'])
@@ -424,7 +424,7 @@ _it('native linefmt', async () => {
     const resp = await runRequest(`{test_id="${testID}"}| line_format ` +
         '"{ \\"str\\":\\"{{ ._entry }}\\", \\"freq2\\": {{ .freq }} }"', null, null, null, null, 2002)
     adjustResult(resp, testID)
-    resp.data.data.result.sort((a, b) => JSON.stringify(a.stream).localeCompare(JSON.stringify(b.stream)))
+    resp.data.data.result.sort((a, b) => JSON.stringify(kOrder(a.stream)).localeCompare(JSON.stringify(kOrder(b.stream))))
     expect(resp.data).toMatchSnapshot()
 }, ['push logs http'])
 
@@ -481,7 +481,7 @@ _it('should query_instant', async () => {
     const req = `{test_id="${testID}"}`
     const resp = await axiosGet(`http://${clokiExtUrl}/loki/api/v1/query?direction=BACKWARD&limit=100&query=${encodeURIComponent(req)}&time=${end}000000`)
     adjustResult(resp)
-    resp.data.data.result.sort((a,b) => JSON.stringify(a.stream).localeCompare(JSON.stringify(b.stream)))
+    resp.data.data.result.sort((a,b) => JSON.stringify(kOrder(a.stream)).localeCompare(JSON.stringify(kOrder(b.stream))))
     expect(resp.data).toMatchSnapshot()
 }, ['push logs http'])
 
@@ -493,7 +493,7 @@ _it('should query_instant vector', async () => {
         m.metric.test_id = '_TEST_'
         m.value[0] -= start / 1000
     })
-    resp.data.data.result.sort((a,b) => JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))
+    resp.data.data.result.sort((a,b) => JSON.stringify(kOrder(a.metric)).localeCompare(JSON.stringify(kOrder(b.metric))))
     expect(resp.data).toMatchSnapshot()
 }, ['push logs http'])
 
@@ -505,7 +505,7 @@ _it('should query_instant vector+internal channel', async () => {
         m.metric.test_id = '_TEST_'
         m.value[0] -= start / 1000
     })
-    resp.data.data.result.sort((a,b) => JSON.stringify(a.metric).localeCompare(JSON.stringify(b.metric)))
+    resp.data.data.result.sort((a,b) => JSON.stringify(kOrder(a.metric)).localeCompare(JSON.stringify(kOrder(b.metric))))
     expect(resp.data).toMatchSnapshot()
 }, ['push logs http'])
 

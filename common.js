@@ -59,6 +59,17 @@ const e2e = () => process.env.INTEGRATION_E2E || process.env.INTEGRATION
 const clokiExtUrl = process.env.CLOKI_EXT_URL || 'localhost:3100'
 const clokiWriteUrl = process.env.CLOKI_WRITE_URL || process.env.CLOKI_EXT_URL || 'localhost:3100'
 
+/**
+ *
+ * @param obj {Object}
+ * @returns {Object}
+ */
+const kOrder = (obj) => {
+  return Object.fromEntries(
+      Object.entries(obj).
+        sort(([a], [b]) => a[0].localeCompare(b[0])))
+}
+
 jest.setTimeout(300000)
 
 const _it = (() => {
@@ -215,5 +226,6 @@ module.exports = {
   extraHeaders,
   storage,
   shard,
-  rawGet
+  rawGet,
+  kOrder
 }
