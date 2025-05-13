@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/gogo/protobuf/proto"
 	"io/ioutil"
 	"math"
 	"math/rand"
@@ -47,21 +48,24 @@ type PushRequest struct {
 	Streams []*ProtoStream `protobuf:"bytes,1,rep,name=streams,proto3" json:"streams,omitempty"`
 }
 
+func (m *Timestamp) Reset()           { *m = Timestamp{} }
+func (m *Timestamp) String() string   { return proto.CompactTextString(m) }
+func (*Timestamp) ProtoMessage()      {}
+func (m *Stream) Reset()              { *m = Stream{} }
+func (m *Stream) String() string      { return proto.CompactTextString(m) }
+func (*Stream) ProtoMessage()         {}
+func (m *Entrys) Reset()              { *m = Entrys{} }
+func (m *Entrys) String() string      { return proto.CompactTextString(m) }
+func (*Entrys) ProtoMessage()         {}
+func (m *PushRequest) Reset()         { *m = PushRequest{} }
+func (m *PushRequest) String() string { return proto.CompactTextString(m) }
+func (*PushRequest) ProtoMessage()    {}
+
 // MsgGenerator is a function that generates a message for a given index
 type MsgGenerator func(i int) string
 
 // ValGenerator is a function that generates a value for a given index
 type ValGenerator func(i int) float64
-
-func (m *PushRequest) Reset() {
-	*m = PushRequest{}
-}
-
-func (m *PushRequest) String() string {
-	return fmt.Sprintf("PushRequest: %v", m)
-}
-
-func (m *PushRequest) ProtoMessage() {}
 
 // CreatePoints creates points for testing
 func CreatePoints(id string, frequencySec int64, startMs, endMs int64,

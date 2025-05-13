@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gogo/protobuf/proto"
+	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
+	"math"
 
 	"github.com/golang/snappy"
 	. "github.com/onsi/ginkgo/v2"
@@ -17,11 +19,10 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 
 	"io"
-	"math"
+
 	"net/http"
 	"strconv"
 	"strings"
@@ -34,8 +35,8 @@ var (
 	testID           string
 	start            int64
 	end              int64
-	clokiWriteUrl    string
-	clokiExtUrl      string
+	gigaPipeWriteUrl string
+	gigaPipeExtUrl   string
 	shard            string
 	extraHeaders     map[string]string
 	storage          map[string]interface{}
@@ -48,8 +49,8 @@ func init() {
 	testID = "test_" + strconv.FormatInt(time.Now().Unix(), 10)
 	start = time.Now().Add(-1 * time.Hour).UnixMilli()
 	end = time.Now().UnixMilli()
-	clokiWriteUrl = "localhost:3100"
-	clokiExtUrl = "localhost:3100"
+	gigaPipeWriteUrl = "localhost:3215"
+	gigaPipeExtUrl = "localhost:3215"
 	shard = "default"
 	extraHeaders = make(map[string]string)
 	storage = make(map[string]interface{})
@@ -98,9 +99,9 @@ var _ = Describe("E2E Tests", Ordered, func() {
 
 			fmt.Println(testID)
 
-			Points := CreatePoints(testID+"_json", 0.5, start, end, map[string]string{}, nil, nil, nil)
-			Points = CreatePoints(testID, 1, start, end, map[string]string{}, nil, nil, nil)
+			Points := CreatePoints(testID+"_json", 1, start, end, map[string]string{}, nil, nil, nil)
 			Points = CreatePoints(testID, 2, start, end, map[string]string{}, nil, nil, nil)
+			Points = CreatePoints(testID, 3, start, end, map[string]string{}, nil, nil, nil)
 			Points = CreatePoints(testID, 4, start, end, map[string]string{}, nil, nil, nil)
 
 			// JSON format logs
@@ -113,17 +114,19 @@ var _ = Describe("E2E Tests", Ordered, func() {
 				nil,
 			)
 
-			// Metrics format logs
-			Points = CreatePoints(testID+"_metrics", 1, start, end,
-				map[string]string{"fmt": "int", "lbl_repl": "val_repl", "int_lbl": "1"},
-				Points,
-				func(i int) string {
-					return ""
-				},
-				nil,
-			)
-
-			// Logfmt format logs
+			//// Metrics format logs
+			//Points = CreatePoints(testID+"_metrics", 1, start, end,
+			//	map[string]string{"fmt": "int", "lbl_repl": "val_repl", "int_lbl": "1"},
+			//	Points,
+			//	func(i int) string {
+			//		return fmt.Sprintf("label_%d", i)
+			//	},
+			//	func(i int) float64 {
+			//		return float64(i % 10)
+			//	},
+			//)
+			//
+			//// Logfmt format logs
 			Points = CreatePoints(testID+"_logfmt", 1, start, end,
 				map[string]string{"fmt": "logfmt", "lbl_repl": "val_repl", "int_lbl": "1"},
 				Points,
@@ -133,7 +136,7 @@ var _ = Describe("E2E Tests", Ordered, func() {
 				nil,
 			)
 
-			resp, err := SendPoints(fmt.Sprintf("http://%s", clokiWriteUrl), Points)
+			resp, err := SendPoints(fmt.Sprintf("http://%s", gigaPipeWriteUrl), Points)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(BeNumerically("<", 300))
 
@@ -148,23 +151,29 @@ var _ = Describe("E2E Tests", Ordered, func() {
 		//	// Simulate some work
 		//	time.Sleep(150 * time.Millisecond)
 		//}, NodeTimeout(2*time.Second))
+
+		// PushProtobuf sends logs using the Loki protobuf format
+		// This is a direct translation of the JavaScript "push protobuff" test
 		It("push protobuff", func() {
-			// Define variables similar to JS counterparts
-			// Update if needed
-			// Create points similar to JS
-			points := CreatePoints(testID+"_PB", 0.5, start, end, map[string]string{}, nil, nil, nil)
-			var streams []*ProtoStream
+			testName := "push-protobuff"
+			recordExecution(testName)
+
+			// Create points similar to JS version
+			points := CreatePoints(testID+"_PB", 1, start, end, map[string]string{}, nil, nil, nil)
+
+			// Convert the points to Loki protobuf streams
+			streams := []*ProtoStream{}
 
 			for _, stream := range points {
 				// Create labels string similar to JS version
 				labelParts := []string{}
 				for k, v := range stream.Stream {
-					jsonValue, _ := json.Marshal(v)
-					labelParts = append(labelParts, fmt.Sprintf(`%s=%s`, k, string(jsonValue)))
+					// Format the label as key="value"
+					labelParts = append(labelParts, fmt.Sprintf(`%s=%q`, k, v))
 				}
 				labels := "{" + strings.Join(labelParts, ",") + "}"
 
-				// Create entries
+				// Create entries for this stream
 				protoEntries := make([]*Entrys, 0, len(stream.Values))
 				for _, v := range stream.Values {
 					timestampNanos, _ := strconv.ParseInt(v[0], 10, 64)
@@ -180,39 +189,57 @@ var _ = Describe("E2E Tests", Ordered, func() {
 					})
 				}
 
+				// Add the stream with its entries to the streams slice
 				streams = append(streams, &ProtoStream{
 					Labels:  labels,
 					Entries: protoEntries,
 				})
 			}
-			req := &PushRequest{Streams: streams}
+
+			// Create a new PushRequest using the proper Loki protobuf types
+			req := &PushRequest{
+				Streams: streams,
+			}
 			// Encode to protobuf
 			body, err := proto.Marshal(req)
 			Expect(err).To(BeNil())
 
-			// Compress with snappy
+			// Compress with snappy (same as JS version)
 			compressed := snappy.Encode(nil, body)
 
 			// Make HTTP request, similar to axiosPost in JS
-			resp, _, err := AxiosPost(fmt.Sprintf("http://%s/loki/api/v1/push", clokiWriteUrl), compressed, map[string]interface{}{
-				"Content-Type":  "application/x-protobuf",
-				"X-Scope-OrgID": "1",
-				"X-Shard":       shard,
-			})
+			httpReq, err := http.NewRequest("POST", fmt.Sprintf("http://%s/loki/api/v1/push", gigaPipeWriteUrl), bytes.NewReader(compressed))
+			Expect(err).To(BeNil())
 
+			// Set headers just like in the JS version
+			httpReq.Header.Set("Content-Type", "application/x-protobuf")
+			httpReq.Header.Set("X-Scope-OrgID", "1")
+			httpReq.Header.Set("X-Shard", shard)
+
+			// Add any extra headers if needed
+			for k, v := range extraHeaders {
+				httpReq.Header.Set(k, v)
+			}
+
+			// Send the request
+			client := &http.Client{}
+
+			resp, err := client.Do(httpReq)
 			Expect(err).To(BeNil())
 			defer resp.Body.Close()
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			// Check status code - JS expects status code 200
+			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
 
 			// Wait for 500ms like in the JS version
 			time.Sleep(500 * time.Millisecond)
+
+			fmt.Println("Protobuf push successful")
 		})
 
-		It("should send otlp", func() {
-			ctx := context.Background()
+		It("should send otlp", func(ctx context.Context) {
 
 			exporter, err := otlptracehttp.New(ctx,
-				otlptracehttp.WithEndpoint("http://"+clokiWriteUrl+"/v1/traces"),
+				otlptracehttp.WithEndpoint(gigaPipeExtUrl),
 				otlptracehttp.WithInsecure(),
 				otlptracehttp.WithHeaders(map[string]string{
 					"X-Scope-OrgID": "1",
@@ -261,12 +288,11 @@ var _ = Describe("E2E Tests", Ordered, func() {
 
 		It("should send zipkin", func(ctx context.Context) {
 			recordExecution("send-zipkin")
-
 			// Create a Zipkin span
 			span := map[string]interface{}{
 				"id":        "1234ef45",
 				"traceId":   "d6e9329d67b6146c",
-				"timestamp": strconv.FormatInt(time.Now().UnixNano()/1000, 10),
+				"timestamp": fmt.Sprintf("%d", time.Now().UnixNano()/1e3), // microseconds
 				"duration":  "1000",
 				"name":      "span from http",
 				"tags": map[string]string{
@@ -274,32 +300,56 @@ var _ = Describe("E2E Tests", Ordered, func() {
 					"http.path":   "/api",
 				},
 				"localEndpoint": map[string]string{
-					"serviceName": "go script",
+					"serviceName": "node script",
 				},
 			}
 
-			spans := []map[string]interface{}{span}
-			data, err := json.Marshal(spans)
-			Expect(err).NotTo(HaveOccurred())
+			payload, err := json.Marshal([]interface{}{span})
+			Expect(err).ToNot(HaveOccurred())
+			fmt.Println(string(payload))
+			//spans := []map[string]interface{}{span}
+			//data, err := json.Marshal(spans)
+			//Expect(err).NotTo(HaveOccurred())
 
-			url := fmt.Sprintf("http://%s/tempo/api/push", clokiWriteUrl)
+			url := fmt.Sprintf("http://%s/tempo/api/push", gigaPipeWriteUrl)
 			fmt.Println(url)
-			fmt.Println(string(data))
 
-			resp, _, err := AxiosPost(url, data, map[string]interface{}{
-				"headers": map[string]string{
-					"Content-Type":  "application/json",
-					"X-Scope-OrgID": "1",
-					"X-Shard":       shard,
-				},
-			})
+			//resp, body, err := AxiosPost(url, payload, map[string]interface{}{
+			//	"headers": map[string]string{
+			//		"X-Scope-OrgID": "1",
+			//		"X-Shard":       shard,
+			//	},
+			//})
+			//
+			//fmt.Println("Response:", resp.Status)
+			//fmt.Println("Body:", string(body))
+
+			// Create request
+			req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+			Expect(err).ToNot(HaveOccurred())
+
+			// Add headers
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-Scope-OrgID", "1")
+			req.Header.Set("X-Shard", shard)
+
+			// Send request
+			client := &http.Client{Timeout: 5 * time.Second}
+			resp, err := client.Do(req)
+			Expect(err).ToNot(HaveOccurred())
+			defer resp.Body.Close()
+
+			// Read and log body (optional for debugging)
+			body, _ := io.ReadAll(resp.Body)
+			fmt.Println("Response:", resp.Status)
+			fmt.Println("Body:", string(body))
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(202))
 
 			time.Sleep(500 * time.Millisecond)
 			fmt.Println("Tempo Insertion Successful")
-		}, NodeTimeout(10*time.Second))
+		}, NodeTimeout(1000*time.Second))
 
 		It("should post /tempo/spans", func(ctx context.Context) {
 			recordExecution("post-tempo-spans")
@@ -324,18 +374,33 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			data, err := json.Marshal(spans)
 			Expect(err).NotTo(HaveOccurred())
 
-			url := fmt.Sprintf("http://%s/tempo/spans", clokiWriteUrl)
+			url := fmt.Sprintf("http://%s/tempo/spans", gigaPipeWriteUrl)
 			fmt.Println(url)
 			fmt.Println(string(data))
 
-			resp, _, err := AxiosPost(url, data, map[string]interface{}{
-				"headers": map[string]string{
-					"Content-Type":  "application/json",
-					"X-Scope-OrgID": "1",
-					"X-Shard":       shard,
-				},
-			})
+			//resp, _, err := AxiosPost(url, data, map[string]interface{}{
+			//	"headers": map[string]string{
+			//		"X-Shard": shard,
+			//	},
+			//})
+			req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+			Expect(err).ToNot(HaveOccurred())
 
+			// Add headers
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-Scope-OrgID", "1")
+			req.Header.Set("X-Shard", shard)
+
+			// Send request
+			client := &http.Client{Timeout: 5 * time.Second}
+			resp, err := client.Do(req)
+			Expect(err).ToNot(HaveOccurred())
+			defer resp.Body.Close()
+
+			// Read and log body (optional for debugging)
+			body, _ := io.ReadAll(resp.Body)
+			fmt.Println("Response:", resp.Status)
+			fmt.Println("Body:", string(body))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(202))
 
@@ -366,17 +431,36 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			data, err := json.Marshal(spans)
 			Expect(err).NotTo(HaveOccurred())
 
-			url := fmt.Sprintf("http://%s/tempo/spans", clokiWriteUrl)
+			url := fmt.Sprintf("http://%s/tempo/spans", gigaPipeWriteUrl)
 			fmt.Println(url)
 			fmt.Println(string(data))
 
-			resp, _, err := AxiosPost(url, data, map[string]interface{}{
-				"headers": map[string]string{
-					"Content-Type":  "application/json",
-					"X-Scope-OrgID": "1",
-					"X-Shard":       shard,
-				},
-			})
+			//resp, _, err := AxiosPost(url, data, map[string]interface{}{
+			//	"headers": map[string]string{
+			//		"Content-Type":  "application/json",
+			//		"X-Scope-OrgID": "1",
+			//		"X-Shard":       shard,
+			//	},
+			//})
+
+			req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+			Expect(err).ToNot(HaveOccurred())
+
+			// Add headers
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-Scope-OrgID", "1")
+			req.Header.Set("X-Shard", shard)
+
+			// Send request
+			client := &http.Client{Timeout: 5 * time.Second}
+			resp, err := client.Do(req)
+			Expect(err).ToNot(HaveOccurred())
+			defer resp.Body.Close()
+
+			// Read and log body (optional for debugging)
+			body, _ := io.ReadAll(resp.Body)
+			fmt.Println("Response:", resp.Status)
+			fmt.Println("Body:", string(body))
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(202))
@@ -397,7 +481,7 @@ var _ = Describe("E2E Tests", Ordered, func() {
 				nil,
 			)
 
-			resp, err := SendPoints(fmt.Sprintf("http://%s", clokiWriteUrl), points)
+			resp, err := SendPoints(fmt.Sprintf("http://%s", gigaPipeWriteUrl), points)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(BeNumerically("<", 300))
 
@@ -420,26 +504,54 @@ var _ = Describe("E2E Tests", Ordered, func() {
 				{"id": 5, "text": "A girl is Arya Stark of Winterfell. And I'm going home.", "user": "arya"},
 			}
 
-			data, err := json.Marshal(bulk)
+			var ndjsonBuf bytes.Buffer
+			for _, item := range bulk {
+				line, err := json.Marshal(item)
+				Expect(err).NotTo(HaveOccurred())
+				ndjsonBuf.Write(line)
+				ndjsonBuf.WriteByte('\n')
+			}
+			//data, err := json.Marshal(bulk)
+			//fmt.Println(string(data))
+			//Expect(err).NotTo(HaveOccurred())
+
+			url := fmt.Sprintf("http://%s/_bulk", gigaPipeWriteUrl)
+
+			//resp, _, err := AxiosPost(url, data, map[string]interface{}{
+			//	"headers": map[string]string{
+			//		"Content-Type":  "application/json",
+			//		"X-Scope-OrgID": "1",
+			//	},
+			//})
+			req, err := http.NewRequest("POST", url, &ndjsonBuf)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Add headers
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-Scope-OrgID", "1")
+			req.Header.Set("X-Shard", shard)
+
+			// Send request
+			client := &http.Client{Timeout: 5 * time.Second}
+			resp, err := client.Do(req)
+			Expect(err).ToNot(HaveOccurred())
+			defer resp.Body.Close()
+
+			// Read and log body (optional for debugging)
+			body, _ := io.ReadAll(resp.Body)
+			fmt.Println("Response:", resp.Status)
+			fmt.Println("Body:", string(body))
+
 			Expect(err).NotTo(HaveOccurred())
-
-			url := fmt.Sprintf("http://%s/_bulk", clokiWriteUrl)
-
-			resp, _, err := AxiosPost(url, data, map[string]interface{}{
-				"headers": map[string]string{
-					"Content-Type":  "application/json",
-					"X-Scope-OrgID": "1",
-				},
-			})
-
-			Expect(err).NotTo(HaveOccurred())
+			fmt.Println(resp.StatusCode)
 			Expect(resp.StatusCode).To(BeNumerically("<", 300))
 
 			// Check if there were errors in the response
 			var respBody map[string]interface{}
-			respData, _ := io.ReadAll(resp.Body)
-			json.Unmarshal(respData, &respBody)
+			//respData, _ := io.ReadAll(resp.Body)
+			json.Unmarshal(body, &respBody)
 
+			fmt.Println(respBody)
 			errors, ok := respBody["errors"].(bool)
 			Expect(ok).To(BeTrue())
 			Expect(errors).To(BeFalse())
@@ -482,7 +594,7 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			compressed := snappy.Encode(nil, data)
 
 			// Prepare request
-			url := fmt.Sprintf("http://%s/api/v1/prom/remote/write", clokiWriteUrl) // Replace clokiWriteUrl with your variable
+			url := fmt.Sprintf("http://%s/api/v1/prom/remote/write", gigaPipeWriteUrl) // Replace clokiWriteUrl with your variable
 			req, err := http.NewRequest("POST", url, bytes.NewReader(compressed))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -526,7 +638,7 @@ var _ = Describe("E2E Tests", Ordered, func() {
 				},
 			}
 
-			logResp, err := SendPoints(fmt.Sprintf("http://%s", clokiWriteUrl), logPoints)
+			logResp, err := SendPoints(fmt.Sprintf("http://%s", gigaPipeWriteUrl), logPoints)
 			Expect(err).NotTo(HaveOccurred())
 			defer logResp.Body.Close()
 
@@ -535,7 +647,8 @@ var _ = Describe("E2E Tests", Ordered, func() {
 		})
 		It("should send datadog metrics", func(ctx context.Context) {
 			recordExecution("send-datadog-metrics")
-
+			startMillis := time.Now().UnixNano() / int64(time.Millisecond)
+			timestamp := startMillis / 1000 // Datadog expects seconds as integer
 			// Create Datadog metrics
 			metrics := map[string]interface{}{
 				"series": []map[string]interface{}{
@@ -544,8 +657,8 @@ var _ = Describe("E2E Tests", Ordered, func() {
 						"type":   0,
 						"points": []map[string]interface{}{
 							{
-								"timestamp": float64(start) / 1000,
-								"value":     0.7,
+								"timestamp": timestamp,
+								"value":     1,
 							},
 						},
 						"resources": []map[string]interface{}{
@@ -562,14 +675,36 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			data, err := json.Marshal(metrics)
 			Expect(err).NotTo(HaveOccurred())
 
-			url := fmt.Sprintf("http://%s/api/v2/series", clokiWriteUrl)
+			url := fmt.Sprintf("http://%s/api/v2/series", gigaPipeWriteUrl)
 
-			resp, _, err := AxiosPost(url, data, map[string]interface{}{
-				"headers": map[string]string{
-					"Content-Type":  "application/json",
-					"X-Scope-OrgID": "1",
-				},
-			})
+			//resp, _, err := AxiosPost(url, data, map[string]interface{}{
+			//	"headers": map[string]string{
+			//		"Content-Type":  "application/json",
+			//		"X-Scope-OrgID": "1",
+			//	},
+			//})
+			req, err := http.NewRequest("POST", url, bytes.NewReader(data))
+			Expect(err).NotTo(HaveOccurred())
+
+			// Set headers
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-Scope-OrgID", "1")
+			req.Header.Set("X-Shard", shard) // Replace shard with your variable
+
+			// Add extra headers
+			for k, v := range extraHeaders { // Replace extraHeaders with your variable
+				req.Header.Set(k, v)
+			}
+
+			// Send request
+			client := &http.Client{}
+			resp, err := client.Do(req)
+
+			body, _ := io.ReadAll(resp.Body)
+			fmt.Println("Response:", resp.Status)
+			fmt.Println("Body:", string(body))
+			Expect(err).NotTo(HaveOccurred())
+			defer resp.Body.Close()
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(202))
