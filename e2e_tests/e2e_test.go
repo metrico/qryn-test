@@ -97,8 +97,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			testName := "push-logs-http"
 			recordExecution(testName)
 
-			fmt.Println(testID)
-
 			Points := CreatePoints(testID+"_json", 1, start, end, map[string]string{}, nil, nil, nil)
 			Points = CreatePoints(testID, 2, start, end, map[string]string{}, nil, nil, nil)
 			Points = CreatePoints(testID, 3, start, end, map[string]string{}, nil, nil, nil)
@@ -306,14 +304,11 @@ var _ = Describe("E2E Tests", Ordered, func() {
 
 			payload, err := json.Marshal([]interface{}{span})
 			Expect(err).ToNot(HaveOccurred())
-			fmt.Println(string(payload))
 			//spans := []map[string]interface{}{span}
 			//data, err := json.Marshal(spans)
 			//Expect(err).NotTo(HaveOccurred())
 
 			url := fmt.Sprintf("http://%s/tempo/api/push", gigaPipeWriteUrl)
-			fmt.Println(url)
-
 			//resp, body, err := AxiosPost(url, payload, map[string]interface{}{
 			//	"headers": map[string]string{
 			//		"X-Scope-OrgID": "1",
@@ -338,12 +333,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			resp, err := client.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 			defer resp.Body.Close()
-
-			// Read and log body (optional for debugging)
-			body, _ := io.ReadAll(resp.Body)
-			fmt.Println("Response:", resp.Status)
-			fmt.Println("Body:", string(body))
-
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(202))
 
@@ -375,8 +364,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			url := fmt.Sprintf("http://%s/tempo/spans", gigaPipeWriteUrl)
-			fmt.Println(url)
-			fmt.Println(string(data))
 
 			//resp, _, err := AxiosPost(url, data, map[string]interface{}{
 			//	"headers": map[string]string{
@@ -396,11 +383,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			resp, err := client.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 			defer resp.Body.Close()
-
-			// Read and log body (optional for debugging)
-			body, _ := io.ReadAll(resp.Body)
-			fmt.Println("Response:", resp.Status)
-			fmt.Println("Body:", string(body))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(202))
 
@@ -432,9 +414,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			url := fmt.Sprintf("http://%s/tempo/spans", gigaPipeWriteUrl)
-			fmt.Println(url)
-			fmt.Println(string(data))
-
 			//resp, _, err := AxiosPost(url, data, map[string]interface{}{
 			//	"headers": map[string]string{
 			//		"Content-Type":  "application/json",
@@ -456,12 +435,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			resp, err := client.Do(req)
 			Expect(err).ToNot(HaveOccurred())
 			defer resp.Body.Close()
-
-			// Read and log body (optional for debugging)
-			body, _ := io.ReadAll(resp.Body)
-			fmt.Println("Response:", resp.Status)
-			fmt.Println("Body:", string(body))
-
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(202))
 
@@ -539,9 +512,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 
 			// Read and log body (optional for debugging)
 			body, _ := io.ReadAll(resp.Body)
-			fmt.Println("Response:", resp.Status)
-			fmt.Println("Body:", string(body))
-
 			Expect(err).NotTo(HaveOccurred())
 			fmt.Println(resp.StatusCode)
 			Expect(resp.StatusCode).To(BeNumerically("<", 300))
@@ -699,10 +669,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			// Send request
 			client := &http.Client{}
 			resp, err := client.Do(req)
-
-			body, _ := io.ReadAll(resp.Body)
-			fmt.Println("Response:", resp.Status)
-			fmt.Println("Body:", string(body))
 			Expect(err).NotTo(HaveOccurred())
 			defer resp.Body.Close()
 
