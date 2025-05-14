@@ -394,7 +394,6 @@ func AxiosPost(reqURL string, data interface{}, conf map[string]interface{}) (*h
 	}
 
 	// Add headers
-	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Scope-OrgID", "1")
 
 	// Add auth headers
@@ -497,3 +496,21 @@ func init() {
 	// Initialize random seed
 	rand.Seed(time.Now().UnixNano())
 }
+
+//func auth() map[string]string {
+//	headers := make(map[string]string)
+//
+//	if qrynLogin := os.Getenv("QRYN_LOGIN"); qrynLogin != "" {
+//		qrynPassword := os.Getenv("QRYN_PASSWORD")
+//		authStr := qrynLogin + ":" + qrynPassword
+//		headers["Authorization"] = "Basic " + authStr
+//	}
+//
+//	return headers
+//}
+//func initExtraHeaders() {
+//	ExtraHeaders = auth()
+//	if dsn := os.Getenv("DSN"); dsn != "" {
+//		ExtraHeaders["X-CH-DSN"] = dsn
+//	}
+//}

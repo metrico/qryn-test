@@ -6,10 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gogo/protobuf/proto"
-	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
-	"math"
-
 	"github.com/golang/snappy"
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/prometheus/prompb"
@@ -19,7 +17,9 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
+	"math"
 
 	"io"
 
@@ -38,7 +38,7 @@ var (
 	gigaPipeWriteUrl string
 	gigaPipeExtUrl   string
 	shard            string
-	extraHeaders     map[string]string
+	//ExtraHeaders     map[string]string
 	storage          map[string]interface{}
 	writingCompleted bool
 	orderMutex       sync.Mutex
@@ -52,7 +52,7 @@ func init() {
 	gigaPipeWriteUrl = "localhost:3215"
 	gigaPipeExtUrl = "localhost:3215"
 	shard = "default"
-	extraHeaders = make(map[string]string)
+	//	initExtraHeaders()
 	storage = make(map[string]interface{})
 }
 
@@ -215,7 +215,9 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			httpReq.Header.Set("X-Shard", shard)
 
 			// Add any extra headers if needed
-			for k, v := range extraHeaders {
+			header := ExtraHeaders()
+			for k, v := range header {
+
 				httpReq.Header.Set(k, v)
 			}
 
@@ -327,7 +329,10 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("X-Scope-OrgID", "1")
 			req.Header.Set("X-Shard", shard)
-
+			header := ExtraHeaders()
+			for k, v := range header { // Replace extraHeaders with your variable
+				req.Header.Set(k, v)
+			}
 			// Send request
 			client := &http.Client{Timeout: 5 * time.Second}
 			resp, err := client.Do(req)
@@ -377,7 +382,10 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("X-Scope-OrgID", "1")
 			req.Header.Set("X-Shard", shard)
-
+			header := ExtraHeaders()
+			for k, v := range header { // Replace extraHeaders with your variable
+				req.Header.Set(k, v)
+			}
 			// Send request
 			client := &http.Client{Timeout: 5 * time.Second}
 			resp, err := client.Do(req)
@@ -429,7 +437,10 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("X-Scope-OrgID", "1")
 			req.Header.Set("X-Shard", shard)
-
+			header := ExtraHeaders()
+			for k, v := range header { // Replace extraHeaders with your variable
+				req.Header.Set(k, v)
+			}
 			// Send request
 			client := &http.Client{Timeout: 5 * time.Second}
 			resp, err := client.Do(req)
@@ -490,7 +501,7 @@ var _ = Describe("E2E Tests", Ordered, func() {
 
 			url := fmt.Sprintf("http://%s/_bulk", gigaPipeWriteUrl)
 
-			//resp, _, err := AxiosPost(url, data, map[string]interface{}{
+			//resp, err := axiosPost(url, &ndjsonBuf, map[string]interface{}{
 			//	"headers": map[string]string{
 			//		"Content-Type":  "application/json",
 			//		"X-Scope-OrgID": "1",
@@ -503,7 +514,10 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("X-Scope-OrgID", "1")
 			req.Header.Set("X-Shard", shard)
-
+			header := ExtraHeaders()
+			for k, v := range header { // Replace extraHeaders with your variable
+				req.Header.Set(k, v)
+			}
 			// Send request
 			client := &http.Client{Timeout: 5 * time.Second}
 			resp, err := client.Do(req)
@@ -521,7 +535,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			//respData, _ := io.ReadAll(resp.Body)
 			json.Unmarshal(body, &respBody)
 
-			fmt.Println(respBody)
 			errors, ok := respBody["errors"].(bool)
 			Expect(ok).To(BeTrue())
 			Expect(errors).To(BeFalse())
@@ -574,7 +587,8 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			req.Header.Set("X-Shard", shard) // Replace shard with your variable
 
 			// Add extra headers
-			for k, v := range extraHeaders { // Replace extraHeaders with your variable
+			header := ExtraHeaders()
+			for k, v := range header { // Replace extraHeaders with your variable
 				req.Header.Set(k, v)
 			}
 
@@ -614,6 +628,149 @@ var _ = Describe("E2E Tests", Ordered, func() {
 
 			// Check status code is in 2xx range
 			Expect(logResp.StatusCode / 100).To(Equal(2))
+		})
+		It("should send prometheus.remote.write", func() {
+			routes := []string{
+				"api/v1/prom/remote/write",
+				"prom/remote/write",
+				"api/prom/remote/write",
+			}
+
+			for _, route := range routes {
+				// Create client for remote write
+				url := fmt.Sprintf("http://%s/%s", gigaPipeWriteUrl, route)
+
+				// Build a WriteRequest directly instead of using remote.Client which has complex dependencies
+				var samples []prompb.TimeSeries
+				for i := start; i < end; i += 15000 {
+					samples = append(samples, prompb.TimeSeries{
+						Labels: []prompb.Label{
+							{Name: "__name__", Value: "test_metric"},
+							{Name: "test_id", Value: fmt.Sprintf("%s_RWR", testID)},
+							{Name: "route", Value: route},
+						},
+						Samples: []prompb.Sample{
+							{
+								Value:     123,
+								Timestamp: i,
+							},
+						},
+					})
+				}
+
+				// Create the write request
+				req := &prompb.WriteRequest{
+					Timeseries: samples,
+				}
+
+				// Encode the request to Protocol Buffers
+				data, err := req.Marshal()
+				Expect(err).NotTo(HaveOccurred())
+
+				// Create an HTTP request
+				httpReq, err := http.NewRequest("POST", url, bytes.NewReader(data))
+				Expect(err).NotTo(HaveOccurred())
+
+				// Set headers
+				httpReq.Header.Set("Content-Type", "application/x-protobuf")
+				httpReq.Header.Set("X-Scope-OrgID", "1")
+				httpReq.Header.Set("X-Shard", shard)
+
+				header := ExtraHeaders()
+				// Add any extra headers
+				for k, v := range header {
+					httpReq.Header.Set(k, v)
+				}
+
+				// Send the request
+				client := &http.Client{}
+				resp, err := client.Do(httpReq)
+				Expect(err).NotTo(HaveOccurred())
+				defer resp.Body.Close()
+
+				// Check the response status
+				Expect(resp.StatusCode).To(Equal(204))
+
+				// Wait 500ms between requests
+				time.Sleep(500 * time.Millisecond)
+
+				// Wait 500ms between requests
+				time.Sleep(500 * time.Millisecond)
+			}
+		})
+		It("should send influx", func() {
+			// Initialize InfluxDB client
+			client := influxdb2.NewClient(fmt.Sprintf("http://%s/influx", gigaPipeWriteUrl), "")
+			defer client.Close()
+
+			// Create a write API
+			writeAPI := client.WriteAPIBlocking("", "")
+
+			// Define test ID and default tags
+			testID := "TestID"
+			tags := map[string]string{
+				"test_id": testID + "FLX",
+				"tag1":    "val1",
+			}
+
+			// Generate points
+			start := time.Now().Add(-time.Hour)
+			end := time.Now()
+
+			for current := start; current.Before(end); current = current.Add(time.Minute) {
+				point := influxdb2.NewPoint(
+					"syslog",
+					tags,
+					map[string]interface{}{"message": "FLX_TEST"},
+					current,
+				)
+				Expect(writeAPI.WritePoint(context.Background(), point)).To(Succeed())
+			}
+
+			// Wait briefly for completion
+			time.Sleep(500 * time.Millisecond)
+		})
+		var _ = It("should send datadog logs", func() {
+			type LogEntry struct {
+				DDSource string `json:"ddsource"`
+				DDTags   string `json:"ddtags"`
+				Hostname string `json:"hostname"`
+				Message  string `json:"message"`
+				Service  string `json:"service"`
+			}
+
+			logs := []LogEntry{
+				{
+					DDSource: fmt.Sprintf("ddtest_%s", testID),
+					DDTags:   "env:staging,version:5.1",
+					Hostname: "i-012345678",
+					Message:  "2019-11-19T14:37:58,995 INFO [process.name][20081] Hello World",
+					Service:  "payment",
+				},
+			}
+
+			payload, err := json.Marshal(logs)
+			Expect(err).NotTo(HaveOccurred())
+
+			req, err := http.NewRequest(
+				"POST",
+				fmt.Sprintf("http://%s/api/v2/logs", gigaPipeWriteUrl),
+				bytes.NewBuffer(payload),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			header := ExtraHeaders()
+			for k, v := range header { // Replace extraHeaders with your variable
+				req.Header.Set(k, v)
+			}
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-Scope-OrgID", "1")
+
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(202))
 		})
 		It("should send datadog metrics", func(ctx context.Context) {
 			recordExecution("send-datadog-metrics")
@@ -662,7 +819,8 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			req.Header.Set("X-Shard", shard) // Replace shard with your variable
 
 			// Add extra headers
-			for k, v := range extraHeaders { // Replace extraHeaders with your variable
+			header := ExtraHeaders()
+			for k, v := range header { // Replace extraHeaders with your variable
 				req.Header.Set(k, v)
 			}
 
