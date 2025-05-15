@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gogo/protobuf/proto"
+	"github.com/golang/snappy"
 	"io/ioutil"
 	"math"
 	"math/rand"
@@ -382,53 +383,42 @@ func AxiosGet(reqURL string, conf map[string]interface{}) (*http.Response, []byt
 }
 
 // AxiosPost performs a POST request with error handling
-func AxiosPost(reqURL string, data interface{}, conf map[string]interface{}) (*http.Response, []byte, error) {
-	jsonData, err := json.Marshal(data)
+func AxiosPost(method, url string, data *bytes.Reader, contentType string, waitTime time.Duration) (*http.Response, error) {
+	// Create request
+	//jsonData, err := json.Marshal(data)
+	//if err != nil {
+	//	return nil, fmt.Errorf("error marshaling JSON: %w", err)
+	//}
+
+	req, err := http.NewRequest(method, url, data)
 	if err != nil {
-		return nil, nil, err
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", reqURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Add headers
+	// Set common headers
+	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("X-Scope-OrgID", "1")
+	req.Header.Set("X-Shard", "default")
 
-	// Add auth headers
-	for k, v := range Auth() {
+	// Add any extra headers
+	header := ExtraHeaders()
+	for k, v := range header {
 		req.Header.Set(k, v)
 	}
 
-	// Add extra headers
-	for k, v := range ExtraHeaders() {
-		req.Header.Set(k, v)
-	}
-
-	// Add custom headers if provided
-	if conf != nil {
-		if headers, ok := conf["headers"].(map[string]string); ok {
-			for k, v := range headers {
-				req.Header.Set(k, v)
-			}
-		}
-	}
-
-	client := &http.Client{}
+	// Send request
+	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println(reqURL)
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, nil, err
+		return nil, fmt.Errorf("error sending request: %w", err)
 	}
 
-	return resp, body, nil
+	// Wait for specified time if needed
+	if waitTime > 0 {
+		time.Sleep(waitTime)
+	}
+
+	return resp, nil
 }
 
 // AxiosDelete performs a DELETE request with error handling
@@ -476,41 +466,49 @@ func AxiosDelete(reqURL string, conf map[string]interface{}) (*http.Response, []
 	return resp, body, nil
 }
 
-// Constants and variables
-var (
-	Shard            = -1
-	Storage          = make(map[string]interface{})
-	OtelCollectorUrl = func() string {
-		if url, exists := os.LookupEnv("OTEL_COLL_URL"); exists {
-			return url
-		}
-		return ""
-	}()
-
-	// Generate test ID and time range at init
-	TestID     = GenerateTestID()
-	Start, End = GetTimeRange()
-)
-
 func init() {
 	// Initialize random seed
 	rand.Seed(time.Now().UnixNano())
 }
 
-//func auth() map[string]string {
-//	headers := make(map[string]string)
+//	func auth() map[string]string {
+//		headers := make(map[string]string)
 //
-//	if qrynLogin := os.Getenv("QRYN_LOGIN"); qrynLogin != "" {
-//		qrynPassword := os.Getenv("QRYN_PASSWORD")
-//		authStr := qrynLogin + ":" + qrynPassword
-//		headers["Authorization"] = "Basic " + authStr
+//		if qrynLogin := os.Getenv("QRYN_LOGIN"); qrynLogin != "" {
+//			qrynPassword := os.Getenv("QRYN_PASSWORD")
+//			authStr := qrynLogin + ":" + qrynPassword
+//			headers["Authorization"] = "Basic " + authStr
+//		}
+//
+//		return headers
 //	}
 //
-//	return headers
-//}
-//func initExtraHeaders() {
-//	ExtraHeaders = auth()
-//	if dsn := os.Getenv("DSN"); dsn != "" {
-//		ExtraHeaders["X-CH-DSN"] = dsn
+//	func initExtraHeaders() {
+//		ExtraHeaders = auth()
+//		if dsn := os.Getenv("DSN"); dsn != "" {
+//			ExtraHeaders["X-CH-DSN"] = dsn
+//		}
 //	}
-//}
+func SendProtobufRequest(url string, data proto.Message, waitTime time.Duration) (*http.Response, error) {
+	// Marshal to protobuf
+	bytedata, err := proto.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling protobuf: %w", err)
+	}
+
+	// Compress with snappy
+	compressed := snappy.Encode(nil, bytedata)
+
+	// Send request
+	return AxiosPost("POST", url, bytes.NewReader(compressed), "application/x-protobuf", waitTime)
+}
+
+// SendJSONRequest marshals data to JSON and sends it via HTTP
+func SendJSONRequest(url string, data []byte, waitTime time.Duration) (*http.Response, error) {
+	//jsonData, err := json.Marshal(data)
+	//if err != nil {
+	//	return nil, fmt.Errorf("error marshaling JSON: %w", err)
+	//}
+
+	return AxiosPost("POST", url, bytes.NewReader(data), "application/json", waitTime)
+}

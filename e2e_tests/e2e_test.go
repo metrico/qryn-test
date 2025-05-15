@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
-	"github.com/golang/snappy"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -20,6 +18,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"math"
+	"math/rand"
 
 	"io"
 
@@ -32,26 +31,31 @@ import (
 )
 
 var (
-	testID           string
-	start            int64
-	end              int64
+	testID string
+
 	gigaPipeWriteUrl string
 	gigaPipeExtUrl   string
-	shard            string
+	Shard            string
 	//ExtraHeaders     map[string]string
 	storage          map[string]interface{}
 	writingCompleted bool
 	orderMutex       sync.Mutex
 )
+var tenMinutesAgo = time.Now().Add(-10 * time.Minute).UnixMilli()
+var start = int64(math.Floor(float64(tenMinutesAgo)/float64(60*1000))) * 60 * 1000
+
+// Calculate end time (current time, rounded to nearest minute)
+var currentTime = time.Now().UnixMilli()
+var end = int64(math.Floor(float64(currentTime)/float64(60*1000))) * 60 * 1000
 
 func init() {
 	// Initialize variables
-	testID = "test_" + strconv.FormatInt(time.Now().Unix(), 10)
-	start = time.Now().Add(-1 * time.Hour).UnixMilli()
-	end = time.Now().UnixMilli()
+	randomNum := rand.Float64()
+	randomStr := strconv.FormatFloat(randomNum, 'f', -1, 64)
+	testID = "id" + randomStr[2:]
 	gigaPipeWriteUrl = "localhost:3215"
 	gigaPipeExtUrl = "localhost:3215"
-	shard = "default"
+	Shard = "default"
 	//	initExtraHeaders()
 	storage = make(map[string]interface{})
 }
@@ -83,16 +87,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 		BeforeEach(func() {
 			Expect(writingCompleted).To(BeFalse(), "Writing tests should run before being marked as completed")
 		})
-
-		// Define the three writing test cases
-		//It("should perform write operation 1", func(ctx context.Context) {
-		//	testName := "Write-1"
-		//	recordExecution(testName)
-		//	fmt.Println("Writer operation 1 done")
-		//	// Simulate some work
-		//	time.Sleep(100 * time.Millisecond)
-		//}, NodeTimeout(2*time.Second))
-
 		It("push logs http", func(ctx context.Context) {
 			testName := "push-logs-http"
 			recordExecution(testName)
@@ -112,19 +106,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 				nil,
 			)
 
-			//// Metrics format logs
-			//Points = CreatePoints(testID+"_metrics", 1, start, end,
-			//	map[string]string{"fmt": "int", "lbl_repl": "val_repl", "int_lbl": "1"},
-			//	Points,
-			//	func(i int) string {
-			//		return fmt.Sprintf("label_%d", i)
-			//	},
-			//	func(i int) float64 {
-			//		return float64(i % 10)
-			//	},
-			//)
-			//
-			//// Logfmt format logs
 			Points = CreatePoints(testID+"_logfmt", 1, start, end,
 				map[string]string{"fmt": "logfmt", "lbl_repl": "val_repl", "int_lbl": "1"},
 				Points,
@@ -142,21 +123,10 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			time.Sleep(4 * time.Second)
 		}, NodeTimeout(30*time.Second))
 
-		//It("should perform write operation 2", func(ctx context.Context) {
-		//	testName := "Write-2"
-		//	recordExecution(testName)
-		//	fmt.Println("Writer operation 2 done")
-		//	// Simulate some work
-		//	time.Sleep(150 * time.Millisecond)
-		//}, NodeTimeout(2*time.Second))
-
-		// PushProtobuf sends logs using the Loki protobuf format
-		// This is a direct translation of the JavaScript "push protobuff" test
 		It("push protobuff", func() {
 			testName := "push-protobuff"
 			recordExecution(testName)
 
-			// Create points similar to JS version
 			points := CreatePoints(testID+"_PB", 1, start, end, map[string]string{}, nil, nil, nil)
 
 			// Convert the points to Loki protobuf streams
@@ -198,33 +168,8 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			req := &PushRequest{
 				Streams: streams,
 			}
-			// Encode to protobuf
-			body, err := proto.Marshal(req)
-			Expect(err).To(BeNil())
-
-			// Compress with snappy (same as JS version)
-			compressed := snappy.Encode(nil, body)
-
-			// Make HTTP request, similar to axiosPost in JS
-			httpReq, err := http.NewRequest("POST", fmt.Sprintf("http://%s/loki/api/v1/push", gigaPipeWriteUrl), bytes.NewReader(compressed))
-			Expect(err).To(BeNil())
-
-			// Set headers just like in the JS version
-			httpReq.Header.Set("Content-Type", "application/x-protobuf")
-			httpReq.Header.Set("X-Scope-OrgID", "1")
-			httpReq.Header.Set("X-Shard", shard)
-
-			// Add any extra headers if needed
-			header := ExtraHeaders()
-			for k, v := range header {
-
-				httpReq.Header.Set(k, v)
-			}
-
-			// Send the request
-			client := &http.Client{}
-
-			resp, err := client.Do(httpReq)
+			url := fmt.Sprintf("http://%s/loki/api/v1/push", gigaPipeWriteUrl)
+			resp, err := SendProtobufRequest(url, req, 5*time.Second)
 			Expect(err).To(BeNil())
 			defer resp.Body.Close()
 			// Check status code - JS expects status code 200
@@ -277,15 +222,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 
 			time.Sleep(2 * time.Second) // allow batch export to complete
 		}, NodeTimeout(10*time.Second))
-
-		//It("should perform write operation 3", func(ctx context.Context) {
-		//	testName := "Write-3"
-		//	recordExecution(testName)
-		//	fmt.Println("Writer operation 3 done")
-		//	// Simulate some work
-		//	time.Sleep(120 * time.Millisecond)
-		//}, NodeTimeout(2*time.Second))
-
 		It("should send zipkin", func(ctx context.Context) {
 			recordExecution("send-zipkin")
 			// Create a Zipkin span
@@ -306,36 +242,8 @@ var _ = Describe("E2E Tests", Ordered, func() {
 
 			payload, err := json.Marshal([]interface{}{span})
 			Expect(err).ToNot(HaveOccurred())
-			//spans := []map[string]interface{}{span}
-			//data, err := json.Marshal(spans)
-			//Expect(err).NotTo(HaveOccurred())
-
 			url := fmt.Sprintf("http://%s/tempo/api/push", gigaPipeWriteUrl)
-			//resp, body, err := AxiosPost(url, payload, map[string]interface{}{
-			//	"headers": map[string]string{
-			//		"X-Scope-OrgID": "1",
-			//		"X-Shard":       shard,
-			//	},
-			//})
-			//
-			//fmt.Println("Response:", resp.Status)
-			//fmt.Println("Body:", string(body))
-
-			// Create request
-			req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-			Expect(err).ToNot(HaveOccurred())
-
-			// Add headers
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("X-Scope-OrgID", "1")
-			req.Header.Set("X-Shard", shard)
-			header := ExtraHeaders()
-			for k, v := range header { // Replace extraHeaders with your variable
-				req.Header.Set(k, v)
-			}
-			// Send request
-			client := &http.Client{Timeout: 5 * time.Second}
-			resp, err := client.Do(req)
+			resp, err := SendJSONRequest(url, payload, 5*time.Second)
 			Expect(err).ToNot(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(err).NotTo(HaveOccurred())
@@ -367,28 +275,8 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			spans := []map[string]interface{}{span}
 			data, err := json.Marshal(spans)
 			Expect(err).NotTo(HaveOccurred())
-
 			url := fmt.Sprintf("http://%s/tempo/spans", gigaPipeWriteUrl)
-
-			//resp, _, err := AxiosPost(url, data, map[string]interface{}{
-			//	"headers": map[string]string{
-			//		"X-Shard": shard,
-			//	},
-			//})
-			req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
-			Expect(err).ToNot(HaveOccurred())
-
-			// Add headers
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("X-Scope-OrgID", "1")
-			req.Header.Set("X-Shard", shard)
-			header := ExtraHeaders()
-			for k, v := range header { // Replace extraHeaders with your variable
-				req.Header.Set(k, v)
-			}
-			// Send request
-			client := &http.Client{Timeout: 5 * time.Second}
-			resp, err := client.Do(req)
+			resp, err := SendJSONRequest(url, data, 5*time.Second)
 			Expect(err).ToNot(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(err).NotTo(HaveOccurred())
@@ -422,28 +310,7 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			url := fmt.Sprintf("http://%s/tempo/spans", gigaPipeWriteUrl)
-			//resp, _, err := AxiosPost(url, data, map[string]interface{}{
-			//	"headers": map[string]string{
-			//		"Content-Type":  "application/json",
-			//		"X-Scope-OrgID": "1",
-			//		"X-Shard":       shard,
-			//	},
-			//})
-
-			req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
-			Expect(err).ToNot(HaveOccurred())
-
-			// Add headers
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("X-Scope-OrgID", "1")
-			req.Header.Set("X-Shard", shard)
-			header := ExtraHeaders()
-			for k, v := range header { // Replace extraHeaders with your variable
-				req.Header.Set(k, v)
-			}
-			// Send request
-			client := &http.Client{Timeout: 5 * time.Second}
-			resp, err := client.Do(req)
+			resp, err := SendJSONRequest(url, data, 5*time.Second)
 			Expect(err).ToNot(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(err).NotTo(HaveOccurred())
@@ -495,27 +362,17 @@ var _ = Describe("E2E Tests", Ordered, func() {
 				ndjsonBuf.Write(line)
 				ndjsonBuf.WriteByte('\n')
 			}
-			//data, err := json.Marshal(bulk)
-			//fmt.Println(string(data))
-			//Expect(err).NotTo(HaveOccurred())
 
 			url := fmt.Sprintf("http://%s/_bulk", gigaPipeWriteUrl)
-
-			//resp, err := axiosPost(url, &ndjsonBuf, map[string]interface{}{
-			//	"headers": map[string]string{
-			//		"Content-Type":  "application/json",
-			//		"X-Scope-OrgID": "1",
-			//	},
-			//})
 			req, err := http.NewRequest("POST", url, &ndjsonBuf)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Add headers
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("X-Scope-OrgID", "1")
-			req.Header.Set("X-Shard", shard)
+			req.Header.Set("X-Shard", Shard)
 			header := ExtraHeaders()
-			for k, v := range header { // Replace extraHeaders with your variable
+			for k, v := range header {
 				req.Header.Set(k, v)
 			}
 			// Send request
@@ -524,7 +381,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			Expect(err).ToNot(HaveOccurred())
 			defer resp.Body.Close()
 
-			// Read and log body (optional for debugging)
 			body, _ := io.ReadAll(resp.Body)
 			Expect(err).NotTo(HaveOccurred())
 			fmt.Println(resp.StatusCode)
@@ -551,7 +407,7 @@ var _ = Describe("E2E Tests", Ordered, func() {
 				{
 					Labels: []prompb.Label{
 						{
-							Name:  fmt.Sprintf("%s_LBL", testID), // Replace testID with your variable
+							Name:  fmt.Sprintf("%s_LBL", testID),
 							Value: "ok",
 						},
 					},
@@ -569,32 +425,9 @@ var _ = Describe("E2E Tests", Ordered, func() {
 				Timeseries: timeseries,
 			}
 
-			// Marshal to protobuf
-			data, err := proto.Marshal(&writeReq)
-			Expect(err).NotTo(HaveOccurred())
-
-			// Compress with snappy
-			compressed := snappy.Encode(nil, data)
-
 			// Prepare request
-			url := fmt.Sprintf("http://%s/api/v1/prom/remote/write", gigaPipeWriteUrl) // Replace clokiWriteUrl with your variable
-			req, err := http.NewRequest("POST", url, bytes.NewReader(compressed))
-			Expect(err).NotTo(HaveOccurred())
-
-			// Set headers
-			req.Header.Set("Content-Type", "application/x-protobuf")
-			req.Header.Set("X-Scope-OrgID", "1")
-			req.Header.Set("X-Shard", shard) // Replace shard with your variable
-
-			// Add extra headers
-			header := ExtraHeaders()
-			for k, v := range header { // Replace extraHeaders with your variable
-				req.Header.Set(k, v)
-			}
-
-			// Send request
-			client := &http.Client{}
-			resp, err := client.Do(req)
+			url := fmt.Sprintf("http://%s/api/v1/prom/remote/write", gigaPipeWriteUrl)
+			resp, err := SendProtobufRequest(url, &writeReq, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 			defer resp.Body.Close()
 
@@ -603,9 +436,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 
 			// Wait for data to be processed
 			time.Sleep(500 * time.Millisecond)
-
-			// Now send log points
-			testID := "test123" // Assuming testID is defined elsewhere
 
 			// Properly structured declaration
 			logPoints := Points{
@@ -662,40 +492,15 @@ var _ = Describe("E2E Tests", Ordered, func() {
 				req := &prompb.WriteRequest{
 					Timeseries: samples,
 				}
-
-				// Encode the request to Protocol Buffers
-				data, err := req.Marshal()
-				Expect(err).NotTo(HaveOccurred())
-
-				// Create an HTTP request
-				httpReq, err := http.NewRequest("POST", url, bytes.NewReader(data))
-				Expect(err).NotTo(HaveOccurred())
-
-				// Set headers
-				httpReq.Header.Set("Content-Type", "application/x-protobuf")
-				httpReq.Header.Set("X-Scope-OrgID", "1")
-				httpReq.Header.Set("X-Shard", shard)
-
-				header := ExtraHeaders()
-				// Add any extra headers
-				for k, v := range header {
-					httpReq.Header.Set(k, v)
-				}
-
-				// Send the request
-				client := &http.Client{}
-				resp, err := client.Do(httpReq)
+				resp, err := SendProtobufRequest(url, req, 5*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				defer resp.Body.Close()
-
 				// Check the response status
 				Expect(resp.StatusCode).To(Equal(204))
 
 				// Wait 500ms between requests
 				time.Sleep(500 * time.Millisecond)
 
-				// Wait 500ms between requests
-				time.Sleep(500 * time.Millisecond)
 			}
 		})
 		It("should send influx", func() {
@@ -751,22 +556,8 @@ var _ = Describe("E2E Tests", Ordered, func() {
 
 			payload, err := json.Marshal(logs)
 			Expect(err).NotTo(HaveOccurred())
-
-			req, err := http.NewRequest(
-				"POST",
-				fmt.Sprintf("http://%s/api/v2/logs", gigaPipeWriteUrl),
-				bytes.NewBuffer(payload),
-			)
-			Expect(err).NotTo(HaveOccurred())
-			header := ExtraHeaders()
-			for k, v := range header { // Replace extraHeaders with your variable
-				req.Header.Set(k, v)
-			}
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("X-Scope-OrgID", "1")
-
-			client := &http.Client{}
-			resp, err := client.Do(req)
+			url := fmt.Sprintf("http://%s/api/v2/logs", gigaPipeWriteUrl)
+			resp, err := SendJSONRequest(url, payload, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 			defer resp.Body.Close()
 
@@ -803,30 +594,7 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			url := fmt.Sprintf("http://%s/api/v2/series", gigaPipeWriteUrl)
-
-			//resp, _, err := AxiosPost(url, data, map[string]interface{}{
-			//	"headers": map[string]string{
-			//		"Content-Type":  "application/json",
-			//		"X-Scope-OrgID": "1",
-			//	},
-			//})
-			req, err := http.NewRequest("POST", url, bytes.NewReader(data))
-			Expect(err).NotTo(HaveOccurred())
-
-			// Set headers
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("X-Scope-OrgID", "1")
-			req.Header.Set("X-Shard", shard) // Replace shard with your variable
-
-			// Add extra headers
-			header := ExtraHeaders()
-			for k, v := range header { // Replace extraHeaders with your variable
-				req.Header.Set(k, v)
-			}
-
-			// Send request
-			client := &http.Client{}
-			resp, err := client.Do(req)
+			resp, err := SendJSONRequest(url, data, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 			defer resp.Body.Close()
 
