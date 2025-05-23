@@ -18,6 +18,40 @@ import (
 	"time"
 )
 
+var (
+	otelCollectorUrl = os.Getenv("OTEL_COLL_URL")
+	gigaPipeExtUrl   = getEnvOrDefault("CLOKI_EXT_URL", "localhost:3215")
+	gigaPipeWriteUrl = getEnvOrDefault("CLOKI_WRITE_URL", getEnvOrDefault("CLOKI_EXT_URL", "localhost:3215"))
+	tenMinutesAgo    = time.Now().Add(-10 * time.Minute).UnixMilli()
+	start            = int64(math.Floor(float64(tenMinutesAgo)/float64(60*1000))) * 60 * 1000
+	randomNum        = rand.Float64()
+	randomStr        = strconv.FormatFloat(randomNum, 'f', -1, 64)
+	testID           = "id" + randomStr[2:]
+
+	// Calculate end time (current time, rounded to nearest minute)
+	currentTime = time.Now().UnixMilli()
+	end         = int64(math.Floor(float64(currentTime)/float64(60*1000))) * 60 * 1000
+)
+
+type ReqOptions struct {
+	Name  string
+	Req   string
+	Step  int64
+	Start int64
+	End   int64
+	Oid   string
+	Limit int
+}
+
+// getEnvOrDefault returns the value of an environment variable or a default value if not set
+func getEnvOrDefault(key, defaultValue string) string {
+	value, exists := os.LookupEnv(key)
+	if exists {
+		return value
+	}
+	return defaultValue
+}
+
 // Stream represents a log stream with labels
 type Stream map[string]string
 

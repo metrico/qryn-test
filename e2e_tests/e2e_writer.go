@@ -18,7 +18,6 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"math"
-	"math/rand"
 
 	"io"
 
@@ -26,44 +25,23 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"testing"
 	"time"
 )
 
 var (
-	testID string
-
-	gigaPipeWriteUrl string
-	gigaPipeExtUrl   string
-	Shard            string
+	Shard string
 	//ExtraHeaders     map[string]string
 	storage          map[string]interface{}
 	writingCompleted bool
 	orderMutex       sync.Mutex
 )
-var tenMinutesAgo = time.Now().Add(-10 * time.Minute).UnixMilli()
-var start = int64(math.Floor(float64(tenMinutesAgo)/float64(60*1000))) * 60 * 1000
-
-// Calculate end time (current time, rounded to nearest minute)
-var currentTime = time.Now().UnixMilli()
-var end = int64(math.Floor(float64(currentTime)/float64(60*1000))) * 60 * 1000
 
 func init() {
 	// Initialize variables
-	randomNum := rand.Float64()
-	randomStr := strconv.FormatFloat(randomNum, 'f', -1, 64)
-	testID = "id" + randomStr[2:]
-	gigaPipeWriteUrl = "localhost:3215"
-	gigaPipeExtUrl = "localhost:3215"
+
 	Shard = "default"
 	//	initExtraHeaders()
 	storage = make(map[string]interface{})
-}
-
-// TestE2E is the entry point for the Ginkgo test suite
-func TestE2E(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "E2E Test Suite")
 }
 
 // Global variables to track test execution order
@@ -80,7 +58,7 @@ func recordExecution(testName string) {
 }
 
 // Main test suite definition using Ginkgo's Ordered to enforce sequential execution between suites
-var _ = Describe("E2E Tests", Ordered, func() {
+func writingTests() {
 	// WritingTests suite runs first
 	Context("Writing Tests", func() {
 		// Verify that writingCompleted is false at the beginning of WritingTests
@@ -612,7 +590,9 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			fmt.Println("Writing tests completed")
 		})
 	})
+}
 
+func readingTests() {
 	// ReadingTests suite runs after WritingTests
 	Context("Reading Tests", func() {
 		// Verify that all writing tests have completed before running any reading tests
@@ -676,4 +656,4 @@ var _ = Describe("E2E Tests", Ordered, func() {
 			}
 		}
 	})
-})
+}
