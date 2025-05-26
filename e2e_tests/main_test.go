@@ -19,7 +19,6 @@ var _ = Describe("E2E Tests", Ordered, func() {
 	readingTests()
 })
 
-
 func readingTests() {
 	// ReadingTests suite runs after WritingTests
 	Context("Reading Tests", func() {
@@ -34,31 +33,31 @@ func readingTests() {
 		traceqlTest()
 		pprofTest()
 
-	//	// Define the three reading test cases
-	//	It("should perform read operation 1", func(ctx context.Context) {
-	//		testName := "Read-1"
-	//		recordExecution(testName)
-	//		fmt.Println("Reader operation 1 done")
-	//		// Simulate some work
-	//		time.Sleep(100 * time.Millisecond)
-	//	}, NodeTimeout(2*time.Second))
-	//
-	//	It("should perform read operation 2", func(ctx context.Context) {
-	//		testName := "Read-2"
-	//		recordExecution(testName)
-	//		fmt.Println("Reader operation 2 done")
-	//		// Simulate some work
-	//		time.Sleep(150 * time.Millisecond)
-	//	}, NodeTimeout(2*time.Second))
-	//
-	//	It("should perform read operation 3", func(ctx context.Context) {
-	//		testName := "Read-3"
-	//		recordExecution(testName)
-	//		fmt.Println("Reader operation 3 done")
-	//		// Simulate some work
-	//		time.Sleep(120 * time.Millisecond)
-	//	}, NodeTimeout(2*time.Second))
-	//})
+		//	// Define the three reading test cases
+		//	It("should perform read operation 1", func(ctx context.Context) {
+		//		testName := "Read-1"
+		//		recordExecution(testName)
+		//		fmt.Println("Reader operation 1 done")
+		//		// Simulate some work
+		//		time.Sleep(100 * time.Millisecond)
+		//	}, NodeTimeout(2*time.Second))
+		//
+		//	It("should perform read operation 2", func(ctx context.Context) {
+		//		testName := "Read-2"
+		//		recordExecution(testName)
+		//		fmt.Println("Reader operation 2 done")
+		//		// Simulate some work
+		//		time.Sleep(150 * time.Millisecond)
+		//	}, NodeTimeout(2*time.Second))
+		//
+		//	It("should perform read operation 3", func(ctx context.Context) {
+		//		testName := "Read-3"
+		//		recordExecution(testName)
+		//		fmt.Println("Reader operation 3 done")
+		//		// Simulate some work
+		//		time.Sleep(120 * time.Millisecond)
+		//	}, NodeTimeout(2*time.Second))
+	})
 
 	// Final verification after all tests have run
 	AfterAll(func() {
