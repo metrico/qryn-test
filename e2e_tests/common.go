@@ -20,7 +20,7 @@ import (
 
 var (
 	otelCollectorUrl = os.Getenv("OTEL_COLL_URL")
-	gigaPipeExtUrl   = getEnvOrDefault("CLOKI_EXT_URL", "localhost:3215")
+	gigaPipeExtUrl   = getEnvOrDefault("CLOKI_EXT_URL", "localhost:3100")
 	gigaPipeWriteUrl = getEnvOrDefault("CLOKI_WRITE_URL", getEnvOrDefault("CLOKI_EXT_URL", "localhost:3215"))
 	tenMinutesAgo    = time.Now().Add(-10 * time.Minute).UnixMilli()
 	start            = int64(math.Floor(float64(tenMinutesAgo)/float64(60*1000))) * 60 * 1000

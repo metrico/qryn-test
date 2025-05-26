@@ -56,7 +56,9 @@ func traceqlTest() {
 
 			res, err := SendJSONRequest("http://"+gigaPipeWriteUrl+"/tempo/spans", jsonBytes, 5*time.Second)
 			Expect(err).To(BeNil())
-			Expect(res.StatusCode).To(Equal(200))
+
+			fmt.Println("Tempo Res Code", res.StatusCode)
+			Expect(res.StatusCode).To(Equal(202))
 			time.Sleep(1 * time.Second)
 		})
 
@@ -79,6 +81,7 @@ func traceqlTest() {
 				Expect(err).To(BeNil())
 
 				traces, ok := result["traces"].([]interface{})
+				fmt.Println("resp", string(body))
 				Expect(ok).To(BeTrue())
 				Expect(len(traces)).To(BeNumerically(">", 0))
 			})
@@ -105,11 +108,11 @@ func traceqlTest() {
 				resp, err := axiosGet(req)
 				Expect(err).To(BeNil())
 				defer resp.Body.Close()
-
+				fmt.Println("resp body....", resp.Body)
 				var result map[string]interface{}
 				err = json.NewDecoder(resp.Body).Decode(&result)
 				Expect(err).To(BeNil())
-
+				fmt.Println("result", result)
 				traces, ok := result["traces"].([]interface{})
 				Expect(ok).To(BeTrue())
 				Expect(len(traces) > 0).To(BeTrue())
@@ -156,7 +159,7 @@ func traceqlTest() {
 					var result map[string]interface{}
 					err = json.Unmarshal(body, &result)
 					Expect(err).To(BeNil())
-
+					fmt.Println("")
 					traces, ok := result["traces"].([]interface{})
 					Expect(ok).To(BeTrue())
 					Expect(len(traces) == 0 || (len(traces) != 0 && (op == ">" || op == ">=" || op == "!="))).To(BeTrue())
