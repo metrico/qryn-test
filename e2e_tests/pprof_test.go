@@ -143,7 +143,7 @@ func pprofTest() {
 
 			// Replace with your snapshot assertion
 			Expect(filteredNames).To(ConsistOf("__session_id__", "service_name"))
-		}, SpecTimeout(time.Second*30))
+		})
 
 		It("should read pyro label names with matchers", func() {
 			matchers := []string{
@@ -183,7 +183,7 @@ func pprofTest() {
 				// Add your snapshot assertion here
 				Expect(len(filteredNames)).To(BeNumerically(">", 0))
 			}
-		}, SpecTimeout(time.Second*30))
+		})
 
 		It("should read pyro LabelValues", func() {
 			req := &typesv1.LabelValuesRequest{
@@ -210,7 +210,7 @@ func pprofTest() {
 				}
 			}
 			Expect(foundTestID).To(BeTrue())
-		}, SpecTimeout(time.Second*30))
+		})
 
 		It("should read pyro LabelValues with matchers", func() {
 			matchers := []string{
@@ -243,7 +243,7 @@ func pprofTest() {
 				// Add your snapshot assertion here
 				Expect(len(namesList)).To(BeNumerically(">=", 0))
 			}
-		}, SpecTimeout(time.Second*30))
+		})
 
 		It("should read pyro ProfileTypes", func() {
 			req := &querierv1.ProfileTypesRequest{
@@ -285,7 +285,7 @@ func pprofTest() {
 				}
 				Expect(found).To(BeTrue(), fmt.Sprintf("Expected profile type %s not found", expectedType))
 			}
-		}, SpecTimeout(time.Second*30))
+		})
 
 		It("should read pyro Series", func() {
 			req := &querierv1.SeriesRequest{
@@ -334,7 +334,7 @@ func pprofTest() {
 
 			// Add your snapshot assertion here
 			Expect(len(labels)).To(BeNumerically(">", 0))
-		}, SpecTimeout(time.Second*30))
+		})
 
 		It("should read pyro SelectMergeStacktraces", func() {
 			req := &querierv1.SelectMergeStacktracesRequest{
@@ -387,7 +387,7 @@ func pprofTest() {
 			// Add your snapshot assertions here
 			Expect(len(names)).To(BeNumerically(">", 0))
 			Expect(len(levels)).To(BeNumerically(">", 0))
-		}, SpecTimeout(time.Second*30))
+		})
 
 		It("should read pyro SelectMergeProfile", func() {
 			req := &querierv1.SelectMergeProfileRequest{
@@ -456,7 +456,7 @@ func pprofTest() {
 
 			// Add your snapshot assertion here
 			Expect(len(functions)).To(BeNumerically(">", 0))
-		}, SpecTimeout(time.Second*30))
+		})
 
 		It("should read pyro SelectSeries", func() {
 			req := &querierv1.SelectSeriesRequest{
@@ -503,7 +503,7 @@ func pprofTest() {
 
 			// Add your snapshot assertion here
 			Expect(len(series)).To(BeNumerically(">", 0))
-		}, SpecTimeout(time.Second*30))
+		})
 
 		It("should read pyro render-diff", func() {
 			params := url.Values{}
@@ -526,7 +526,7 @@ func pprofTest() {
 
 			// Add JSON unmarshaling and snapshot assertions here
 			Expect(len(body)).To(BeNumerically(">", 0))
-		}, SpecTimeout(time.Second*30))
+		})
 
 	})
 

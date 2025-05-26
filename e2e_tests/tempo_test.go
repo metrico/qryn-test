@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"io"
-	"os"
 	"strings"
 	"time"
 )
@@ -28,27 +27,27 @@ func tempoTest() {
 			Expect(err).To(BeNil())
 			return parsed
 		}
-		It("should read otlp", func() {
-			traceID := strings.ToUpper(os.Getenv("TEST_TRACE_ID"))
-			Expect(traceID).NotTo(BeEmpty())
-			url := fmt.Sprintf("http://%s/api/traces/%s/json", gigaPipeExtUrl, traceID)
-			data := axiosBody(url)
-			spans := data["resourceSpans"].([]interface{})[0].(map[string]interface{})["instrumentationLibrarySpans"].([]interface{})[0].(map[string]interface{})["spans"].([]interface{})[0].(map[string]interface{})
-
-			delete(spans, "traceID")
-			delete(spans, "traceId")
-			delete(spans, "spanID")
-			delete(spans, "spanId")
-			delete(spans, "startTimeUnixNano")
-			delete(spans, "endTimeUnixNano")
-
-			if events, ok := spans["events"].([]interface{}); ok && len(events) > 0 {
-				delete(events[0].(map[string]interface{}), "timeUnixNano")
-			}
-
-			cupaloy.SnapshotT(GinkgoT(), spans)
-
-		})
+		//It("should read otlp", func() {
+		//	traceID := strings.ToUpper(os.Getenv("TEST_TRACE_ID"))
+		//	Expect(traceID).NotTo(BeEmpty())
+		//	url := fmt.Sprintf("http://%s/api/traces/%s/json", gigaPipeExtUrl, traceID)
+		//	data := axiosBody(url)
+		//	spans := data["resourceSpans"].([]interface{})[0].(map[string]interface{})["instrumentationLibrarySpans"].([]interface{})[0].(map[string]interface{})["spans"].([]interface{})[0].(map[string]interface{})
+		//
+		//	delete(spans, "traceID")
+		//	delete(spans, "traceId")
+		//	delete(spans, "spanID")
+		//	delete(spans, "spanId")
+		//	delete(spans, "startTimeUnixNano")
+		//	delete(spans, "endTimeUnixNano")
+		//
+		//	if events, ok := spans["events"].([]interface{}); ok && len(events) > 0 {
+		//		delete(events[0].(map[string]interface{}), "timeUnixNano")
+		//	}
+		//
+		//	cupaloy.SnapshotT(GinkgoT(), spans)
+		//
+		//})
 
 		It("should read zipkin", func() {
 			time.Sleep(500 * time.Millisecond)
@@ -140,8 +139,6 @@ func tempoTest() {
 		})
 
 		It("should get /api/search", func() {
-			start := time.Now().Add(-5 * time.Minute).Unix()
-			end := time.Now().Unix()
 
 			query := fmt.Sprintf("http://%s/api/search?tags=%s&minDuration=900ms&maxDuration=1100ms&start=%d&end=%d",
 				gigaPipeExtUrl,

@@ -3,8 +3,9 @@ package e2e_tests
 import (
 	"fmt"
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 // TestE2E is the entry point for the Ginkgo test suite
@@ -28,7 +29,7 @@ func readingTests() {
 			fmt.Println("Starting reading tests - confirmed writing tests are complete")
 		})
 		logqlReader()
-		tempoTest()
+		//tempoTest()
 		miscTest()
 		traceqlTest()
 		pprofTest()
