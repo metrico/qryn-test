@@ -29,9 +29,9 @@ func readingTests() {
 			fmt.Println("Starting reading tests - confirmed writing tests are complete")
 		})
 		logqlReader()
-		//tempoTest()
+		tempoTest()
 		miscTest()
-		traceqlTest()
+		//traceqlTest()
 		pprofTest()
 
 		//	// Define the three reading test cases

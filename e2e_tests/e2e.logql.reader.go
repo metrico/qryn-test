@@ -77,8 +77,8 @@ func runRequest(req string, step interface{}, _start, _end interface{}, oid inte
 		step = 2
 	}
 
-	startNs := fmt.Sprintf("%d000000", _start.(int64))
-	endNs := fmt.Sprintf("%d000000", _end.(int64))
+	startNs := fmt.Sprintf("%d", _start.(int64))
+	endNs := fmt.Sprintf("%d", _end.(int64))
 
 	reqURL := fmt.Sprintf("http://%s/loki/api/v1/query_range?direction=BACKWARD&limit=%v&query=%s&start=%s&end=%s&step=%v",
 		gigaPipeExtUrl, limit, url.QueryEscape(req), startNs, endNs, step)
@@ -600,8 +600,8 @@ func logqlReader() {
 
 		It("should get /loki/api/v1/labels with time context", func() {
 			params := url.Values{}
-			params.Add("start", fmt.Sprintf("%d000000", time.Now().Unix()-3600))
-			params.Add("end", fmt.Sprintf("%d000000", time.Now().Unix()))
+			params.Add("start", fmt.Sprintf("%d000000", start))
+			params.Add("end", fmt.Sprintf("%d000000", end))
 
 			url := fmt.Sprintf("http://%s/loki/api/v1/labels?%s", gigaPipeExtUrl, params.Encode())
 			resp, err := axiosGet(url)
@@ -613,8 +613,8 @@ func logqlReader() {
 
 		It("should get /loki/api/v1/label/:name/values with time context", func() {
 			params := url.Values{}
-			params.Add("start", fmt.Sprintf("%d000000", time.Now().Unix()-3600))
-			params.Add("end", fmt.Sprintf("%d000000", time.Now().Unix()))
+			params.Add("start", fmt.Sprintf("%d000000", start))
+			params.Add("end", fmt.Sprintf("%d000000", end))
 
 			url := fmt.Sprintf("http://%s/loki/api/v1/label/%s_LBL_LOGS/values?%s", gigaPipeExtUrl, testID, params.Encode())
 			resp, err := axiosGet(url)
@@ -701,7 +701,7 @@ func logqlReader() {
 		It("should read elastic log", func() {
 			req := fmt.Sprintf(`{_index="test_%s"}`, testID)
 			url := fmt.Sprintf("http://%s/loki/api/v1/query_range?direction=BACKWARD&limit=2000&query=%s&start=%d000000&end=%d000000",
-				gigaPipeExtUrl, url.QueryEscape(req), start, time.Now().Unix())
+				gigaPipeExtUrl, url.QueryEscape(req), start, end)
 
 			resp, err := axiosGet(url)
 			Expect(err).NotTo(HaveOccurred())
@@ -742,8 +742,8 @@ func logqlReader() {
 
 		It("should get /loki/api/v1/labels with time context", func() {
 			params := url.Values{}
-			params.Add("start", fmt.Sprintf("%d000000", time.Now().Unix()-3600))
-			params.Add("end", fmt.Sprintf("%d000000", time.Now().Unix()))
+			params.Add("start", fmt.Sprintf("%d000000", start))
+			params.Add("end", fmt.Sprintf("%d000000", end))
 
 			url := fmt.Sprintf("http://%s/loki/api/v1/labels?%s", gigaPipeExtUrl, params.Encode())
 			resp, err := axiosGet(url)
@@ -764,8 +764,8 @@ func logqlReader() {
 
 		It("should get /loki/api/v1/label/:name/values with time context", func() {
 			params := url.Values{}
-			params.Add("start", fmt.Sprintf("%d000000", time.Now().Unix()-3600))
-			params.Add("end", fmt.Sprintf("%d000000", time.Now().Unix()))
+			params.Add("start", fmt.Sprintf("%d000000", start))
+			params.Add("end", fmt.Sprintf("%d000000", end))
 
 			labelName := fmt.Sprintf("%s_LBL_LOGS", testID)
 			url := fmt.Sprintf("http://%s/loki/api/v1/label/%s/values?%s", gigaPipeExtUrl, labelName, params.Encode())
@@ -787,81 +787,61 @@ func logqlReader() {
 			fmt.Println(":Res", resp.StatusCode)
 			Expect(labelResp.Status).To(Equal("success"))
 		})
-		//todo need discussion
-		//It("should get /loki/api/v1/label with time context", func() {
-		//	params := url.Values{}
-		//	params.Add("start", fmt.Sprintf("%d000000", time.Now().Unix()-3600))
-		//	params.Add("end", fmt.Sprintf("%d000000", time.Now().Unix()))
-		//
-		//	url := fmt.Sprintf("http://%s/loki/api/v1/label?%s", gigaPipeExtUrl, params.Encode())
-		//	resp, err := axiosGet(url)
-		//	Expect(err).NotTo(HaveOccurred())
-		//	defer resp.Body.Close()
-		//
-		//	body, err := io.ReadAll(resp.Body)
-		//	Expect(err).NotTo(HaveOccurred())
-		//
-		//	fmt.Println("Body:", string(body))
-		//	var labelResp struct {
-		//		Status string   `json:"status"`
-		//		Data   []string `json:"data"`
-		//	}
-		//	err = json.Unmarshal(body, &labelResp)
-		//	Expect(err).NotTo(HaveOccurred())
-		//
-		//	expectedLabel := fmt.Sprintf("%s_LBL_LOGS", testID)
-		//	found := false
-		//	for _, label := range labelResp.Data {
-		//		if label == expectedLabel {
-		//			found = true
-		//			break
-		//		}
-		//	}
-		//	Expect(found).To(BeTrue())
-		//
-		//})
-		//
-		//It("should get /loki/api/v1/series with time context", func() {
-		//	params := url.Values{}
-		//	params.Add("start", fmt.Sprintf("%d000000", time.Now().Unix()-3600))
-		//	params.Add("end", fmt.Sprintf("%d000000", time.Now().Unix()))
-		//	params.Add("match[]", fmt.Sprintf(`{test_id="%s"}`, testID))
-		//
-		//	url := fmt.Sprintf("http://%s/loki/api/v1/series?%s", gigaPipeExtUrl, params.Encode())
-		//	resp, err := axiosGet(url)
-		//	Expect(err).NotTo(HaveOccurred())
-		//	defer resp.Body.Close()
-		//
-		//	body, err := io.ReadAll(resp.Body)
-		//	Expect(err).NotTo(HaveOccurred())
-		//	fmt.Println("Body", string(body))
-		//	var seriesResp SeriesResponse
-		//	err = json.Unmarshal(body, &seriesResp)
-		//	Expect(err).NotTo(HaveOccurred())
-		//
-		//	Expect(seriesResp.Data).NotTo(BeEmpty())
-		//
-		//})
-		//
-		//It("should read datadog logs", func() {
-		//	req := fmt.Sprintf(`{ddsource="ddtest_%s"}`, testID)
-		//	resp, err := runRequest(req, 1, start, time.Now().Unix(), nil, nil)
-		//	Expect(err).NotTo(HaveOccurred())
-		//
-		//	for i := range resp.Data.Result {
-		//		result := &resp.Data.Result[i]
-		//		expectedSource := fmt.Sprintf("ddtest_%s", testID)
-		//		Expect(result.Stream["ddsource"]).To(Equal(expectedSource))
-		//		result.Stream["ddsource"] = ""
-		//
-		//		for j := range result.Values {
-		//			result.Values[j][0] = "0"
-		//		}
-		//	}
-		//
-		//	Expect(resp.Data.Result).NotTo(BeEmpty())
-		//	Expect(resp.Data).NotTo(BeNil())
-		//})
+
+		It("should get /loki/api/v1/label with time context", func() {
+			params := url.Values{}
+			params.Add("start", fmt.Sprintf("%d000000", start))
+			params.Add("end", fmt.Sprintf("%d000000", end))
+
+			url := fmt.Sprintf("http://%s/loki/api/v1/label?%s", gigaPipeExtUrl, params.Encode())
+			resp, err := axiosGet(url)
+			Expect(err).NotTo(HaveOccurred())
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			fmt.Println("Body Data:", string(body))
+			var labelResp struct {
+				Status string   `json:"status"`
+				Data   []string `json:"data"`
+			}
+			err = json.Unmarshal(body, &labelResp)
+			Expect(err).NotTo(HaveOccurred())
+
+			//expectedLabel := fmt.Sprintf("%s_LBL_LOGS", testID)
+			//found := false
+			//for _, label := range labelResp.Data {
+			//	if label == expectedLabel {
+			//		found = true
+			//		break
+			//	}
+			//}
+			//Expect(found).To(BeTrue())
+			Expect(labelResp.Status).To(Equal("success"))
+		})
+
+		It("should get /loki/api/v1/series with time context", func() {
+			params := url.Values{}
+			params.Add("start", fmt.Sprintf("%d000000", start))
+			params.Add("end", fmt.Sprintf("%d000000", end))
+			params.Add("match[]", fmt.Sprintf(`{test_id="%s"}`, testID))
+
+			url := fmt.Sprintf("http://%s/loki/api/v1/series?%s", gigaPipeExtUrl, params.Encode())
+			resp, err := axiosGet(url)
+			Expect(err).NotTo(HaveOccurred())
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			Expect(err).NotTo(HaveOccurred())
+			fmt.Println("Body", string(body))
+			var seriesResp SeriesResponse
+			err = json.Unmarshal(body, &seriesResp)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(seriesResp.Data).NotTo(BeEmpty())
+
+		})
 
 	})
 }

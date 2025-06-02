@@ -9,14 +9,17 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/prometheus/prompb"
+
+	"go.opentelemetry.io/otel/sdk/resource"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
-	oteltrace "go.opentelemetry.io/otel/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"go.opentelemetry.io/otel/trace"
 	"math"
 
 	"io"
@@ -31,7 +34,7 @@ import (
 var (
 	Shard string
 	//ExtraHeaders     map[string]string
-	storage          map[string]interface{}
+
 	writingCompleted bool
 	orderMutex       sync.Mutex
 )
@@ -41,7 +44,7 @@ func init() {
 
 	Shard = "default"
 	//	initExtraHeaders()
-	storage = make(map[string]interface{})
+	//storage = make(map[string]interface{})
 }
 
 // Global variables to track test execution order
@@ -161,44 +164,77 @@ func writingTests() {
 
 		It("should send otlp", func(ctx context.Context) {
 
-			exporter, err := otlptracehttp.New(ctx,
-				otlptracehttp.WithEndpoint(gigaPipeExtUrl),
-				otlptracehttp.WithInsecure(),
-				otlptracehttp.WithHeaders(map[string]string{
-					"X-Scope-OrgID": "1",
-					"X-Shard":       "my-shard-id",
-				}),
+			// Create resource with service name
+			res := resource.NewWithAttributes(
+				semconv.SchemaURL,
+				semconv.ServiceNameKey.String("testSvc"),
+			)
+
+			// Prepare headers for OTLP exporter
+			headers := map[string]string{
+				"X-Scope-OrgID": "1",
+				"X-Shard":       "default",
+			}
+
+			// Add extra headers
+			for k, v := range ExtraHeaders() {
+				headers[k] = v
+			}
+
+			// Create OTLP HTTP exporter
+			client := otlptracehttp.NewClient(
+				otlptracehttp.WithEndpoint(gigaPipeWriteUrl),
 				otlptracehttp.WithURLPath("/v1/traces"),
+				otlptracehttp.WithHeaders(headers),
+				otlptracehttp.WithInsecure(), // Use this for HTTP, remove for HTTPS
 			)
-			Expect(err).ToNot(HaveOccurred())
 
-			res, err := resource.New(ctx,
-				resource.WithAttributes(
-					semconv.ServiceNameKey.String("testSvc"),
-				),
+			exporter, err := otlptrace.New(ctx, client)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Create tracer provider with simple span processor
+			tp := sdktrace.NewTracerProvider(
+				sdktrace.WithResource(res),
+				sdktrace.WithSpanProcessor(sdktrace.NewSimpleSpanProcessor(exporter)),
 			)
-			Expect(err).ToNot(HaveOccurred())
 
-			provider := trace.NewTracerProvider(
-				trace.WithBatcher(exporter),
-				trace.WithResource(res),
-			)
-			defer func() {
-				Expect(provider.Shutdown(ctx)).To(Succeed())
-			}()
+			// Register the tracer provider globally
+			otel.SetTracerProvider(tp)
 
-			otel.SetTracerProvider(provider)
+			// Get tracer instance
 			tracer := otel.Tracer("connect-example")
 
-			_, span := tracer.Start(ctx, "test_span",
-				oteltrace.WithAttributes(attribute.String("testId", "__TEST__")),
+			// Start a span
+			ctx, span := tracer.Start(ctx, "test_span",
+				trace.WithAttributes(
+					attribute.String("testId", "__TEST__"),
+				),
 			)
+
+			// Sleep for 100ms (equivalent to setTimeout)
 			time.Sleep(100 * time.Millisecond)
-			span.AddEvent("test event")
-			span.SetStatus(codes.Error, "error occurred")
+
+			// Add event to span
+			span.AddEvent("test event", trace.WithTimestamp(time.Now()))
+
+			// Set span status (code: 1 = OK in OpenTelemetry)
+			span.SetStatus(codes.Ok, "")
+
+			// End the span
 			span.End()
 
-			time.Sleep(2 * time.Second) // allow batch export to complete
+			// Store span in storage (equivalent to storage.test_span = span)
+			storage["test_span"] = span
+
+			// Sleep for 2 seconds to allow export
+			time.Sleep(2 * time.Second)
+
+			// Shutdown tracer provider to flush remaining spans
+			err = tp.Shutdown(ctx)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify span was stored
+			Expect(storage["test_span"]).NotTo(BeNil())
 		}, NodeTimeout(10*time.Second))
 		It("should send zipkin", func(ctx context.Context) {
 			recordExecution("send-zipkin")

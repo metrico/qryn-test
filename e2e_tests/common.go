@@ -27,7 +27,7 @@ var (
 	randomNum        = rand.Float64()
 	randomStr        = strconv.FormatFloat(randomNum, 'f', -1, 64)
 	testID           = "id" + randomStr[2:]
-
+	storage          = make(map[string]interface{})
 	// Calculate end time (current time, rounded to nearest minute)
 	currentTime = time.Now().UnixMilli()
 	end         = int64(math.Floor(float64(currentTime)/float64(60*1000))) * 60 * 1000

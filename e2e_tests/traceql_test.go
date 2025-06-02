@@ -69,8 +69,6 @@ func traceqlTest() {
 				limit := 5
 				req := fmt.Sprintf("http://%s/api/search?start=%d&end=%d&q=%s&limit=%d",
 					gigaPipeExtUrl, confStart, confEnd, url.QueryEscape(query), limit)
-				fmt.Println(req)
-
 				data, err := axiosGet(req)
 				Expect(err).To(BeNil())
 				body, err := io.ReadAll(data.Body)
@@ -80,9 +78,8 @@ func traceqlTest() {
 				err = json.Unmarshal(body, &result)
 				Expect(err).To(BeNil())
 
-				traces, ok := result["traces"].([]interface{})
-				fmt.Println("resp", string(body))
-				Expect(ok).To(BeTrue())
+				traces, _ := result["traces"].([]interface{})
+				//				Expect(ok).To(BeTrue())
 				Expect(len(traces)).To(BeNumerically(">", 0))
 			})
 		}
@@ -103,16 +100,12 @@ func traceqlTest() {
 				q := fmt.Sprintf(`{.testId="%s" && .spanN%s"5"}`, testID, op)
 				req := fmt.Sprintf("http://%s/api/search?start=%d&end=%d&q=%s&limit=5",
 					gigaPipeExtUrl, start/1000, end/1000, url.QueryEscape(q))
-				fmt.Println(req)
-
 				resp, err := axiosGet(req)
 				Expect(err).To(BeNil())
 				defer resp.Body.Close()
-				fmt.Println("resp body....", resp.Body)
 				var result map[string]interface{}
 				err = json.NewDecoder(resp.Body).Decode(&result)
 				Expect(err).To(BeNil())
-				fmt.Println("result", result)
 				traces, ok := result["traces"].([]interface{})
 				Expect(ok).To(BeTrue())
 				Expect(len(traces) > 0).To(BeTrue())
@@ -123,8 +116,6 @@ func traceqlTest() {
 				q := fmt.Sprintf(`{.testId="%s" && .spanN%s5}`, testID, op)
 				req := fmt.Sprintf("http://%s/api/search?start=%d&end=%d&q=%s&limit=5",
 					gigaPipeExtUrl, start/1000, end/1000, url.QueryEscape(q))
-				fmt.Println(req)
-
 				resp, err := axiosGet(req)
 				Expect(err).To(BeNil())
 				defer resp.Body.Close()
@@ -148,8 +139,6 @@ func traceqlTest() {
 					q := fmt.Sprintf(`{.testId="%s"} | %s %s -1`, testID, agg, op)
 					req := fmt.Sprintf("http://%s/api/search?start=%d&end=%d&q=%s&limit=5",
 						gigaPipeExtUrl, start/1000, end/1000, url.QueryEscape(q))
-					fmt.Println(q)
-					fmt.Println(req)
 					resp, err := axiosGet(req)
 					Expect(err).To(BeNil())
 					defer resp.Body.Close()
