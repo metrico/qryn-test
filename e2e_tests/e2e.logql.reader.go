@@ -4,16 +4,29 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"github.com/bradleyjkemp/cupaloy"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/tommy351/goldga"
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 )
+
+type ReqOptions struct {
+	Name   string
+	Req    string
+	Step   float64
+	Start  int64
+	End    int64
+	TestID string
+	Limit  int
+}
 
 type InstantQueryResponse struct {
 	Status string `json:"status"`
@@ -42,7 +55,7 @@ type LogResult struct {
 
 type MatrixResult struct {
 	Metric map[string]string `json:"metric"`
-	Values [][]interface{}   `json:"values"`
+	Values [][2]float64      `json:"values"`
 }
 
 type MatrixResponse struct {
@@ -58,29 +71,26 @@ type SeriesResponse struct {
 	Data   []map[string]interface{} `json:"data"`
 }
 
-func runRequest(req string, step interface{}, _start, _end interface{}, oid interface{}, limit interface{}) (*QueryResponse, error) {
-	fmt.Println(req)
+func runRequest(req string, step float64, _start, _end int64, oid string, limit int) (*QueryResponse, error) {
 
-	if oid == nil {
+	if oid == "" {
 		oid = "1"
 	}
-	if limit == nil {
+	if limit == 0 {
 		limit = 2000
 	}
-	if _start == nil {
+	if _start == 0 {
 		_start = start
 	}
-	if _end == nil {
+	if _end == 0 {
 		_end = end
 	}
-	if step == nil {
+	if step == 0 {
 		step = 2
 	}
-
-	startNs := fmt.Sprintf("%d", _start.(int64))
-	endNs := fmt.Sprintf("%d", _end.(int64))
-
-	reqURL := fmt.Sprintf("http://%s/loki/api/v1/query_range?direction=BACKWARD&limit=%v&query=%s&start=%s&end=%s&step=%v",
+	startNs := strconv.Itoa(int(_start))
+	endNs := strconv.Itoa(int(_end))
+	reqURL := fmt.Sprintf("http://%s/loki/api/v1/query_range?direction=BACKWARD&limit=%d&query=%s&start=%s&end=%s&step=%f",
 		gigaPipeExtUrl, limit, url.QueryEscape(req), startNs, endNs, step)
 
 	client := &http.Client{}
@@ -89,8 +99,8 @@ func runRequest(req string, step interface{}, _start, _end interface{}, oid inte
 		return nil, err
 	}
 
-	httpReq.Header.Set("X-Scope-OrgID", oid.(string))
-	for k, v := range ExtraHeaders() {
+	httpReq.Header.Set("X-Scope-OrgID", oid)
+	for k, v := range ExtraHeaders {
 		httpReq.Header.Set(k, v)
 	}
 
@@ -114,11 +124,11 @@ func runRequest(req string, step interface{}, _start, _end interface{}, oid inte
 	return &queryResp, nil
 }
 
-func adjustResult(resp *QueryResponse, id string, _start interface{}) {
+func adjustResult(resp *QueryResponse, id string, _start int64) {
 	if id == "" {
 		id = testID
 	}
-	if _start == nil {
+	if _start == 0 {
 		_start = start
 	}
 
@@ -132,7 +142,7 @@ func adjustResult(resp *QueryResponse, id string, _start interface{}) {
 
 		for j := range stream.Values {
 			timestamp, _ := strconv.ParseInt(stream.Values[j][0].(string), 10, 64)
-			adjustedTime := timestamp - _start.(int64)*1000000
+			adjustedTime := timestamp - _start*1000000
 			stream.Values[j][0] = strconv.FormatInt(adjustedTime, 10)
 		}
 	}
@@ -153,7 +163,7 @@ func adjustMatrixResult(resp *MatrixResponse, id string) {
 
 		for j := range metric.Values {
 			if len(metric.Values[j]) >= 2 {
-				timestamp := metric.Values[j][0].(float64)
+				timestamp := metric.Values[j][0]
 				adjustedTime := timestamp - float64(start/1000)
 				metric.Values[j][0] = adjustedTime
 			}
@@ -161,12 +171,12 @@ func adjustMatrixResult(resp *MatrixResponse, id string) {
 	}
 }
 
-func runMatrixRequest(req string, step interface{}, _start, _end interface{}) (*MatrixResponse, error) {
-	queryResp, err := runRequest(req, step, _start, _end, nil, nil)
+func runMatrixRequest(req string, step float64, _start, _end int64) (*MatrixResponse, error) {
+	queryResp, err := runRequest(req, step, _start, _end, "", 0)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("queryResp", queryResp)
+
 	// Convert to matrix response format
 	matrixResp := &MatrixResponse{
 		Status: queryResp.Status,
@@ -177,151 +187,90 @@ func runMatrixRequest(req string, step interface{}, _start, _end interface{}) (*
 	for _, logResult := range queryResp.Data.Result {
 		matrixResult := MatrixResult{
 			Metric: logResult.Stream,
-			Values: make([][]interface{}, len(logResult.Values)),
+			Values: make([][2]float64, len(logResult.Values)),
 		}
+
 		for i, val := range logResult.Values {
-			matrixResult.Values[i] = []interface{}{val[0], val[1]}
+			// Assert and convert val[0] and val[1] to float64
+			ts, ok1 := val[0].(float64)
+			v, ok2 := val[1].(float64)
+			if !ok1 || !ok2 {
+				continue
+			}
+
+			matrixResult.Values[i] = [2]float64{ts, v}
 		}
+
 		matrixResp.Data.Result = append(matrixResp.Data.Result, matrixResult)
 	}
 
 	return matrixResp, nil
 }
 
-func axiosGet(url string) (*http.Response, error) {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
+func itShouldStdReq(opts ReqOptions) {
 
-	for k, v := range ExtraHeaders() {
-		req.Header.Set(k, v)
-	}
-
-	return client.Do(req)
-}
-
-func kOrder(m map[string]string) map[string]string {
-	// Sort keys for consistent ordering
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	ordered := make(map[string]string)
-	for _, k := range keys {
-		ordered[k] = m[k]
-	}
-	return ordered
-}
-
-func itShouldStdReq(optsOrName interface{}, req ...string) {
-	var opts map[string]interface{}
-	var name, query string
-
-	if nameStr, ok := optsOrName.(string); ok {
-		// Simple string name case
-		name = nameStr
-		if len(req) > 0 {
-			query = req[0]
-		}
-		opts = map[string]interface{}{
-			"name": name,
-			"req":  query,
-		}
-	} else if optsMap, ok := optsOrName.(map[string]interface{}); ok {
-		// Options map case
-		opts = optsMap
-		name = opts["name"].(string)
-		query = opts["req"].(string)
-	}
-
-	It(name, func() {
-		var step, startTime, endTime, oid, limit interface{}
-
-		if opts["step"] != nil {
-			step = opts["step"]
-		}
-		if opts["start"] != nil {
-			startTime = opts["start"]
-		}
-		if opts["end"] != nil {
-			endTime = opts["end"]
-		}
-		if opts["oid"] != nil {
-			oid = opts["oid"]
-		}
-		if opts["limit"] != nil {
-			limit = opts["limit"]
-		}
-
-		resp, err := runRequest(query, step, startTime, endTime, oid, limit)
+	It(opts.Name, func() {
+		resp, err := runRequest(opts.Req, opts.Step, opts.Start, opts.End, "", 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		testIDToUse := testID
-		if opts["testID"] != nil {
-			testIDToUse = opts["testID"].(string)
+		testIDToUse := opts.TestID
+		if testIDToUse == "" {
+			testIDToUse = testID // fallback to global testID
 		}
 
-		adjustResult(resp, testIDToUse, startTime)
+		adjustResult(resp, testIDToUse, opts.Start)
 
-		// Sort results for consistent comparison
 		sort.Slice(resp.Data.Result, func(i, j int) bool {
-			s1 := fmt.Sprintf("%v", kOrder(resp.Data.Result[i].Stream))
-			s2 := fmt.Sprintf("%v", kOrder(resp.Data.Result[j].Stream))
-			return s2 < s1 // Note: original JS used reverse comparison
+			s1 := fmt.Sprintf("%v", resp.Data.Result[i].Stream)
+			s2 := fmt.Sprintf("%v", resp.Data.Result[j].Stream)
+			return s2 < s1
 		})
-
+		Expect(resp.Data).To(goldga.Match())
 		Expect(resp.Data).NotTo(BeNil())
+		safeName := sanitizeSnapshotName(opts.Name)
+		err = cupaloy.New().SnapshotMulti(safeName,
+			"data", resp.Data,
+			"status", resp.Status,
+		)
+
+		// Only fail if it's not the initial snapshot creation
+		if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+			Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+		}
+
 	})
+
+}
+func sanitizeSnapshotName(name string) string {
+	// Replace all non-alphanumeric, dash, or underscore characters with "_"
+	re := regexp.MustCompile(`[^\w\d_-]+`)
+	return re.ReplaceAllString(name, "_")
 }
 
-func itShouldMatrixReq(optsOrName interface{}, req ...string) {
-	var opts map[string]interface{}
-	var name, query string
-
-	if nameStr, ok := optsOrName.(string); ok {
-		// Simple string name case
-		name = nameStr
-		if len(req) > 0 {
-			query = req[0]
-		}
-		opts = map[string]interface{}{
-			"name": name,
-			"req":  query,
-		}
-	} else if optsMap, ok := optsOrName.(map[string]interface{}); ok {
-		// Options map case
-		opts = optsMap
-		name = opts["name"].(string)
-		query = opts["req"].(string)
-	}
-
-	It(name, func() {
-		var step, startTime, endTime interface{}
-
-		if opts["step"] != nil {
-			step = opts["step"]
-		}
-		if opts["start"] != nil {
-			startTime = opts["start"]
-		}
-		if opts["end"] != nil {
-			endTime = opts["end"]
-		}
-
-		resp, err := runMatrixRequest(query, step, startTime, endTime)
+func itShouldMatrixReq(opts ReqOptions) {
+	It(opts.Name, func() {
+		resp, err := runMatrixRequest(opts.Req, opts.Step, opts.Start, opts.End)
 		Expect(err).NotTo(HaveOccurred())
 
 		testIDToUse := testID
-		if opts["testID"] != nil {
-			testIDToUse = opts["testID"].(string)
+		if opts.TestID != "" {
+			testIDToUse = opts.TestID
 		}
 
 		adjustMatrixResult(resp, testIDToUse)
+		Expect(resp.Data).To(goldga.Match())
 		Expect(resp.Data).NotTo(BeNil())
+		safeName := sanitizeSnapshotName(opts.Name)
+		err = cupaloy.New().SnapshotMulti(safeName,
+			"data", resp.Data,
+			"status", resp.Status,
+		)
+
+		// Only fail if it's not the initial snapshot creation
+		if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+			Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+		}
+
 	})
 }
 
@@ -329,116 +278,220 @@ func logqlReader() {
 	// ReadingTests suite runs after WritingTests
 	Context("Reading Tests", func() {
 		// Verify that all writing tests have completed before running any reading tests
-		itShouldStdReq(map[string]interface{}{
-			"name":  "ok limited res",
-			"limit": 2002,
-			"req":   fmt.Sprintf(`{test_id="%s"}`, testID),
+		itShouldStdReq(ReqOptions{
+			Name:  "ok limited res",
+			Limit: 2002,
+			Req:   fmt.Sprintf(`{test_id="%s"}`, testID),
 		})
 
-		itShouldStdReq(map[string]interface{}{
-			"name":  "empty res",
-			"req":   fmt.Sprintf(`{test_id="%s"}`, testID),
-			"step":  2,
-			"start": start - 3600*1000,
-			"end":   end - 3600*1000,
+		itShouldStdReq(ReqOptions{
+			Name:  "empty res",
+			Req:   fmt.Sprintf(`{test_id="%s"}`, testID),
+			Step:  2,
+			Start: start - 3600*1000,
+			End:   end - 3600*1000,
 		})
 
-		itShouldStdReq("two clauses", fmt.Sprintf(`{test_id="%s", freq="2"}`, testID))
-		itShouldStdReq("two clauses and filter", fmt.Sprintf(`{test_id="%s", freq="2"} |~ "2[0-9]$"`, testID))
-
-		itShouldMatrixReq("aggregation", fmt.Sprintf(`rate({test_id="%s", freq="2"} |~ "2[0-9]$" [1s])`, testID))
-		itShouldMatrixReq("aggregation 1m", fmt.Sprintf(`rate({test_id="%s", freq="2"} [1m])`, testID))
-		itShouldMatrixReq("aggregation operator", fmt.Sprintf(`sum by (test_id) (rate({test_id="%s"} |~ "2[0-9]$" [1s]))`, testID))
-
-		itShouldMatrixReq(map[string]interface{}{
-			"name":  "aggregation empty",
-			"req":   fmt.Sprintf(`rate({test_id="%s", freq="2"} |~ "2[0-9]$" [1s])`, testID),
-			"step":  2,
-			"start": start - 3600*1000,
-			"end":   end - 3600*1000,
+		itShouldStdReq(ReqOptions{Name: "two clauses",
+			Req: fmt.Sprintf(`{test_id="%s", freq="2"}`, testID),
 		})
 
-		itShouldMatrixReq(map[string]interface{}{
-			"name":  "aggregation operator empty",
-			"req":   fmt.Sprintf(`sum by (test_id) (rate({test_id="%s"} |~ "2[0-9]$" [1s]))`, testID),
-			"step":  2,
-			"start": start - 3600*1000,
-			"end":   end - 3600*1000,
+		itShouldStdReq(ReqOptions{Name: "two clauses and filter",
+			Req: fmt.Sprintf(`{test_id="%s", freq="2"} |~ "2[0-9]$"`, testID)})
+
+		//	itShouldMatrixReq("aggregation", fmt.Sprintf(`rate({test_id="%s", freq="2"} |~ "2[0-9]$" [1s])`, testID))
+		itShouldMatrixReq(ReqOptions{
+			Name: "aggregation",
+			Req:  fmt.Sprintf(`rate({test_id="%s", freq="2"} |~ "2[0-9]$" [1s])`, testID),
+		})
+		itShouldMatrixReq(ReqOptions{
+			Name: "aggregation 1m",
+			Req:  fmt.Sprintf(`rate({test_id="%s", freq="2"} [1m])`, testID),
+		})
+		//itShouldMatrixReq("aggregation 1m", fmt.Sprintf(`rate({test_id="%s", freq="2"} [1m])`, testID))
+		itShouldMatrixReq(ReqOptions{
+			Name:  "aggregation empty",
+			Req:   fmt.Sprintf(`rate({test_id="%s", freq="2"} |~ "2[0-9]$" [1s])`, testID),
+			Step:  2,
+			Start: start - 3600*1000,
+			End:   end - 3600*1000,
+		})
+		//itShouldMatrixReq("aggregation operator", fmt.Sprintf(`sum by (test_id) (rate({test_id="%s"} |~ "2[0-9]$" [1s]))`, testID))
+		itShouldMatrixReq(ReqOptions{
+			Name: "aggregation operator",
+			Req:  fmt.Sprintf(`sum by (test_id) (rate({test_id="%s"} |~ "2[0-9]$" [1s]))`, testID),
 		})
 
-		itShouldStdReq("json no params", fmt.Sprintf(`{test_id="%s_json"}|json`, testID))
-		itShouldStdReq("json params", fmt.Sprintf(`{test_id="%s_json"}|json lbl_repl="new_lbl"`, testID))
-		itShouldStdReq("json with params / stream_selector", fmt.Sprintf(`{test_id="%s_json"}|json lbl_repl="new_lbl"|lbl_repl="new_val"`, testID))
-		itShouldStdReq("json with params / stream_selector 2", fmt.Sprintf(`{test_id="%s_json"}|json lbl_repl="new_lbl"|fmt="json"`, testID))
-		itShouldStdReq("json with no params / stream_selector", fmt.Sprintf(`{test_id="%s_json"}|json|fmt=~"[jk]son"`, testID))
-		itShouldStdReq("json with no params / stream_selector 2", fmt.Sprintf(`{test_id="%s_json"}|json|lbl_repl="REPL"`, testID))
-		itShouldStdReq("2xjson", fmt.Sprintf(`{test_id="%s_json"}|json|json int_lbl2="int_val"`, testID))
-		itShouldStdReq("json + linefmt", fmt.Sprintf(`{test_id="%s_json"}| line_format "{{ div .test_id 2  }}"`, testID))
-
-		itShouldMatrixReq("unwrap", fmt.Sprintf(`sum_over_time({test_id="%s_json"}|json|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)`, testID))
-		itShouldMatrixReq("unwrap + json params", fmt.Sprintf(`sum_over_time({test_id="%s_json"}|json lbl_int1="int_val"|lbl_repl="val_repl"|unwrap lbl_int1 [3s]) by (test_id, lbl_repl)`, testID))
-		itShouldMatrixReq("linefmt + unwrap entry + agg-op", fmt.Sprintf(`rate({test_id="%s_json"}| line_format "{{ div .int_lbl 2  }}" | unwrap _entry [1s])`, testID))
-		itShouldMatrixReq("json + LRA + agg-op", fmt.Sprintf(`sum(rate({test_id="%s_json"}| json [5s])) by (test_id)`, testID))
-		itShouldMatrixReq("json + params + LRA + agg-op", fmt.Sprintf(`sum(rate({test_id="%s_json"}| json lbl_rrr="lbl_repl" [5s])) by (test_id, lbl_rrr)`, testID))
-		itShouldMatrixReq("json + unwrap + 2 x agg-op", fmt.Sprintf(`sum(sum_over_time({test_id="%s_json"}| json | unwrap int_val [10s]) by (test_id, str_id)) by (test_id)`, testID))
-
-		itShouldStdReq(map[string]interface{}{
-			"name":  "lineFmt",
-			"limit": 2001,
-			"req":   fmt.Sprintf(`{test_id="%s"}| line_format "{ \"str\":\"{{._entry}}\", \"freq2\": {{div .freq 2}} }"`, testID),
+		itShouldMatrixReq(ReqOptions{
+			Name:  "aggregation empty",
+			Req:   fmt.Sprintf(`rate({test_id="%s", freq="2"} |~ "2[0-9]$" [1s])`, testID),
+			Step:  2,
+			Start: start - 3600*1000,
+			End:   end - 3600*1000,
 		})
 
-		itShouldMatrixReq("value comparison + LRA", fmt.Sprintf(`rate({test_id="%s"} [1s]) == 2`, testID))
-		itShouldMatrixReq("value comp + LRA + agg-op", fmt.Sprintf(`sum(rate({test_id="%s"} [1s])) by (test_id) > 4`, testID))
-		itShouldMatrixReq("value_comp + json + unwrap + 2 x agg-op", fmt.Sprintf(`sum(sum_over_time({test_id="%s_json"}| json | unwrap str_id [10s]) by (test_id, str_id)) by (test_id) > 1000`, testID))
-		itShouldMatrixReq("value comp + linefmt + LRA", fmt.Sprintf(`rate({test_id="%s"} | line_format "12345" [1s]) == 2`, testID))
-
-		itShouldStdReq("label comp", fmt.Sprintf(`{test_id="%s"} | freq >= 4`, testID))
-		itShouldStdReq("label cmp + json + params", fmt.Sprintf(`{test_id="%s_json"} | json sid="str_id" | sid >= 598`, testID))
-		itShouldStdReq("label cmp + json", fmt.Sprintf(`{test_id="%s_json"} | json | str_id >= 598`, testID))
-		itShouldStdReq("labels cmp", fmt.Sprintf(`{test_id="%s"} | freq > 1 and (freq="4" or freq==2 or freq > 0.5)`, testID))
-		itShouldStdReq("json + params + labels cmp", fmt.Sprintf(`{test_id="%s_json"} | json sid="str_id" | sid >= 598 or sid < 2 and sid > 0`, testID))
-		itShouldStdReq("json + labels cmp", fmt.Sprintf(`{test_id="%s_json"} | json | str_id < 2 or str_id >= 598 and str_id > 0`, testID))
-
-		itShouldStdReq("logfmt", fmt.Sprintf(`{test_id="%s_logfmt"}|logfmt`, testID))
-		itShouldMatrixReq("logfmt + unwrap + label cmp + agg-op", fmt.Sprintf(`sum_over_time({test_id="%s_logfmt"}|logfmt|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)`, testID))
-		itShouldMatrixReq("logfmt + LRA + agg-op", fmt.Sprintf(`sum(rate({test_id="%s_logfmt"}| logfmt [5s])) by (test_id)`, testID))
-		itShouldMatrixReq("logfmt + unwrap + 2xagg-op", fmt.Sprintf(`sum(sum_over_time({test_id="%s_logfmt"}| logfmt | unwrap int_val [10s]) by (test_id, str_id)) by (test_id)`, testID))
-		itShouldMatrixReq("logfmt + unwrap + 2xagg-op + val cmp", fmt.Sprintf(`sum(sum_over_time({test_id="%s_logfmt"}| logfmt | unwrap str_id [10s]) by (test_id, str_id)) by (test_id) > 1000`, testID))
-		itShouldStdReq("logfmt + label cmp", fmt.Sprintf(`{test_id="%s_logfmt"} | logfmt | str_id >= 598`, testID))
-
-		itShouldStdReq(map[string]interface{}{
-			"name":  "regexp",
-			"req":   fmt.Sprintf(`{test_id="%s"} | regexp "^(?P<e>[^0-9]+)[0-9]+$"`, testID),
-			"limit": 2002,
-		})
-		itShouldStdReq(map[string]interface{}{
-			"name":  "regexp 2",
-			"req":   fmt.Sprintf(`{test_id="%s"} | regexp "^[^0-9]+(?P<e>[0-9])+$"`, testID),
-			"limit": 2002,
-		})
-		itShouldStdReq(map[string]interface{}{
-			"name":  "regexp 3",
-			"req":   fmt.Sprintf(`{test_id="%s"} | regexp "^[^0-9]+([0-9]+(?P<e>[0-9]))$"`, testID),
-			"limit": 2002,
-		})
-		itShouldMatrixReq(map[string]interface{}{
-			"name": "regexp + unwrap + agg-op",
-			"req":  fmt.Sprintf(`first_over_time({test_id="%s", freq="0.5"} | regexp "^[^0-9]+(?P<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`, testID),
-			"step": 1,
+		itShouldMatrixReq(ReqOptions{
+			Name:  "aggregation operator empty",
+			Req:   fmt.Sprintf(`sum by (test_id) (rate({test_id="%s"} |~ "2[0-9]$" [1s]))`, testID),
+			Step:  2,
+			Start: start - 3600*1000,
+			End:   end - 3600*1000,
 		})
 
-		itShouldMatrixReq("topk", fmt.Sprintf(`topk(1, rate({test_id="%s"}[5s]))`, testID))
-		itShouldMatrixReq("topk + sum", fmt.Sprintf(`topk(1, sum(count_over_time({test_id="%s"}[5s])) by (test_id))`, testID))
-		itShouldMatrixReq("topk + unwrap", fmt.Sprintf(`topk(1, sum_over_time({test_id="%s_json"} | json f="int_val" | unwrap f [5s]) by (test_id))`, testID))
-		itShouldMatrixReq("topk + unwrap + sum", fmt.Sprintf(`topk(1, sum(sum_over_time({test_id=~"%s_json"} | json f="int_val" | unwrap f [5s])) by (test_id))`, testID))
-		itShouldMatrixReq("bottomk", fmt.Sprintf(`bottomk(1, rate({test_id="%s"}[5s]))`, testID))
-		itShouldMatrixReq("quantile", fmt.Sprintf(`quantile_over_time(0.5, {test_id=~"%s_json"} | json f="int_val" | unwrap f [5s]) by (test_id)`, testID))
+		itShouldStdReq(ReqOptions{
+			Name: "json no params",
+			Req:  fmt.Sprintf(`{test_id="%s_json"}|json`, testID),
+		})
 
-		itShouldMatrixReq(map[string]interface{}{
-			"name": "json + params + unwrap + agg-op + small step",
-			"req":  fmt.Sprintf(`rate({test_id="%s_json"} | json int_val="int_val" | unwrap int_val [1m]) by (test_id)`, testID),
-			"step": 0.05,
+		itShouldStdReq(ReqOptions{
+			Name: "json params",
+			Req:  fmt.Sprintf(`{test_id="%s_json"}|json lbl_repl="new_lbl"`, testID),
+		})
+		itShouldStdReq(ReqOptions{
+			Name: "json with params / stream_selector",
+			Req:  fmt.Sprintf(`{test_id="%s_json"}|json lbl_repl="new_lbl"|lbl_repl="new_val"`, testID),
+		})
+		itShouldStdReq(ReqOptions{
+			Name: "json with params / stream_selector 2",
+			Req:  fmt.Sprintf(`{test_id="%s_json"}|json lbl_repl="new_lbl"|fmt="json"`, testID),
+		})
+		itShouldStdReq(ReqOptions{
+			Name: "json with no params / stream_selector",
+			Req:  fmt.Sprintf(`{test_id="%s_json"}|json|fmt=~"[jk]son"`, testID),
+		})
+		itShouldStdReq(ReqOptions{
+			Name: "json with no params / stream_selector 2",
+			Req:  fmt.Sprintf(`{test_id="%s_json"}|json|lbl_repl="REPL"`, testID),
+		})
+
+		itShouldStdReq(ReqOptions{
+			Name: "2xjson",
+			Req:  fmt.Sprintf(`{test_id="%s_json"}|json|json int_lbl2="int_val"`, testID),
+		})
+		itShouldStdReq(ReqOptions{
+			Name: "json + linefmt",
+			Req:  fmt.Sprintf(`{test_id="%s_json"}| line_format "{{ div .test_id 2  }}"`, testID)})
+
+		itShouldMatrixReq(ReqOptions{Name: "unwrap",
+			Req: fmt.Sprintf(`sum_over_time({test_id="%s_json"}|json|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)`, testID)})
+		itShouldMatrixReq(ReqOptions{Name: "unwrap + json params",
+			Req: fmt.Sprintf(`sum_over_time({test_id="%s_json"}|json lbl_int1="int_val"|lbl_repl="val_repl"|unwrap lbl_int1 [3s]) by (test_id, lbl_repl)`, testID)})
+		itShouldMatrixReq(ReqOptions{Name: "linefmt + unwrap entry + agg-op",
+			Req: fmt.Sprintf(`rate({test_id="%s_json"}| line_format "{{ div .int_lbl 2  }}" | unwrap _entry [1s])`, testID)})
+		itShouldMatrixReq(ReqOptions{Name: "json + LRA + agg-op",
+			Req: fmt.Sprintf(`sum(rate({test_id="%s_json"}| json [5s])) by (test_id)`, testID)})
+
+		itShouldMatrixReq(ReqOptions{Name: "json + params + LRA + agg-op",
+			Req: fmt.Sprintf(`sum(rate({test_id="%s_json"}| json lbl_rrr="lbl_repl" [5s])) by (test_id, lbl_rrr)`, testID)})
+
+		itShouldMatrixReq(ReqOptions{Name: "json + unwrap + 2 x agg-op",
+			Req: fmt.Sprintf(`sum(sum_over_time({test_id="%s_json"}| json | unwrap int_val [10s]) by (test_id, str_id)) by (test_id)`, testID)})
+
+		itShouldStdReq(ReqOptions{
+			Name:  "lineFmt",
+			Limit: 2001,
+			Req:   fmt.Sprintf(`{test_id="%s"}| line_format "{ \"str\":\"{{._entry}}\", \"freq2\": {{div .freq 2}} }"`, testID),
+		})
+
+		itShouldMatrixReq(ReqOptions{Name: "value comparison + LRA",
+			Req: fmt.Sprintf(`rate({test_id="%s"} [1s]) == 2`, testID)})
+
+		itShouldMatrixReq(ReqOptions{Name: "value comp + LRA + agg-op",
+			Req: fmt.Sprintf(`sum(rate({test_id="%s"} [1s])) by (test_id) > 4`, testID)})
+
+		itShouldMatrixReq(ReqOptions{Name: "value_comp + json + unwrap + 2 x agg-op",
+			Req: fmt.Sprintf(`sum(sum_over_time({test_id="%s_json"}| json | unwrap str_id [10s]) by (test_id, str_id)) by (test_id) > 1000`, testID)})
+		itShouldMatrixReq(ReqOptions{Name: "value comp + linefmt + LRA",
+			Req: fmt.Sprintf(`rate({test_id="%s"} | line_format "12345" [1s]) == 2`, testID)})
+
+		itShouldStdReq(ReqOptions{
+			Name: "label comp",
+			Req:  fmt.Sprintf(`{test_id="%s"} | freq >= 4`, testID),
+		})
+		itShouldStdReq(ReqOptions{
+			Name: "label cmp + json + params",
+			Req:  fmt.Sprintf(`{test_id="%s_json"} | json sid="str_id" | sid >= 598`, testID),
+		})
+
+		itShouldStdReq(ReqOptions{
+			Name: "label cmp + json",
+			Req:  fmt.Sprintf(`{test_id="%s_json"} | json | str_id >= 598`, testID),
+		})
+		itShouldStdReq(ReqOptions{
+			Name: "labels cmp",
+			Req:  fmt.Sprintf(`{test_id="%s"} | freq > 1 and (freq="4" or freq==2 or freq > 0.5)`, testID),
+		})
+		itShouldStdReq(ReqOptions{
+			Name: "json + params + labels cmp",
+			Req:  fmt.Sprintf(`{test_id="%s_json"} | json sid="str_id" | sid >= 598 or sid < 2 and sid > 0`, testID),
+		})
+		itShouldStdReq(ReqOptions{
+			Name: "json + labels cmp",
+			Req:  fmt.Sprintf(`{test_id="%s_json"} | json | str_id < 2 or str_id >= 598 and str_id > 0`, testID)})
+
+		itShouldStdReq(ReqOptions{
+			Name: "logfmt",
+			Req:  fmt.Sprintf(`{test_id="%s_logfmt"}|logfmt`, testID),
+		})
+
+		itShouldMatrixReq(ReqOptions{Name: "logfmt + unwrap + label cmp + agg-op",
+			Req: fmt.Sprintf(`sum_over_time({test_id="%s_logfmt"}|logfmt|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)`, testID),
+		})
+
+		itShouldMatrixReq(ReqOptions{Name: "logfmt + LRA + agg-op",
+			Req: fmt.Sprintf(`sum(rate({test_id="%s_logfmt"}| logfmt [5s])) by (test_id)`, testID),
+		})
+
+		itShouldMatrixReq(ReqOptions{Name: "logfmt + unwrap + 2xagg-op",
+			Req: fmt.Sprintf(`sum(sum_over_time({test_id="%s_logfmt"}| logfmt | unwrap int_val [10s]) by (test_id, str_id)) by (test_id)`, testID),
+		})
+		itShouldMatrixReq(ReqOptions{Name: "logfmt + unwrap + 2xagg-op + val cmp",
+			Req: fmt.Sprintf(`sum(sum_over_time({test_id="%s_logfmt"}| logfmt | unwrap str_id [10s]) by (test_id, str_id)) by (test_id) > 1000`, testID)})
+
+		itShouldStdReq(ReqOptions{
+			Name: "logfmt + label cmp",
+			Req:  fmt.Sprintf(`{test_id="%s_logfmt"} | logfmt | str_id >= 598`, testID)})
+
+		itShouldStdReq(ReqOptions{
+			Name:  "regexp",
+			Req:   fmt.Sprintf(`{test_id="%s"} | regexp "^(?P<e>[^0-9]+)[0-9]+$"`, testID),
+			Limit: 2002,
+		})
+		itShouldStdReq(ReqOptions{
+			Name:  "regexp 2",
+			Req:   fmt.Sprintf(`{test_id="%s"} | regexp "^[^0-9]+(?P<e>[0-9])+$"`, testID),
+			Limit: 2002,
+		})
+		itShouldStdReq(ReqOptions{
+			Name:  "regexp 3",
+			Req:   fmt.Sprintf(`{test_id="%s"} | regexp "^[^0-9]+([0-9]+(?P<e>[0-9]))$"`, testID),
+			Limit: 2002,
+		})
+		itShouldMatrixReq(ReqOptions{
+			Name: "regexp + unwrap + agg-op",
+			Req:  fmt.Sprintf(`first_over_time({test_id="%s", freq="0.5"} | regexp "^[^0-9]+(?P<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`, testID),
+			Step: 1,
+		})
+
+		itShouldMatrixReq(ReqOptions{Name: "topk",
+			Req: fmt.Sprintf(`topk(1, rate({test_id="%s"}[5s]))`, testID)})
+
+		itShouldMatrixReq(ReqOptions{Name: "topk + sum",
+			Req: fmt.Sprintf(`topk(1, sum(count_over_time({test_id="%s"}[5s])) by (test_id))`, testID)})
+		itShouldMatrixReq(ReqOptions{Name: "topk + unwrap",
+			Req: fmt.Sprintf(`topk(1, sum_over_time({test_id="%s_json"} | json f="int_val" | unwrap f [5s]) by (test_id))`, testID),
+		})
+		itShouldMatrixReq(ReqOptions{Name: "topk + unwrap + sum",
+			Req: fmt.Sprintf(`topk(1, sum(sum_over_time({test_id=~"%s_json"} | json f="int_val" | unwrap f [5s])) by (test_id))`, testID)})
+		itShouldMatrixReq(ReqOptions{Name: "bottomk",
+			Req: fmt.Sprintf(`bottomk(1, rate({test_id="%s"}[5s]))`, testID)})
+		itShouldMatrixReq(ReqOptions{Name: "quantile",
+			Req: fmt.Sprintf(`quantile_over_time(0.5, {test_id=~"%s_json"} | json f="int_val" | unwrap f [5s]) by (test_id)`, testID)})
+
+		itShouldMatrixReq(ReqOptions{
+			Name: "json + params + unwrap + agg-op + small step",
+			Req:  fmt.Sprintf(`rate({test_id="%s_json"} | json int_val="int_val" | unwrap int_val [1m]) by (test_id)`, testID),
+			Step: 0.05,
 		})
 
 		It("should handle /series/match", func() {
@@ -522,77 +575,77 @@ func logqlReader() {
 		})
 
 		It("should handle labels cmp", func() {
-			resp, err := runRequest(fmt.Sprintf(`{test_id="%s"} | freq > 1 and (freq="4" or freq==2 or freq > 0.5)`, testID), nil, nil, nil, nil, nil)
+			resp, err := runRequest(fmt.Sprintf(`{test_id="%s"} | freq > 1 and (freq="4" or freq==2 or freq > 0.5)`, testID), 0, 0, 0, "", 0)
 			Expect(err).NotTo(HaveOccurred())
-			adjustResult(resp, "", nil)
+			adjustResult(resp, "", 0)
 			Expect(resp.Data).NotTo(BeNil())
 		})
 
 		It("should handle json + params + labels cmp", func() {
-			resp, err := runRequest(fmt.Sprintf(`{test_id="%s_json"} | json sid="str_id" | sid >= 598 or sid < 2 and sid > 0`, testID), nil, nil, nil, nil, nil)
+			resp, err := runRequest(fmt.Sprintf(`{test_id="%s_json"} | json sid="str_id" | sid >= 598 or sid < 2 and sid > 0`, testID), 0, 0, 0, "", 0)
 			Expect(err).NotTo(HaveOccurred())
-			adjustResult(resp, "", nil)
+			adjustResult(resp, "", 0)
 			Expect(resp.Data).NotTo(BeNil())
 		})
 
 		It("should handle json + labels cmp", func() {
-			resp, err := runRequest(fmt.Sprintf(`{test_id="%s_json"} | json | str_id < 2 or str_id >= 598 and str_id > 0`, testID), nil, nil, nil, nil, nil)
+			resp, err := runRequest(fmt.Sprintf(`{test_id="%s_json"} | json | str_id < 2 or str_id >= 598 and str_id > 0`, testID), 0, 0, 0, "", 0)
 			Expect(err).NotTo(HaveOccurred())
-			adjustResult(resp, "", nil)
+			adjustResult(resp, "", 0)
 			Expect(resp.Data).NotTo(BeNil())
 		})
 
 		It("should handle logfmt", func() {
-			resp, err := runRequest(fmt.Sprintf(`{test_id="%s_logfmt"}|logfmt`, testID), nil, nil, nil, nil, nil)
+			resp, err := runRequest(fmt.Sprintf(`{test_id="%s_logfmt"}|logfmt`, testID), 0, 0, 0, "", 0)
 			Expect(err).NotTo(HaveOccurred())
-			adjustResult(resp, "", nil)
+			adjustResult(resp, "", 0)
 			Expect(resp.Data).NotTo(BeNil())
 		})
 
 		It("should handle logfmt + unwrap + label cmp + agg-op", func() {
-			resp, err := runMatrixRequest(fmt.Sprintf(`sum_over_time({test_id="%s_logfmt"}|logfmt|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)`, testID), nil, nil, nil)
+			resp, err := runMatrixRequest(fmt.Sprintf(`sum_over_time({test_id="%s_logfmt"}|logfmt|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)`, testID), 0, 0, 0)
 			Expect(err).NotTo(HaveOccurred())
 			adjustMatrixResult(resp, "")
 			Expect(resp.Data).NotTo(BeNil())
 		})
 
 		It("should handle regexp", func() {
-			resp, err := runRequest(fmt.Sprintf(`{test_id="%s"} | regexp "^(?P<e>[^0-9]+)[0-9]+$"`, testID), nil, nil, nil, nil, 2002)
+			resp, err := runRequest(fmt.Sprintf(`{test_id="%s"} | regexp "^(?P<e>[^0-9]+)[0-9]+$"`, testID), 0, 0, 0, "", 2002)
 			Expect(err).NotTo(HaveOccurred())
-			adjustResult(resp, "", nil)
+			adjustResult(resp, "", 0)
 			Expect(resp.Data).NotTo(BeNil())
 		})
 
 		It("should handle regexp 2", func() {
-			resp, err := runRequest(fmt.Sprintf(`{test_id="%s"} | regexp "^[^0-9]+(?P<e>[0-9])+$"`, testID), nil, nil, nil, nil, 2002)
+			resp, err := runRequest(fmt.Sprintf(`{test_id="%s"} | regexp "^[^0-9]+(?P<e>[0-9])+$"`, testID), 0, 0, 0, "", 2002)
 			Expect(err).NotTo(HaveOccurred())
-			adjustResult(resp, "", nil)
+			adjustResult(resp, "", 0)
 			Expect(resp.Data).NotTo(BeNil())
 		})
 
 		It("should handle regexp + unwrap + agg-op", func() {
-			resp, err := runMatrixRequest(fmt.Sprintf(`first_over_time({test_id="%s", freq="0.5"} | regexp "^[^0-9]+(?P<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`, testID), 1, nil, nil)
+			resp, err := runMatrixRequest(fmt.Sprintf(`first_over_time({test_id="%s", freq="0.5"} | regexp "^[^0-9]+(?P<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`, testID), 1, 0, 0)
 			Expect(err).NotTo(HaveOccurred())
 			adjustMatrixResult(resp, "")
 			Expect(resp.Data).NotTo(BeNil())
 		})
 
 		It("should handle topk", func() {
-			resp, err := runMatrixRequest(fmt.Sprintf(`topk(1, rate({test_id="%s"}[5s]))`, testID), nil, nil, nil)
+			resp, err := runMatrixRequest(fmt.Sprintf(`topk(1, rate({test_id="%s"}[5s]))`, testID), 0, 0, 0)
 			Expect(err).NotTo(HaveOccurred())
 			adjustMatrixResult(resp, "")
 			Expect(resp.Data).NotTo(BeNil())
 		})
 
 		It("should handle bottomk", func() {
-			resp, err := runMatrixRequest(fmt.Sprintf(`bottomk(1, rate({test_id="%s"}[5s]))`, testID), nil, nil, nil)
+			resp, err := runMatrixRequest(fmt.Sprintf(`bottomk(1, rate({test_id="%s"}[5s]))`, testID), 0, 0, 0)
 			Expect(err).NotTo(HaveOccurred())
 			adjustMatrixResult(resp, "")
 			Expect(resp.Data).NotTo(BeNil())
 		})
 
 		It("should handle quantile", func() {
-			resp, err := runMatrixRequest(fmt.Sprintf(`quantile_over_time(0.5, {test_id=~"%s_json"} | json f="int_val" | unwrap f [5s]) by (test_id)`, testID), nil, nil, nil)
+			resp, err := runMatrixRequest(fmt.Sprintf(`quantile_over_time(0.5, {test_id=~"%s_json"} | json f="int_val" | unwrap f [5s]) by (test_id)`, testID), 0, 0, 0)
 			Expect(err).NotTo(HaveOccurred())
 			adjustMatrixResult(resp, "")
 			Expect(resp.Data).NotTo(BeNil())
@@ -649,12 +702,12 @@ func logqlReader() {
 			err = json.Unmarshal(body, &queryResp)
 			Expect(err).NotTo(HaveOccurred())
 
-			adjustResult(&queryResp, "", nil)
+			adjustResult(&queryResp, "", 0)
 
 			// Sort results for consistent comparison
 			sort.Slice(queryResp.Data.Result, func(i, j int) bool {
-				a := fmt.Sprintf("%v", kOrder(queryResp.Data.Result[i].Stream))
-				b := fmt.Sprintf("%v", kOrder(queryResp.Data.Result[j].Stream))
+				a := fmt.Sprintf("%v", queryResp.Data.Result[i].Stream)
+				b := fmt.Sprintf("%v", queryResp.Data.Result[j].Stream)
 				return a < b
 			})
 
@@ -690,8 +743,8 @@ func logqlReader() {
 
 			// Sort results for consistent comparison
 			sort.Slice(queryResp.Data.Result, func(i, j int) bool {
-				a := fmt.Sprintf("%v", kOrder(queryResp.Data.Result[i].Metric))
-				b := fmt.Sprintf("%v", kOrder(queryResp.Data.Result[j].Metric))
+				a := fmt.Sprintf("%v", queryResp.Data.Result[i].Metric)
+				b := fmt.Sprintf("%v", queryResp.Data.Result[j].Metric)
 				return a < b
 			})
 
@@ -809,15 +862,6 @@ func logqlReader() {
 			err = json.Unmarshal(body, &labelResp)
 			Expect(err).NotTo(HaveOccurred())
 
-			//expectedLabel := fmt.Sprintf("%s_LBL_LOGS", testID)
-			//found := false
-			//for _, label := range labelResp.Data {
-			//	if label == expectedLabel {
-			//		found = true
-			//		break
-			//	}
-			//}
-			//Expect(found).To(BeTrue())
 			Expect(labelResp.Status).To(Equal("success"))
 		})
 

@@ -111,7 +111,7 @@ func writingTests() {
 			points := CreatePoints(testID+"_PB", 1, start, end, map[string]string{}, nil, nil, nil)
 
 			// Convert the points to Loki protobuf streams
-			streams := []*ProtoStream{}
+			var streams []*ProtoStream
 
 			for _, stream := range points {
 				// Create labels string similar to JS version
@@ -123,14 +123,14 @@ func writingTests() {
 				labels := "{" + strings.Join(labelParts, ",") + "}"
 
 				// Create entries for this stream
-				protoEntries := make([]*Entrys, 0, len(stream.Values))
+				protoEntries := make([]*LokiEntry, 0, len(stream.Values))
 				for _, v := range stream.Values {
 					timestampNanos, _ := strconv.ParseInt(v[0], 10, 64)
 					seconds := int64(math.Floor(float64(timestampNanos) / 1e9))
 					nanos := timestampNanos % int64(1e9)
 
-					protoEntries = append(protoEntries, &Entrys{
-						Timestamp: &Timestamp{
+					protoEntries = append(protoEntries, &LokiEntry{
+						Timestamp: &LokiTimestamp{
 							Seconds: strconv.FormatInt(seconds, 10),
 							Nanos:   nanos,
 						},
@@ -177,7 +177,7 @@ func writingTests() {
 			}
 
 			// Add extra headers
-			for k, v := range ExtraHeaders() {
+			for k, v := range ExtraHeaders {
 				headers[k] = v
 			}
 
@@ -385,7 +385,7 @@ func writingTests() {
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("X-Scope-OrgID", "1")
 			req.Header.Set("X-Shard", Shard)
-			header := ExtraHeaders()
+			header := ExtraHeaders
 			for k, v := range header {
 				req.Header.Set(k, v)
 			}
