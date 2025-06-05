@@ -13,6 +13,7 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/golang/snappy v1.0.0
 	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6
+	github.com/grafana/loki/pkg/push v0.0.0-20250604200641-9dd14ba589a8
 	github.com/grafana/pyroscope/api v1.2.0
 	github.com/influxdata/influxdb-client-go/v2 v2.14.0
 	github.com/onsi/ginkgo/v2 v2.23.4

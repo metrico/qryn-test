@@ -3,11 +3,12 @@ package e2e_tests
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"github.com/golang/snappy"
-
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/snappy"
+	"github.com/grafana/loki/pkg/push"
+	"github.com/prometheus/prometheus/prompb"
+	"io"
 	"io/ioutil"
 	"math"
 	"math/rand"
@@ -69,49 +70,49 @@ func getEnvOrDefault(key, defaultValue string) string {
 }
 
 // Stream represents a log stream with labels
-type Stream map[string]string
+//type Stream map[string]string
 
 // StreamValues represents a stream and its associated values
 
-type StreamValues struct {
-	Stream Stream     `json:"stream"`
-	Values [][]string `json:"values"`
-}
-
-// Points is a map of serialized streams to their StreamValues
-type Points map[string]StreamValues
-
-type LokiTimestamp struct {
-	Seconds string `protobuf:"bytes,1,opt,name=seconds,proto3" json:"seconds,omitempty"`
-	Nanos   int64  `protobuf:"varint,2,opt,name=nanos,proto3" json:"nanos,omitempty"`
-}
-
-type LokiEntry struct {
-	Timestamp *LokiTimestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Line      string         `protobuf:"bytes,2,opt,name=line,proto3" json:"line,omitempty"`
-}
-
-type ProtoStream struct {
-	Labels  string       `protobuf:"bytes,1,opt,name=labels,proto3" json:"labels,omitempty"`
-	Entries []*LokiEntry `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
-}
-
-type PushRequest struct {
-	Streams []*ProtoStream `protobuf:"bytes,1,rep,name=streams,proto3" json:"streams,omitempty"`
-}
-
-func (m *LokiTimestamp) Reset()         { *m = LokiTimestamp{} }
-func (m *LokiTimestamp) String() string { return proto.CompactTextString(m) }
-func (*LokiTimestamp) ProtoMessage()    {}
-func (m *Stream) Reset()                { *m = Stream{} }
-func (m *Stream) String() string        { return proto.CompactTextString(m) }
-func (*Stream) ProtoMessage()           {}
-func (m *LokiEntry) Reset()             { *m = LokiEntry{} }
-func (m *LokiEntry) String() string     { return proto.CompactTextString(m) }
-func (*LokiEntry) ProtoMessage()        {}
-func (m *PushRequest) Reset()           { *m = PushRequest{} }
-func (m *PushRequest) String() string   { return proto.CompactTextString(m) }
-func (*PushRequest) ProtoMessage()      {}
+//type StreamValues struct {
+//	Stream Stream     `json:"stream"`
+//	Values [][]string `json:"values"`
+//}
+//
+//// Points is a map of serialized streams to their StreamValues
+//type Points map[string]StreamValues
+//
+//type LokiTimestamp struct {
+//	Seconds string `protobuf:"bytes,1,opt,name=seconds,proto3" json:"seconds,omitempty"`
+//	Nanos   int64  `protobuf:"varint,2,opt,name=nanos,proto3" json:"nanos,omitempty"`
+//}
+//
+//type LokiEntry struct {
+//	Timestamp *LokiTimestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+//	Line      string         `protobuf:"bytes,2,opt,name=line,proto3" json:"line,omitempty"`
+//}
+//
+//type ProtoStream struct {
+//	Labels  string       `protobuf:"bytes,1,opt,name=labels,proto3" json:"labels,omitempty"`
+//	Entries []*LokiEntry `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+//}
+//
+//type PushRequest struct {
+//	Streams []*ProtoStream `protobuf:"bytes,1,rep,name=streams,proto3" json:"streams,omitempty"`
+//}
+//
+//func (m *LokiTimestamp) Reset()         { *m = LokiTimestamp{} }
+//func (m *LokiTimestamp) String() string { return proto.CompactTextString(m) }
+//func (*LokiTimestamp) ProtoMessage()    {}
+//func (m *Stream) Reset()                { *m = Stream{} }
+//func (m *Stream) String() string        { return proto.CompactTextString(m) }
+//func (*Stream) ProtoMessage()           {}
+//func (m *LokiEntry) Reset()             { *m = LokiEntry{} }
+//func (m *LokiEntry) String() string     { return proto.CompactTextString(m) }
+//func (*LokiEntry) ProtoMessage()        {}
+//func (m *PushRequest) Reset()           { *m = PushRequest{} }
+//func (m *PushRequest) String() string   { return proto.CompactTextString(m) }
+//func (*PushRequest) ProtoMessage()      {}
 
 // MsgGenerator is a function that generates a message for a given index
 type MsgGenerator func(i int) string
@@ -119,20 +120,86 @@ type MsgGenerator func(i int) string
 // ValGenerator is a function that generates a value for a given index
 type ValGenerator func(i int) float64
 
-// CreatePoints creates points for testing
-func CreatePoints(id string, frequencySec int64, startMs, endMs int64,
+type Stream []*prompb.Label
+type StreamValues = prompb.TimeSeries
+type Points []*prompb.TimeSeries
+type LokiTimestamp = prompb.Sample
+type LokiEntry = prompb.Sample
+type ProtoStream = prompb.TimeSeries
+type PushRequest = prompb.WriteRequest
 
+// CreatePoints creates points for testing
+//func CreatePoints(id string, frequencySec int64, startMs, endMs int64,
+//	extraLabels map[string]string, points Points, msgGen MsgGenerator, valGen ValGenerator) Points {
+//	// Create stream with labels
+//	streams := Stream{
+//		"test_id": id,
+//		"freq":    strconv.FormatInt(frequencySec, 10),
+//	}
+//
+//	// Merge extra labels
+//	for k, v := range extraLabels {
+//		streams[k] = v
+//	}
+//
+//	// Default message generator if not provided
+//	if msgGen == nil {
+//		msgGen = func(i int) string {
+//			return fmt.Sprintf("FREQ_TEST_%d", i)
+//		}
+//	}
+//
+//	// Calculate number of values
+//	count := int(math.Floor(float64(endMs-startMs) / float64(frequencySec) / 1000.0))
+//	values := make([][]string, count)
+//
+//	// Generate values
+//	for i := 0; i < count; i++ {
+//		timestamp := ((startMs + frequencySec*int64(i)*1000) * 1000000)
+//
+//		if valGen != nil {
+//			values[i] = []string{
+//				strconv.FormatInt(timestamp, 10),
+//				msgGen(i),
+//				fmt.Sprintf("%v", valGen(i)),
+//			}
+//		} else {
+//			values[i] = []string{
+//				strconv.FormatInt(timestamp, 10),
+//				msgGen(i),
+//			}
+//		}
+//	}
+//
+//	// Create a new Points map if nil
+//	if points == nil {
+//		points = make(Points)
+//	}
+//
+//	// Marshal the stream to use as key
+//	streamBytes, _ := json.Marshal(streams)
+//	streamKey := string(streamBytes)
+//
+//	// Add the stream and values to points
+//	points[streamKey] = StreamValues{
+//		Stream: streams,
+//		Values: values,
+//	}
+//
+//	return points
+//}
+
+func CreatePoints(id string, frequencySec int64, startMs, endMs int64,
 	extraLabels map[string]string, points Points, msgGen MsgGenerator, valGen ValGenerator) Points {
 
-	// Create stream with labels
-	streams := Stream{
-		"test_id": id,
-		"freq":    strconv.FormatInt(frequencySec, 10),
-	}
+	// Create stream with labels as []*prompb.Label
+	labels := make([]prompb.Label, 0)
+	labels = append(labels, prompb.Label{Name: "test_id", Value: id})
+	labels = append(labels, prompb.Label{Name: "freq", Value: strconv.FormatInt(frequencySec, 10)})
 
 	// Merge extra labels
 	for k, v := range extraLabels {
-		streams[k] = v
+		labels = append(labels, prompb.Label{Name: k, Value: v})
 	}
 
 	// Default message generator if not provided
@@ -144,79 +211,177 @@ func CreatePoints(id string, frequencySec int64, startMs, endMs int64,
 
 	// Calculate number of values
 	count := int(math.Floor(float64(endMs-startMs) / float64(frequencySec) / 1000.0))
-	values := make([][]string, count)
+	samples := make([]prompb.Sample, 0, count)
 
-	// Generate values
+	// Generate samples
 	for i := 0; i < count; i++ {
-		timestamp := ((startMs + frequencySec*int64(i)*1000) * 1000000)
+		timestampMs := startMs + frequencySec*int64(i)*1000
 
+		var value float64 = 1.0 // Default value
 		if valGen != nil {
-			values[i] = []string{
-				strconv.FormatInt(timestamp, 10),
-				msgGen(i),
-				fmt.Sprintf("%v", valGen(i)),
-			}
-		} else {
-			values[i] = []string{
-				strconv.FormatInt(timestamp, 10),
-				msgGen(i),
-			}
+			value = valGen(i)
 		}
+
+		samples = append(samples, prompb.Sample{
+			Timestamp: timestampMs,
+			Value:     value,
+		})
 	}
 
-	// Create a new Points map if nil
+	// Create a new Points slice if nil
 	if points == nil {
-		points = make(Points)
+		points = make([]*prompb.TimeSeries, 0)
 	}
 
-	// Marshal the stream to use as key
-	streamBytes, _ := json.Marshal(streams)
-	streamKey := string(streamBytes)
-
-	// Add the stream and values to points
-	points[streamKey] = StreamValues{
-		Stream: streams,
-		Values: values,
+	// Create TimeSeries and add to points
+	timeSeries := &prompb.TimeSeries{
+		Labels:  labels,
+		Samples: samples,
 	}
+
+	points = append(points, timeSeries)
 
 	return points
 }
 
 // SendPointsRequest is the structure for sending points to Loki
-
+//
+//	type SendPointsRequest struct {
+//		Streams []StreamValues `json:"streams"`
+//	}
 type SendPointsRequest struct {
-	Streams []StreamValues `json:"streams"`
+	Timeseries []prompb.TimeSeries `json:"timeseries"`
 }
 
 // SendPoints sends points to the specified endpoint
 
+//	func SendPoints(endpoint string, points Points) (*http.Response, error) {
+//		// Convert points map values to slice
+//		//streams := make([]StreamValues, 0, len(points))
+//		//for _, streamVal := range points {
+//		//	streams = append(streams, streamVal)
+//		//}
+//		//
+//		//// Create request body
+//		//reqBody := SendPointsRequest{
+//		//	Streams: streams,
+//		//}
+//		//
+//		//jsonData, err := json.Marshal(reqBody)
+//		//if err != nil {
+//		//	return nil, err
+//		//}
+//		timeseries := make([]prompb.TimeSeries, 0, len(points))
+//		for _, point := range points {
+//			timeseries = append(timeseries, *point)
+//		}
+//
+//		// Create WriteRequest with converted points
+//		writeReq := &prompb.WriteRequest{
+//			Timeseries: timeseries,
+//		}
+//
+//		// Marshal to protobuf
+//		data, err := writeReq.Marshal()
+//		if err != nil {
+//			return nil, fmt.Errorf("failed to marshal WriteRequest: %w", err)
+//		}
+//
+//		// Compress with Snappy
+//		//	compressed := snappy.Encode(nil, data)
+//		// Create request
+//		req, err := http.NewRequest("POST", fmt.Sprintf("%s/loki/api/v1/push", endpoint), bytes.NewBuffer(data))
+//		if err != nil {
+//			return nil, err
+//		}
+//
+//		// Add headers
+//		req.Header.Set("Content-Type", "application/json")
+//		req.Header.Set("X-Scope-OrgID", "1")
+//		req.Header.Set("X-Shard", "-1")
+//
+//		// Add auth headers
+//		for k, v := range Auth {
+//			req.Header.Set(k, v)
+//		}
+//
+//		// Add extra headers
+//		for k, v := range ExtraHeaders {
+//			req.Header.Set(k, v)
+//		}
+//
+//		// Send request
+//		client := &http.Client{
+//			Timeout: 30 * time.Second,
+//		}
+//		resp, err := client.Do(req)
+//		if err != nil {
+//			return nil, err
+//		}
+//
+//		// Handle errors
+//		if resp.StatusCode >= 400 {
+//			body, _ := ioutil.ReadAll(resp.Body)
+//			fmt.Printf("Error response: %s\n", string(body))
+//			return resp, fmt.Errorf("request failed with status code %d", resp.StatusCode)
+//		}
+//
+//		return resp, nil
+//	}
 func SendPoints(endpoint string, points Points) (*http.Response, error) {
-	// Convert points map values to slice
-	streams := make([]StreamValues, 0, len(points))
-	for _, streamVal := range points {
-		streams = append(streams, streamVal)
+	// Convert Prometheus TimeSeries to Loki streams using protobuf
+	streams := make([]push.Stream, 0, len(points))
+
+	for _, point := range points {
+		// Convert Prometheus labels to Loki stream labels
+		labels := ""
+		for i, label := range point.Labels {
+			if i > 0 {
+				labels += ","
+			}
+			labels += fmt.Sprintf(`%s="%s"`, label.Name, label.Value)
+		}
+		labels = "{" + labels + "}"
+
+		// Convert Prometheus samples to Loki entries
+		entries := make([]push.Entry, 0, len(point.Samples))
+		for _, sample := range point.Samples {
+			// Convert timestamp from milliseconds to nanoseconds for Loki
+			timestampNanos := sample.Timestamp * 1_000_000
+			valueStr := strconv.FormatFloat(sample.Value, 'f', -1, 64)
+
+			entries = append(entries, push.Entry{
+				Timestamp: time.Unix(0, timestampNanos),
+				Line:      valueStr,
+			})
+		}
+
+		streams = append(streams, push.Stream{
+			Labels:  labels,
+			Entries: entries,
+		})
 	}
 
-	// Create request body
-	reqBody := SendPointsRequest{
+	// Create Loki push request using protobuf
+	pushReq := &push.PushRequest{
 		Streams: streams,
 	}
 
-	jsonData, err := json.Marshal(reqBody)
+	// Marshal to protobuf
+	protoData, err := proto.Marshal(pushReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal protobuf: %w", err)
+	}
+
+	// Create request to Loki endpoint
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/loki/api/v1/push", endpoint), bytes.NewBuffer(protoData))
 	if err != nil {
 		return nil, err
 	}
 
-	// Create request
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/loki/api/v1/push", endpoint), bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, err
-	}
-
-	// Add headers
-	req.Header.Set("Content-Type", "application/json")
+	// Add Loki headers for protobuf
+	req.Header.Set("Content-Type", "application/x-protobuf")
 	req.Header.Set("X-Scope-OrgID", "1")
-	req.Header.Set("X-Shard", "-1")
 
 	// Add auth headers
 	for k, v := range Auth {
@@ -239,7 +404,7 @@ func SendPoints(endpoint string, points Points) (*http.Response, error) {
 
 	// Handle errors
 	if resp.StatusCode >= 400 {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		fmt.Printf("Error response: %s\n", string(body))
 		return resp, fmt.Errorf("request failed with status code %d", resp.StatusCode)
 	}

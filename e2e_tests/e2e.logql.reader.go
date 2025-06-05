@@ -517,6 +517,14 @@ func logqlReader() {
 				}
 			}
 
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(seriesResp.Data).NotTo(BeNil())
 
 		})
@@ -535,7 +543,14 @@ func logqlReader() {
 			var seriesResp SeriesResponse
 			err = json.Unmarshal(body, &seriesResp)
 			Expect(err).NotTo(HaveOccurred())
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
 
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(seriesResp.Data).NotTo(BeNil())
 		})
 
@@ -557,6 +572,7 @@ func logqlReader() {
 			if resp.Header.Get("Content-Encoding") == "gzip" {
 				gzipReader, err := gzip.NewReader(resp.Body)
 				Expect(err).NotTo(HaveOccurred())
+
 				defer gzipReader.Close()
 				reader = gzipReader
 			} else {
@@ -571,6 +587,14 @@ func logqlReader() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(resp.StatusCode).To(Equal(200))
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(data).NotTo(BeNil())
 		})
 
@@ -578,6 +602,14 @@ func logqlReader() {
 			resp, err := runRequest(fmt.Sprintf(`{test_id="%s"} | freq > 1 and (freq="4" or freq==2 or freq > 0.5)`, testID), 0, 0, 0, "", 0)
 			Expect(err).NotTo(HaveOccurred())
 			adjustResult(resp, "", 0)
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(resp.Data).NotTo(BeNil())
 		})
 
@@ -585,6 +617,14 @@ func logqlReader() {
 			resp, err := runRequest(fmt.Sprintf(`{test_id="%s_json"} | json sid="str_id" | sid >= 598 or sid < 2 and sid > 0`, testID), 0, 0, 0, "", 0)
 			Expect(err).NotTo(HaveOccurred())
 			adjustResult(resp, "", 0)
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(resp.Data).NotTo(BeNil())
 		})
 
@@ -592,63 +632,198 @@ func logqlReader() {
 			resp, err := runRequest(fmt.Sprintf(`{test_id="%s_json"} | json | str_id < 2 or str_id >= 598 and str_id > 0`, testID), 0, 0, 0, "", 0)
 			Expect(err).NotTo(HaveOccurred())
 			adjustResult(resp, "", 0)
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(resp.Data).NotTo(BeNil())
 		})
 
-		It("should handle logfmt", func() {
-			resp, err := runRequest(fmt.Sprintf(`{test_id="%s_logfmt"}|logfmt`, testID), 0, 0, 0, "", 0)
-			Expect(err).NotTo(HaveOccurred())
-			adjustResult(resp, "", 0)
-			Expect(resp.Data).NotTo(BeNil())
+		//It("should handle logfmt", func() {
+		//	resp, err := runRequest(fmt.Sprintf(`{test_id="%s_logfmt"}|logfmt`, testID), 0, 0, 0, "", 0)
+		//	Expect(err).NotTo(HaveOccurred())
+		//	adjustResult(resp, "", 0)
+		//	err = cupaloy.New().SnapshotMulti(
+		//		"status", resp.Status,
+		//	)
+		//
+		//	// Only fail if it's not the initial snapshot creation
+		//	if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+		//		Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+		//	}
+		//	Expect(resp.Data).NotTo(BeNil())
+		//})
+		itShouldMatrixReq(ReqOptions{Name: "should handle logfmt",
+			Req:   fmt.Sprintf(`{test_id="%s_logfmt"}|logfmt`, testID),
+			Step:  0,
+			Start: 0,
+			End:   0,
+			Limit: 0,
 		})
 
-		It("should handle logfmt + unwrap + label cmp + agg-op", func() {
-			resp, err := runMatrixRequest(fmt.Sprintf(`sum_over_time({test_id="%s_logfmt"}|logfmt|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)`, testID), 0, 0, 0)
-			Expect(err).NotTo(HaveOccurred())
-			adjustMatrixResult(resp, "")
-			Expect(resp.Data).NotTo(BeNil())
+		//It("should handle logfmt + unwrap + label cmp + agg-op", func() {
+		//	resp, err := runMatrixRequest(fmt.Sprintf(`sum_over_time({test_id="%s_logfmt"}|logfmt|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)`, testID), 0, 0, 0)
+		//	Expect(err).NotTo(HaveOccurred())
+		//	adjustMatrixResult(resp, "")
+		//	err = cupaloy.New().SnapshotMulti(
+		//		"status", resp.Status,
+		//	)
+		//
+		//	// Only fail if it's not the initial snapshot creation
+		//	if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+		//		Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+		//	}
+		//	Expect(resp.Data).NotTo(BeNil())
+		//})
+
+		itShouldMatrixReq(ReqOptions{Name: "should handle logfmt + unwrap + label cmp + agg-op",
+			Req:   fmt.Sprintf(`sum_over_time({test_id="%s_logfmt"}|logfmt|lbl_repl="REPL"|unwrap int_lbl [3s]) by (test_id, lbl_repl)`, testID),
+			Step:  0,
+			Start: 0,
+			End:   0,
+			Limit: 0,
 		})
 
-		It("should handle regexp", func() {
-			resp, err := runRequest(fmt.Sprintf(`{test_id="%s"} | regexp "^(?P<e>[^0-9]+)[0-9]+$"`, testID), 0, 0, 0, "", 2002)
-			Expect(err).NotTo(HaveOccurred())
-			adjustResult(resp, "", 0)
-			Expect(resp.Data).NotTo(BeNil())
+		//It("should handle regexp", func() {
+		//	resp, err := runRequest(fmt.Sprintf(`{test_id="%s"} | regexp "^(?P<e>[^0-9]+)[0-9]+$"`, testID), 0, 0, 0, "", 2002)
+		//	Expect(err).NotTo(HaveOccurred())
+		//	adjustResult(resp, "", 0)
+		//	err = cupaloy.New().SnapshotMulti(
+		//		"status", resp.Status,
+		//	)
+		//
+		//	// Only fail if it's not the initial snapshot creation
+		//	if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+		//		Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+		//	}
+		//	Expect(resp.Data).NotTo(BeNil())
+		//})
+
+		itShouldMatrixReq(ReqOptions{Name: "should handle regexp",
+			Req:   fmt.Sprintf(`{test_id="%s"} | regexp "^(?P<e>[^0-9]+)[0-9]+$"`, testID),
+			Step:  0,
+			Start: 0,
+			End:   0,
+			Limit: 2002,
 		})
 
-		It("should handle regexp 2", func() {
-			resp, err := runRequest(fmt.Sprintf(`{test_id="%s"} | regexp "^[^0-9]+(?P<e>[0-9])+$"`, testID), 0, 0, 0, "", 2002)
-			Expect(err).NotTo(HaveOccurred())
-			adjustResult(resp, "", 0)
-			Expect(resp.Data).NotTo(BeNil())
+		//It("should handle regexp 2", func() {
+		//	resp, err := runRequest(fmt.Sprintf(`{test_id="%s"} | regexp "^[^0-9]+(?P<e>[0-9])+$"`, testID), 0, 0, 0, "", 2002)
+		//	Expect(err).NotTo(HaveOccurred())
+		//	adjustResult(resp, "", 0)
+		//	err = cupaloy.New().SnapshotMulti(
+		//		"status", resp.Status,
+		//	)
+		//
+		//	// Only fail if it's not the initial snapshot creation
+		//	if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+		//		Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+		//	}
+		//	Expect(resp.Data).NotTo(BeNil())
+		//})
+
+		itShouldMatrixReq(ReqOptions{Name: "should handle regexp 2",
+			Req:   fmt.Sprintf(`{test_id="%s"} | regexp "^[^0-9]+(?P<e>[0-9])+$"`, testID),
+			Step:  0,
+			Start: 0,
+			End:   0,
+			Limit: 2002,
 		})
 
-		It("should handle regexp + unwrap + agg-op", func() {
-			resp, err := runMatrixRequest(fmt.Sprintf(`first_over_time({test_id="%s", freq="0.5"} | regexp "^[^0-9]+(?P<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`, testID), 1, 0, 0)
-			Expect(err).NotTo(HaveOccurred())
-			adjustMatrixResult(resp, "")
-			Expect(resp.Data).NotTo(BeNil())
+		//It("should handle regexp + unwrap + agg-op", func() {
+		//	resp, err := runMatrixRequest(fmt.Sprintf(`first_over_time({test_id="%s", freq="0.5"} | regexp "^[^0-9]+(?P<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`, testID), 1, 0, 0)
+		//	Expect(err).NotTo(HaveOccurred())
+		//	adjustMatrixResult(resp, "")
+		//	err = cupaloy.New().SnapshotMulti(
+		//		"status", resp.Status,
+		//	)
+		//
+		//	// Only fail if it's not the initial snapshot creation
+		//	if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+		//		Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+		//	}
+		//	Expect(resp.Data).NotTo(BeNil())
+		//})
+
+		itShouldMatrixReq(ReqOptions{Name: "should handle regexp + unwrap + agg-op",
+			Req:   fmt.Sprintf(`first_over_time({test_id="%s", freq="0.5"} | regexp "^[^0-9]+(?P<e>[0-9]+)$" | unwrap e [1s]) by(test_id)`, testID),
+			Step:  1,
+			Start: 0,
+			End:   0,
+			Limit: 0,
 		})
 
-		It("should handle topk", func() {
-			resp, err := runMatrixRequest(fmt.Sprintf(`topk(1, rate({test_id="%s"}[5s]))`, testID), 0, 0, 0)
-			Expect(err).NotTo(HaveOccurred())
-			adjustMatrixResult(resp, "")
-			Expect(resp.Data).NotTo(BeNil())
+		//It("should handle topk", func() {
+		//	resp, err := runMatrixRequest(fmt.Sprintf(`topk(1, rate({test_id="%s"}[5s]))`, testID), 0, 0, 0)
+		//	Expect(err).NotTo(HaveOccurred())
+		//	adjustMatrixResult(resp, "")
+		//	err = cupaloy.New().SnapshotMulti(
+		//		"status", resp.Status,
+		//	)
+		//
+		//	// Only fail if it's not the initial snapshot creation
+		//	if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+		//		Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+		//	}
+		//	Expect(resp.Data).NotTo(BeNil())
+		//})
+
+		itShouldMatrixReq(ReqOptions{Name: "should handle topk",
+			Req:   fmt.Sprintf(`topk(1, rate({test_id="%s"}[5s]))`, testID),
+			Step:  0,
+			Start: 0,
+			End:   0,
+			Limit: 0,
 		})
 
-		It("should handle bottomk", func() {
-			resp, err := runMatrixRequest(fmt.Sprintf(`bottomk(1, rate({test_id="%s"}[5s]))`, testID), 0, 0, 0)
-			Expect(err).NotTo(HaveOccurred())
-			adjustMatrixResult(resp, "")
-			Expect(resp.Data).NotTo(BeNil())
+		//It("should handle bottomk", func() {
+		//	resp, err := runMatrixRequest(fmt.Sprintf(`bottomk(1, rate({test_id="%s"}[5s]))`, testID), 0, 0, 0)
+		//	Expect(err).NotTo(HaveOccurred())
+		//	adjustMatrixResult(resp, "")
+		//	err = cupaloy.New().SnapshotMulti(
+		//		"status", resp.Status,
+		//	)
+		//
+		//	// Only fail if it's not the initial snapshot creation
+		//	if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+		//		Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+		//	}
+		//	Expect(resp.Data).NotTo(BeNil())
+		//})
+
+		itShouldMatrixReq(ReqOptions{Name: "should handle bottomk",
+			Req:   fmt.Sprintf(`bottomk(1, rate({test_id="%s"}[5s]))`, testID),
+			Step:  0,
+			Start: 0,
+			End:   0,
+			Limit: 0,
 		})
 
-		It("should handle quantile", func() {
-			resp, err := runMatrixRequest(fmt.Sprintf(`quantile_over_time(0.5, {test_id=~"%s_json"} | json f="int_val" | unwrap f [5s]) by (test_id)`, testID), 0, 0, 0)
-			Expect(err).NotTo(HaveOccurred())
-			adjustMatrixResult(resp, "")
-			Expect(resp.Data).NotTo(BeNil())
+		//It("should handle quantile", func() {
+		//	resp, err := runMatrixRequest(fmt.Sprintf(`quantile_over_time(0.5, {test_id=~"%s_json"} | json f="int_val" | unwrap f [5s]) by (test_id)`, testID), 0, 0, 0)
+		//	Expect(err).NotTo(HaveOccurred())
+		//	adjustMatrixResult(resp, "")
+		//	err = cupaloy.New().SnapshotMulti(
+		//		"status", resp.Status,
+		//	)
+		//
+		//	// Only fail if it's not the initial snapshot creation
+		//	if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+		//		Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+		//	}
+		//	Expect(resp.Data).NotTo(BeNil())
+		//})
+
+		itShouldMatrixReq(ReqOptions{Name: "should handle bottomk",
+			Req:   fmt.Sprintf(`quantile_over_time(0.5, {test_id=~"%s_json"} | json f="int_val" | unwrap f [5s]) by (test_id)`, testID),
+			Step:  0,
+			Start: 0,
+			End:   0,
+			Limit: 0,
 		})
 
 		It("should get /loki/api/v1/labels with time context", func() {
@@ -660,7 +835,14 @@ func logqlReader() {
 			resp, err := axiosGet(url)
 			Expect(err).NotTo(HaveOccurred())
 			defer resp.Body.Close()
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
 
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(resp.StatusCode).To(Equal(200))
 		})
 
@@ -680,7 +862,14 @@ func logqlReader() {
 			var labelResp map[string]interface{}
 			err = json.Unmarshal(body, &labelResp)
 			Expect(err).NotTo(HaveOccurred())
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
 
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			if data, ok := labelResp["data"].([]interface{}); ok && len(data) > 0 {
 				Expect(data[0]).To(Equal("ok"))
 			}
@@ -710,7 +899,14 @@ func logqlReader() {
 				b := fmt.Sprintf("%v", queryResp.Data.Result[j].Stream)
 				return a < b
 			})
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
 
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(queryResp.Data).NotTo(BeNil())
 		})
 
@@ -747,7 +943,14 @@ func logqlReader() {
 				b := fmt.Sprintf("%v", queryResp.Data.Result[j].Metric)
 				return a < b
 			})
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
 
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(queryResp.Data).NotTo(BeNil())
 		})
 
@@ -789,7 +992,14 @@ func logqlReader() {
 				b := fmt.Sprintf("%v", queryResp.Data.Result[j].Stream)
 				return a < b
 			})
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
 
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(queryResp.Data).NotTo(BeNil())
 		})
 
@@ -812,6 +1022,14 @@ func logqlReader() {
 			}
 			err = json.Unmarshal(body, &labelResp)
 			Expect(err).NotTo(HaveOccurred())
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(resp.StatusCode).To(Equal(200))
 		})
 
@@ -839,6 +1057,14 @@ func logqlReader() {
 			fmt.Println(" labelResp", labelResp.Data)
 			fmt.Println(":Res", resp.StatusCode)
 			Expect(labelResp.Status).To(Equal("success"))
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 		})
 
 		It("should get /loki/api/v1/label with time context", func() {
@@ -861,7 +1087,14 @@ func logqlReader() {
 			}
 			err = json.Unmarshal(body, &labelResp)
 			Expect(err).NotTo(HaveOccurred())
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
 
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(labelResp.Status).To(Equal("success"))
 		})
 
@@ -882,7 +1115,14 @@ func logqlReader() {
 			var seriesResp SeriesResponse
 			err = json.Unmarshal(body, &seriesResp)
 			Expect(err).NotTo(HaveOccurred())
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
 
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(seriesResp.Data).NotTo(BeEmpty())
 
 		})
