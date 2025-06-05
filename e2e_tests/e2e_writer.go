@@ -99,64 +99,6 @@ func writingTests() {
 			time.Sleep(4 * time.Second)
 		}, NodeTimeout(30*time.Second))
 
-		//It("push protobuff", func() {
-		//	testName := "push-protobuff"
-		//	recordExecution(testName)
-		//
-		//	points := CreatePoints(testID+"_PB", 1, start, end, map[string]string{}, nil, nil, nil)
-		//
-		//	// Convert the points to Loki protobuf streams
-		//	var streams []*ProtoStream
-		//
-		//	for _, stream := range points {
-		//		// Create labels string similar to JS version
-		//		labelParts := []string{}
-		//		for k, v := range stream.Stream {
-		//			// Format the label as key="value"
-		//			labelParts = append(labelParts, fmt.Sprintf(`%s=%q`, k, v))
-		//		}
-		//		labels := "{" + strings.Join(labelParts, ",") + "}"
-		//
-		//		// Create entries for this stream
-		//		protoEntries := make([]*LokiEntry, 0, len(stream.Values))
-		//		for _, v := range stream.Values {
-		//			timestampNanos, _ := strconv.ParseInt(v[0], 10, 64)
-		//			seconds := int64(math.Floor(float64(timestampNanos) / 1e9))
-		//			nanos := timestampNanos % int64(1e9)
-		//
-		//			protoEntries = append(protoEntries, &LokiEntry{
-		//				Timestamp: &LokiTimestamp{
-		//					Seconds: strconv.FormatInt(seconds, 10),
-		//					Nanos:   nanos,
-		//				},
-		//				Line: v[1],
-		//			})
-		//		}
-		//
-		//		// Add the stream with its entries to the streams slice
-		//		streams = append(streams, &ProtoStream{
-		//			Labels:  labels,
-		//			Entries: protoEntries,
-		//		})
-		//	}
-		//
-		//	// Create a new PushRequest using the proper Loki protobuf types
-		//	req := &PushRequest{
-		//		Streams: streams,
-		//	}
-		//	url := fmt.Sprintf("http://%s/loki/api/v1/push", gigaPipeWriteUrl)
-		//	resp, err := SendProtobufRequest(url, req, 5*time.Second)
-		//	Expect(err).To(BeNil())
-		//	defer resp.Body.Close()
-		//	// Check status code - JS expects status code 200
-		//	Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
-		//
-		//	// Wait for 500ms like in the JS version
-		//	time.Sleep(500 * time.Millisecond)
-		//
-		//	fmt.Println("Protobuf push successful")
-		//})
-
 		It("push protobuff", func() {
 			testName := "push-protobuff"
 			recordExecution(testName)
@@ -450,68 +392,6 @@ func writingTests() {
 
 			time.Sleep(1 * time.Second)
 		}, NodeTimeout(10*time.Second))
-
-		//It("should post /api/v1/labels", func() {
-		//	// Create a timestamp for the sample
-		//	timestamp := time.Now().UnixNano() / int64(time.Millisecond)
-		//
-		//	// Create Prometheus time series
-		//	timeseries := []prompb.TimeSeries{
-		//		{
-		//			Labels: []prompb.Label{
-		//				{
-		//					Name:  fmt.Sprintf("%s_LBL", testID),
-		//					Value: "ok",
-		//				},
-		//			},
-		//			Samples: []prompb.Sample{
-		//				{
-		//					Value:     123,
-		//					Timestamp: timestamp,
-		//				},
-		//			},
-		//		},
-		//	}
-		//
-		//	// Create write request
-		//	writeReq := prompb.WriteRequest{
-		//		Timeseries: timeseries,
-		//	}
-		//
-		//	// Prepare request
-		//	url := fmt.Sprintf("http://%s/api/v1/prom/remote/write", gigaPipeWriteUrl)
-		//	resp, err := SendProtobufRequest(url, &writeReq, 5*time.Second)
-		//	Expect(err).NotTo(HaveOccurred())
-		//	defer resp.Body.Close()
-		//
-		//	// Check status code
-		//	Expect(resp.StatusCode).To(Equal(204))
-		//
-		//	// Wait for data to be processed
-		//	time.Sleep(500 * time.Millisecond)
-		//
-		//	// Properly structured declaration
-		//	logPoints := Points{
-		//		"0": StreamValues{
-		//			Stream: Stream{
-		//				fmt.Sprintf("%s_LBL_LOGS", testID): "ok",
-		//			},
-		//			Values: [][]string{
-		//				{
-		//					fmt.Sprintf("%d", time.Now().UnixNano()/1000000), // Converting to milliseconds
-		//					"123",
-		//				},
-		//			},
-		//		},
-		//	}
-		//
-		//	logResp, err := SendPoints(fmt.Sprintf("http://%s", gigaPipeWriteUrl), logPoints)
-		//	Expect(err).NotTo(HaveOccurred())
-		//	defer logResp.Body.Close()
-		//
-		//	// Check status code is in 2xx range
-		//	Expect(logResp.StatusCode / 100).To(Equal(2))
-		//})
 
 		It("should post /api/v1/labels", func() {
 			// Create a timestamp for the sample
