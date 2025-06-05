@@ -2,8 +2,10 @@ package e2e_tests
 
 import (
 	"fmt"
+	"github.com/bradleyjkemp/cupaloy"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"strings"
 
 	"os"
 )
@@ -16,6 +18,14 @@ func miscTest() {
 			Expect(err).ToNot(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(resp.StatusCode).To(Equal(200))
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 		})
 
 		It("should get /metrics", func() {
@@ -23,6 +33,14 @@ func miscTest() {
 			Expect(err).ToNot(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(resp.StatusCode).To(Equal(200))
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 		})
 
 		It("should get /config", func() {
@@ -30,6 +48,14 @@ func miscTest() {
 			Expect(err).ToNot(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(resp.StatusCode).To(Equal(200))
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 		})
 
 		It("should get /api/v1/rules", func() {
@@ -37,6 +63,14 @@ func miscTest() {
 			Expect(err).ToNot(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(resp.StatusCode).To(Equal(200))
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 		})
 
 		It("should get /api/v1/metadata", func() {
@@ -44,6 +78,14 @@ func miscTest() {
 			Expect(err).ToNot(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(resp.StatusCode).To(Equal(200))
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 		})
 
 		It("should get /api/v1/status/buildinfo", func() {
@@ -51,6 +93,14 @@ func miscTest() {
 			Expect(err).ToNot(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(resp.StatusCode).To(Equal(200))
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 		})
 
 		It("should return 401 if no basic auth", func() {
@@ -71,6 +121,14 @@ func miscTest() {
 			} else {
 				defer resp.Body.Close()
 				Expect(resp.StatusCode).To(Equal(401))
+			}
+			err = cupaloy.New().SnapshotMulti(
+				"status", resp.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
 			}
 		})
 

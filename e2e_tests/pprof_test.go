@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"github.com/bradleyjkemp/cupaloy"
 	"github.com/golang/protobuf/proto"
 	pprof_proto "github.com/google/pprof/profile"
 	querierv1 "github.com/grafana/pyroscope/api/gen/proto/go/querier/v1"
@@ -110,6 +111,14 @@ func pprofTest() {
 
 				resp, err := axiosPost(ingestUrl, profile.Body, profile.Headers)
 				Expect(err).ToNot(HaveOccurred())
+				err = cupaloy.New().SnapshotMulti(
+					"status", resp.Status,
+				)
+
+				// Only fail if it's not the initial snapshot creation
+				if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+					Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+				}
 				resp.Body.Close()
 			}
 
@@ -140,7 +149,14 @@ func pprofTest() {
 				}
 			}
 			sort.Strings(filteredNames)
+			err = cupaloy.New().SnapshotMulti(
+				"respData", resData,
+			)
 
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			// Replace with your snapshot assertion
 			Expect(filteredNames).To(ConsistOf("__session_id__", "service_name"))
 		})
@@ -182,6 +198,14 @@ func pprofTest() {
 
 				// Add your snapshot assertion here
 				Expect(len(filteredNames)).To(BeNumerically(">", 0))
+				err = cupaloy.New().SnapshotMulti(
+					"status", resData,
+				)
+
+				// Only fail if it's not the initial snapshot creation
+				if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+					Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+				}
 			}
 		})
 

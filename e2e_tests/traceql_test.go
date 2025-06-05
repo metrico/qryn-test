@@ -3,11 +3,13 @@ package e2e_tests
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bradleyjkemp/cupaloy"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"io"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -58,6 +60,14 @@ func traceqlTest() {
 			Expect(err).To(BeNil())
 
 			fmt.Println("Tempo Res Code", res.StatusCode)
+			err = cupaloy.New().SnapshotMulti(
+				"status", res.Status,
+			)
+
+			// Only fail if it's not the initial snapshot creation
+			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+			}
 			Expect(res.StatusCode).To(Equal(202))
 			time.Sleep(1 * time.Second)
 		})
@@ -81,6 +91,14 @@ func traceqlTest() {
 				traces, _ := result["traces"].([]interface{})
 				//				Expect(ok).To(BeTrue())
 				Expect(len(traces)).To(BeNumerically(">", 0))
+				err = cupaloy.New().SnapshotMulti(
+					"status", data.Status,
+				)
+
+				// Only fail if it's not the initial snapshot creation
+				if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+					Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+				}
 			})
 		}
 		runTraceQLTest("one selector", `{.testId="`+testID+`"}`)
@@ -109,6 +127,14 @@ func traceqlTest() {
 				traces, ok := result["traces"].([]interface{})
 				Expect(ok).To(BeTrue())
 				Expect(len(traces) > 0).To(BeTrue())
+				err = cupaloy.New().SnapshotMulti(
+					"status", resp.Status,
+				)
+
+				// Only fail if it's not the initial snapshot creation
+				if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+					Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+				}
 			}
 
 			ops2 := []string{">", "<", "=", "!=", ">=", "<="}
@@ -152,6 +178,14 @@ func traceqlTest() {
 					traces, ok := result["traces"].([]interface{})
 					Expect(ok).To(BeTrue())
 					Expect(len(traces) == 0 || (len(traces) != 0 && (op == ">" || op == ">=" || op == "!="))).To(BeTrue())
+					err = cupaloy.New().SnapshotMulti(
+						"status", resp.Status,
+					)
+
+					// Only fail if it's not the initial snapshot creation
+					if err != nil && !strings.Contains(err.Error(), "snapshot created") {
+						Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
+					}
 				}
 			}
 		})
