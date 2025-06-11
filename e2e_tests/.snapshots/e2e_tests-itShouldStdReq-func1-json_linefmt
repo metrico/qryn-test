@@ -1,8 +1,5 @@
 data
-(struct { ResultType string "json:\"resultType\""; Result []e2e_tests.LogResult "json:\"result\"" }) {
-  ResultType: (string) (len=7) "streams",
-  Result: ([]e2e_tests.LogResult) {
-  }
+([]e2e_tests.LogResult) {
 }
 status
 success

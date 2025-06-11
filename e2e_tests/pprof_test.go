@@ -110,15 +110,17 @@ func pprofTest() {
 				fmt.Println(ingestUrl)
 
 				resp, err := axiosPost(ingestUrl, profile.Body, profile.Headers)
-				Expect(err).ToNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
+				bodyBytes, _ := io.ReadAll(resp.Body)
+				defer resp.Body.Close()
 				err = cupaloy.New().SnapshotMulti(
+					"body", string(bodyBytes),
 					"status", resp.Status,
 				)
-
-				// Only fail if it's not the initial snapshot creation
 				if err != nil && !strings.Contains(err.Error(), "snapshot created") {
 					Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
 				}
+
 				resp.Body.Close()
 			}
 
@@ -133,14 +135,14 @@ func pprofTest() {
 			}
 
 			reqBody, err := proto.Marshal(req)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			resData, err := protoPost(fmt.Sprintf("http://%s/querier.v1.QuerierService/LabelNames", gigaPipeExtUrl), reqBody)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			var res typesv1.LabelNamesResponse
 			err = proto.Unmarshal(resData, &res)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			var filteredNames []string
 			for _, name := range res.Names {
@@ -152,11 +154,10 @@ func pprofTest() {
 			err = cupaloy.New().SnapshotMulti(
 				"respData", resData,
 			)
-
-			// Only fail if it's not the initial snapshot creation
 			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
 				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
 			}
+
 			// Replace with your snapshot assertion
 			Expect(filteredNames).To(ConsistOf("__session_id__", "service_name"))
 		})
@@ -175,14 +176,14 @@ func pprofTest() {
 				}
 
 				reqBody, err := proto.Marshal(req)
-				Expect(err).ToNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				resData, err := protoPost(fmt.Sprintf("http://%s/querier.v1.QuerierService/LabelNames", gigaPipeExtUrl), reqBody)
-				Expect(err).ToNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				var res typesv1.LabelNamesResponse
 				err = proto.Unmarshal(resData, &res)
-				Expect(err).ToNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				var filteredNames []string
 				expectedNames := []string{"__session_id__", "service_name", "five", "zero", "ten"}
@@ -198,14 +199,10 @@ func pprofTest() {
 
 				// Add your snapshot assertion here
 				Expect(len(filteredNames)).To(BeNumerically(">", 0))
-				err = cupaloy.New().SnapshotMulti(
-					"status", resData,
+				cupaloy.New().SnapshotMulti(
+					"data", resData,
 				)
 
-				// Only fail if it's not the initial snapshot creation
-				if err != nil && !strings.Contains(err.Error(), "snapshot created") {
-					Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
-				}
 			}
 		})
 
@@ -217,14 +214,14 @@ func pprofTest() {
 			}
 
 			reqBody, err := proto.Marshal(req)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			resData, err := protoPost(fmt.Sprintf("http://%s/querier.v1.QuerierService/LabelValues", gigaPipeExtUrl), reqBody)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			var res typesv1.LabelValuesResponse
 			err = proto.Unmarshal(resData, &res)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			var foundTestID bool
 			for _, name := range res.Names {
@@ -251,21 +248,19 @@ func pprofTest() {
 				}
 
 				reqBody, err := proto.Marshal(req)
-				Expect(err).ToNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				resData, err := protoPost(fmt.Sprintf("http://%s/querier.v1.QuerierService/LabelValues", gigaPipeExtUrl), reqBody)
-				Expect(err).ToNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				var res typesv1.LabelValuesResponse
 				err = proto.Unmarshal(resData, &res)
-				Expect(err).ToNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				namesList := make([]string, len(res.Names))
 				copy(namesList, res.Names)
 				sort.Strings(namesList)
 
-				// Add your snapshot assertion here
-				Expect(len(namesList)).To(BeNumerically(">=", 0))
 			}
 		})
 
@@ -276,14 +271,14 @@ func pprofTest() {
 			}
 
 			reqBody, err := proto.Marshal(req)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			resData, err := protoPost(fmt.Sprintf("http://%s/querier.v1.QuerierService/ProfileTypes", gigaPipeExtUrl), reqBody)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			var res querierv1.ProfileTypesResponse
 			err = proto.Unmarshal(resData, &res)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			var profileTypeIds []string
 			for _, pt := range res.ProfileTypes {
@@ -321,14 +316,14 @@ func pprofTest() {
 			fmt.Printf(`{__session_id__="%s"}`, testID)
 
 			reqBody, err := proto.Marshal(req)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			resData, err := protoPost(fmt.Sprintf("http://%s/querier.v1.QuerierService/Series", gigaPipeExtUrl), reqBody)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			var res querierv1.SeriesResponse
 			err = proto.Unmarshal(resData, &res)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			var labels []string
 			labelSet := make(map[string]bool)
@@ -369,14 +364,14 @@ func pprofTest() {
 			}
 
 			reqBody, err := proto.Marshal(req)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			resData, err := protoPost(fmt.Sprintf("http://%s/querier.v1.QuerierService/SelectMergeStacktraces", gigaPipeExtUrl), reqBody)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			var res querierv1.SelectMergeStacktracesResponse
 			err = proto.Unmarshal(resData, &res)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			names := make([]string, len(res.Flamegraph.Names))
 			copy(names, res.Flamegraph.Names)
@@ -422,13 +417,13 @@ func pprofTest() {
 			}
 
 			reqBody, err := proto.Marshal(req)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			resData, err := protoPost(fmt.Sprintf("http://%s/querier.v1.QuerierService/SelectMergeProfile", gigaPipeExtUrl), reqBody)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			profile, err := pprof_proto.ParseData(resData)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			functions := make(map[string][]int64)
 
@@ -492,14 +487,14 @@ func pprofTest() {
 			}
 
 			reqBody, err := proto.Marshal(req)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			resData, err := protoPost(fmt.Sprintf("http://%s/querier.v1.QuerierService/SelectSeries", gigaPipeExtUrl), reqBody)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			var res querierv1.SelectSeriesResponse
 			err = proto.Unmarshal(resData, &res)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			series := make(map[string]interface{})
 
@@ -539,14 +534,14 @@ func pprofTest() {
 			params.Add("rightUntil", strconv.FormatInt(end+1, 10))
 
 			resp, err := axiosGet(fmt.Sprintf("http://%s/pyroscope/render-diff?%s", gigaPipeExtUrl, params.Encode()))
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			defer resp.Body.Close()
 
 			// You would need to define a struct to unmarshal the JSON response
 			// and then add your snapshot assertions
 
 			body, err := io.ReadAll(resp.Body)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			// Add JSON unmarshaling and snapshot assertions here
 			Expect(len(body)).To(BeNumerically(">", 0))

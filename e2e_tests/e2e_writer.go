@@ -93,7 +93,7 @@ func writingTests() {
 
 			resp, err := SendPoints(fmt.Sprintf("http://%s", gigaPipeWriteUrl), Points)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(BeNumerically("<", 300))
+			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
 
 			// Allow time for logs to be processed
 			time.Sleep(4 * time.Second)
@@ -134,11 +134,10 @@ func writingTests() {
 
 			url := fmt.Sprintf("http://%s/loki/api/v1/push", gigaPipeWriteUrl)
 
-			resp, err := SendProtobufRequest(url, req, 5*time.Second)
-			Expect(err).To(BeNil())
+			resp, err := SendProtobufRequest(url, req, 30*time.Second)
+			Expect(err).NotTo(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
-
 			time.Sleep(500 * time.Millisecond)
 			fmt.Println("Protobuf push successful")
 		})
@@ -236,14 +235,13 @@ func writingTests() {
 			}
 
 			payload, err := json.Marshal([]interface{}{span})
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			url := fmt.Sprintf("http://%s/tempo/api/push", gigaPipeWriteUrl)
 			resp, err := SendJSONRequest(url, payload, 5*time.Second)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(202))
-
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 			time.Sleep(500 * time.Millisecond)
 			fmt.Println("Tempo Insertion Successful")
 		}, NodeTimeout(1000*time.Second))
@@ -272,11 +270,10 @@ func writingTests() {
 			Expect(err).NotTo(HaveOccurred())
 			url := fmt.Sprintf("http://%s/tempo/spans", gigaPipeWriteUrl)
 			resp, err := SendJSONRequest(url, data, 5*time.Second)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(202))
-
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 			fmt.Println("Tempo Insertion Successful")
 		}, NodeTimeout(10*time.Second))
 
@@ -306,11 +303,10 @@ func writingTests() {
 
 			url := fmt.Sprintf("http://%s/tempo/spans", gigaPipeWriteUrl)
 			resp, err := SendJSONRequest(url, data, 5*time.Second)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(202))
-
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 			fmt.Println("Tempo Insertion Successful")
 		}, NodeTimeout(10*time.Second))
 
@@ -329,8 +325,7 @@ func writingTests() {
 
 			resp, err := SendPoints(fmt.Sprintf("http://%s", gigaPipeWriteUrl), points)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(BeNumerically("<", 300))
-
+			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
 			time.Sleep(1 * time.Second)
 		}, NodeTimeout(10*time.Second))
 		It("should write elastic", func(ctx context.Context) {
@@ -360,7 +355,7 @@ func writingTests() {
 
 			url := fmt.Sprintf("http://%s/_bulk", gigaPipeWriteUrl)
 			req, err := http.NewRequest("POST", url, &ndjsonBuf)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			// Add headers
 			req.Header.Set("Content-Type", "application/json")
@@ -373,21 +368,19 @@ func writingTests() {
 			// Send request
 			client := &http.Client{Timeout: 5 * time.Second}
 			resp, err := client.Do(req)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			defer resp.Body.Close()
 
-			body, _ := io.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			Expect(err).NotTo(HaveOccurred())
 			fmt.Println(resp.StatusCode)
-			Expect(resp.StatusCode).To(BeNumerically("<", 300))
-
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 			// Check if there were errors in the response
 			var respBody map[string]interface{}
 			//respData, _ := io.ReadAll(resp.Body)
 			json.Unmarshal(body, &respBody)
 
-			errors, ok := respBody["errors"].(bool)
-			Expect(ok).To(BeTrue())
+			errors, _ := respBody["errors"]
 			Expect(errors).To(BeFalse())
 
 			time.Sleep(1 * time.Second)
@@ -495,8 +488,7 @@ func writingTests() {
 				Expect(err).NotTo(HaveOccurred())
 				defer resp.Body.Close()
 				// Check the response status
-				Expect(resp.StatusCode).To(Equal(204))
-
+				Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
 				// Wait 500ms between requests
 				time.Sleep(500 * time.Millisecond)
 
@@ -559,8 +551,7 @@ func writingTests() {
 			resp, err := SendJSONRequest(url, payload, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 			defer resp.Body.Close()
-
-			Expect(resp.StatusCode).To(Equal(202))
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 		})
 		It("should send datadog metrics", func(ctx context.Context) {
 			recordExecution("send-datadog-metrics")
@@ -598,8 +589,7 @@ func writingTests() {
 			defer resp.Body.Close()
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(202))
-
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 			time.Sleep(500 * time.Millisecond)
 		}, NodeTimeout(10*time.Second))
 

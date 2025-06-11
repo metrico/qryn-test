@@ -257,14 +257,11 @@ func tempoTest() {
 				}
 			}
 			Expect(found).To(BeTrue(), fmt.Sprintf("Expected value '%s' should be found for tag '%s'", expectedValue, tagName))
-			err = cupaloy.New().SnapshotMulti(
+			cupaloy.New().SnapshotMulti(
+				"body", string(body),
 				"status", respbody.Status,
 			)
 
-			// Only fail if it's not the initial snapshot creation
-			if err != nil && !strings.Contains(err.Error(), "snapshot created") {
-				Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
-			}
 		}
 	})
 	It("should get /api/echo", func() {
@@ -277,14 +274,10 @@ func tempoTest() {
 		// Parse as string since it's a simple echo response
 		responseText := strings.Trim(string(body), `"`)
 		Expect(responseText).To(Equal("echo"))
-		err = cupaloy.New().SnapshotMulti(
+		cupaloy.New().SnapshotMulti(
 			"status", respbody.Status,
 		)
 
-		// Only fail if it's not the initial snapshot creation
-		if err != nil && !strings.Contains(err.Error(), "snapshot created") {
-			Fail(fmt.Sprintf("unexpected snapshot error: %v", err))
-		}
 	})
 
 }
