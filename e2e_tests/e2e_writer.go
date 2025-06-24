@@ -21,6 +21,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -67,38 +68,37 @@ func writingTests() {
 			testName := "push-logs-http"
 			recordExecution(testName)
 
-			Points := CreatePoints(testID+"_json", 1, start, end, map[string]string{}, nil, nil, nil)
-			Points = CreatePoints(testID, 2, start, end, map[string]string{}, nil, nil, nil)
-			Points = CreatePoints(testID, 3, start, end, map[string]string{}, nil, nil, nil)
-			Points = CreatePoints(testID, 4, start, end, map[string]string{}, nil, nil, nil)
+			points := CreatePoints(testID, 0.5, start, end, map[string]string{}, nil, nil, nil)
+			points = CreatePoints(testID, 1, start, end, map[string]string{}, nil, nil, nil)
+			points = CreatePoints(testID, 2, start, end, map[string]string{}, nil, nil, nil)
+			points = CreatePoints(testID, 4, start, end, map[string]string{}, nil, nil, nil)
 
 			// JSON format logs
-			Points = CreatePoints(testID+"_json", 1, start, end,
+			points = CreatePoints(testID+"_json", 1, start, end,
 				map[string]string{"fmt": "json", "lbl_repl": "val_repl", "int_lbl": "1"},
-				Points,
+				points,
 				func(i int) string {
 					return fmt.Sprintf(`{"lbl_repl":"REPL","int_val":"1","new_lbl":"new_val","str_id":%d,"arr":[1,2,3],"obj":{"o_1":"v_1"}}`, i)
 				},
 				nil,
 			)
 
-			Points = CreatePoints(testID+"_logfmt", 1, start, end,
+			points = CreatePoints(testID+"_logfmt", 1, start, end,
 				map[string]string{"fmt": "logfmt", "lbl_repl": "val_repl", "int_lbl": "1"},
-				Points,
+				points,
 				func(i int) string {
 					return fmt.Sprintf(`lbl_repl="REPL" int_val=1 new_lbl="new_val" str_id="%d"`, i)
 				},
 				nil,
 			)
 
-			resp, err := SendPoints(fmt.Sprintf("http://%s", gigaPipeWriteUrl), Points)
+			resp, err := SendPoints(fmt.Sprintf("http://%s", gigaPipeWriteUrl), points)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
 
 			// Allow time for logs to be processed
 			time.Sleep(4 * time.Second)
 		}, NodeTimeout(30*time.Second))
-
 		It("push protobuff", func() {
 			testName := "push-protobuff"
 			recordExecution(testName)
@@ -106,19 +106,34 @@ func writingTests() {
 			points := CreatePoints(testID+"_PB", 1, start, end, map[string]string{}, nil, nil, nil)
 
 			var streams []push.Stream
-
-			for _, point := range points {
+			for _, lokiStream := range points {
 				labelParts := []string{}
-				for _, label := range point.Labels {
-					labelParts = append(labelParts, fmt.Sprintf(`%s="%s"`, label.Name, label.Value))
+				for key, value := range lokiStream.Stream {
+					labelParts = append(labelParts, fmt.Sprintf(`%s="%s"`, key, value))
 				}
 				labels := "{" + strings.Join(labelParts, ",") + "}"
 
 				var entries []push.Entry
-				for _, sample := range point.Samples {
+				//for _, sample := range point.Samples {
+				//	entries = append(entries, push.Entry{
+				//		Timestamp: time.Unix(0, sample.Timestamp), // sample.Timestamp is in nanoseconds
+				//		Line:      fmt.Sprintf("%f", sample.Value),
+				//	})
+				//}
+				for _, value := range lokiStream.Values {
+					if len(value) < 2 {
+						continue // Skip invalid entries
+					}
+
+					// Parse timestamp (assuming it's in nanoseconds as string)
+					timestampNanos, err := strconv.ParseInt(value[0], 10, 64)
+					if err != nil {
+						continue // Skip entries with invalid timestamps
+					}
+
 					entries = append(entries, push.Entry{
-						Timestamp: time.Unix(0, sample.Timestamp), // sample.Timestamp is in nanoseconds
-						Line:      fmt.Sprintf("%f", sample.Value),
+						Timestamp: time.Unix(0, timestampNanos),
+						Line:      value[1], // The log line/value
 					})
 				}
 
@@ -141,6 +156,103 @@ func writingTests() {
 			time.Sleep(500 * time.Millisecond)
 			fmt.Println("Protobuf push successful")
 		})
+		It("push protobuff", func() {
+			testName := "push-protobuff"
+			recordExecution(testName)
+
+			points := CreatePoints(testID+"_PB", 1, start, end, map[string]string{}, nil, nil, nil)
+
+			var streams []push.Stream
+
+			// Iterate over the map[string]LokiStream
+			for _, lokiStream := range points {
+				// Build labels string from the Stream map
+				labelParts := []string{}
+				for key, value := range lokiStream.Stream {
+					labelParts = append(labelParts, fmt.Sprintf(`%s="%s"`, key, value))
+				}
+				labels := "{" + strings.Join(labelParts, ",") + "}"
+
+				// Convert Values to Loki entries
+				var entries []push.Entry
+				for _, value := range lokiStream.Values {
+					if len(value) < 2 {
+						continue // Skip invalid entries
+					}
+
+					// Parse timestamp (assuming it's in nanoseconds as string)
+					timestampNanos, err := strconv.ParseInt(value[0], 10, 64)
+					if err != nil {
+						continue // Skip entries with invalid timestamps
+					}
+
+					entries = append(entries, push.Entry{
+						Timestamp: time.Unix(0, timestampNanos),
+						Line:      value[1], // The log line/value
+					})
+				}
+
+				streams = append(streams, push.Stream{
+					Labels:  labels,
+					Entries: entries,
+				})
+			}
+
+			req := &push.PushRequest{
+				Streams: streams,
+			}
+
+			url := fmt.Sprintf("http://%s/loki/api/v1/push", gigaPipeWriteUrl)
+
+			resp, err := SendProtobufRequest(url, req, 30*time.Second)
+			Expect(err).NotTo(HaveOccurred())
+			defer resp.Body.Close()
+			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
+			time.Sleep(500 * time.Millisecond)
+			fmt.Println("Protobuf push successful")
+		})
+		//It("push protobuff", func() {
+		//	testName := "push-protobuff"
+		//	recordExecution(testName)
+		//
+		//	points := CreatePoints(testID+"_PB", 1, start, end, map[string]string{}, nil, nil, nil)
+		//
+		//	var streams []push.Stream
+		//
+		//	for _, point := range points {
+		//		labelParts := []string{}
+		//		for _, label := range point.Labels {
+		//			labelParts = append(labelParts, fmt.Sprintf(`%s="%s"`, label.Name, label.Value))
+		//		}
+		//		labels := "{" + strings.Join(labelParts, ",") + "}"
+		//
+		//		var entries []push.Entry
+		//		for _, sample := range point.Samples {
+		//			entries = append(entries, push.Entry{
+		//				Timestamp: time.Unix(0, sample.Timestamp), // sample.Timestamp is in nanoseconds
+		//				Line:      fmt.Sprintf("%f", sample.Value),
+		//			})
+		//		}
+		//
+		//		streams = append(streams, push.Stream{
+		//			Labels:  labels,
+		//			Entries: entries,
+		//		})
+		//	}
+		//
+		//	req := &push.PushRequest{
+		//		Streams: streams,
+		//	}
+		//
+		//	url := fmt.Sprintf("http://%s/loki/api/v1/push", gigaPipeWriteUrl)
+		//
+		//	resp, err := SendProtobufRequest(url, req, 30*time.Second)
+		//	Expect(err).NotTo(HaveOccurred())
+		//	defer resp.Body.Close()
+		//	Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
+		//	time.Sleep(500 * time.Millisecond)
+		//	fmt.Println("Protobuf push successful")
+		//})
 
 		It("should send otlp", func(ctx context.Context) {
 
@@ -386,6 +498,71 @@ func writingTests() {
 			time.Sleep(1 * time.Second)
 		}, NodeTimeout(10*time.Second))
 
+		//It("should post /api/v1/labels", func() {
+		//	// Create a timestamp for the sample
+		//	timestamp := time.Now().UnixNano() / int64(time.Millisecond)
+		//
+		//	// Create Prometheus time series
+		//	timeseries := []prompb.TimeSeries{
+		//		{
+		//			Labels: []prompb.Label{
+		//				{
+		//					Name:  fmt.Sprintf("%s_LBL", testID),
+		//					Value: "ok",
+		//				},
+		//			},
+		//			Samples: []prompb.Sample{
+		//				{
+		//					Value:     123,
+		//					Timestamp: timestamp,
+		//				},
+		//			},
+		//		},
+		//	}
+		//
+		//	// Create write request
+		//	writeReq := &prompb.WriteRequest{
+		//		Timeseries: timeseries,
+		//	}
+		//
+		//	// Prepare request
+		//	url := fmt.Sprintf("http://%s/api/v1/prom/remote/write", gigaPipeWriteUrl)
+		//	resp, err := SendProtobufRequest(url, writeReq, 5*time.Second)
+		//	Expect(err).NotTo(HaveOccurred())
+		//	defer resp.Body.Close()
+		//
+		//	// Check status code
+		//	Expect(resp.StatusCode).To(Equal(204))
+		//
+		//	// Wait for data to be processed
+		//	time.Sleep(500 * time.Millisecond)
+		//
+		//	// Create log points using Prometheus format (maintaining same structure pattern)
+		//	logPoints := Points{
+		//		&prompb.TimeSeries{
+		//			Labels: []prompb.Label{
+		//				{
+		//					Name:  fmt.Sprintf("%s_LBL_LOGS", testID),
+		//					Value: "ok",
+		//				},
+		//			},
+		//			Samples: []prompb.Sample{
+		//				{
+		//					Value:     123,
+		//					Timestamp: time.Now().UnixNano() / int64(time.Millisecond), // Converting to milliseconds
+		//				},
+		//			},
+		//		},
+		//	}
+		//
+		//	logResp, err := SendPoints(fmt.Sprintf("http://%s", gigaPipeWriteUrl), logPoints)
+		//	Expect(err).NotTo(HaveOccurred())
+		//	defer logResp.Body.Close()
+		//
+		//	// Check status code is in 2xx range
+		//	Expect(logResp.StatusCode / 100).To(Equal(2))
+		//})
+
 		It("should post /api/v1/labels", func() {
 			// Create a timestamp for the sample
 			timestamp := time.Now().UnixNano() / int64(time.Millisecond)
@@ -425,19 +602,16 @@ func writingTests() {
 			// Wait for data to be processed
 			time.Sleep(500 * time.Millisecond)
 
-			// Create log points using Prometheus format (maintaining same structure pattern)
-			logPoints := Points{
-				&prompb.TimeSeries{
-					Labels: []prompb.Label{
-						{
-							Name:  fmt.Sprintf("%s_LBL_LOGS", testID),
-							Value: "ok",
-						},
+			// Create log points using new LokiStream format
+			logPoints := map[string]LokiStream{
+				"stream1": {
+					Stream: map[string]string{
+						fmt.Sprintf("%s_LBL_LOGS", testID): "ok",
 					},
-					Samples: []prompb.Sample{
+					Values: [][]string{
 						{
-							Value:     123,
-							Timestamp: time.Now().UnixNano() / int64(time.Millisecond), // Converting to milliseconds
+							strconv.FormatInt(time.Now().UnixNano(), 10), // timestamp in nanoseconds as string
+							"123", // log line/value
 						},
 					},
 				},

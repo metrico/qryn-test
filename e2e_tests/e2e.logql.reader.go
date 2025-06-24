@@ -73,6 +73,7 @@ type SeriesResponse struct {
 
 func runRequest(req string, step float64, _start, _end int64, oid string, limit int) (*QueryResponse, error) {
 
+	fmt.Println("Req", req)
 	if oid == "" {
 		oid = "1"
 	}
@@ -92,6 +93,8 @@ func runRequest(req string, step float64, _start, _end int64, oid string, limit 
 	endNs := strconv.Itoa(int(_end))
 	reqURL := fmt.Sprintf("http://%s/loki/api/v1/query_range?direction=BACKWARD&limit=%d&query=%s&start=%s&end=%s&step=%f",
 		gigaPipeExtUrl, limit, url.QueryEscape(req), startNs, endNs, step)
+
+	fmt.Println("ReqUL", reqURL)
 
 	client := &http.Client{}
 	httpReq, err := http.NewRequest("GET", reqURL, nil)
@@ -254,7 +257,6 @@ func itShouldMatrixReq(opts ReqOptions) {
 		if opts.TestID != "" {
 			testIDToUse = opts.TestID
 		}
-		fmt.Println("RT", resp.Data.ResultType)
 		adjustMatrixResult(resp, testIDToUse)
 		Expect(resp.Data).To(goldga.Match())
 		Expect(resp.Data).NotTo(BeNil())
