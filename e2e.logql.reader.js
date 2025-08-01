@@ -199,7 +199,7 @@ _it('should hammer unwrap', async () => {
 _itShouldMatrixReq(`unwrap + json params`,
     `sum_over_time({test_id="${testID}_json"}|json lbl_int1="int_val"` +
     '|lbl_repl="val_repl"|unwrap lbl_int1 [3s]) by (test_id, lbl_repl)')
-_itShouldStdReq({name: 'lineFmt', limit: '2001', req: `{test_id="${testID}"}| line_format ` +
+_itShouldStdReq({name: 'lineFmt', limit: '2002', req: `{test_id="${testID}"}| line_format ` +
     '"{ \\"str\\":\\"{{._entry}}\\", \\"freq2\\": {{div .freq 2}} }"'})
 _it('linefmt + json + unwrap', async() => {
     const resp = await runRequest(`rate({test_id="${testID}"}` +
