@@ -212,25 +212,26 @@ _it('should send influx', async () => {
 _it('should send prometheus.remote.write', async () => {
     const {pushTimeseries} = require('prometheus-remote-write')
     const fetch = require('node-fetch')
-    const ts = []
     for (const route of ['api/v1/prom/remote/write',
         'prom/remote/write',
         'api/prom/remote/write']) {
-        for (let i = start; i < end; i += 15000) {
-            ts.push({
-                labels: {
-                    __name__: "test_metric",
-                    test_id: testID + '_RWR',
-                    route: route,
-                },
-                samples: [
-                    {
-                        value: 123,
-                        timestamp: i,
-                    },
-                ],
-            })
+        let counter = 0
+        let len = Math.floor((end - start) / 15000)
+        let samples = (fn) => {
+            return [...new Array(len)].map((v, i) => ({
+                value: fn(i), timestamp: start + i * 15000
+            }))
         }
+        const ts = [
+            {
+                labels: { __name__: "test_metric", test_id: testID + '_RWR', route: route },
+                samples: samples(() => 123)
+            },
+            {
+                labels: {__name__: "test_counter", test_id: testID + "_RWR", route: route},
+                samples: samples(i => i)
+            }
+        ]
         const res = await pushTimeseries(ts, {
             url: `http://${clokiWriteUrl}/${route}`,
             fetch: (input, opts) => {

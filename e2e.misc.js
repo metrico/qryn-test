@@ -45,7 +45,7 @@ _it('should return 401 if no basic auth', async () => {
     } catch (err) {
         e = err
     }
-    expect(e.message).toContain("Error: Request failed with status code 401")
+    expect(e.message).toContain("Request failed with status code 401")
 })
 
 /* TODO: implement _it('should get /influx/health', async () => {
