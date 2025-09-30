@@ -140,8 +140,8 @@ _itShouldReadPromMatrix(`prometheus: should read sum`,
 _itShouldReadPromMatrix(`prometheus: should sum + rate`,
     `sum by (test_id) (rate(test_counter{test_id="${testID}_RWR"}[1m]))`)
 
-/*_itShouldReadPromMatrix(`prometheus exp: should sum + rate`,
+_itShouldReadPromMatrix(`prometheus exp: should sum + rate`,
     {
         query:`sum by (test_id) (rate(test_counter{test_id="${testID}_RWR"}[1m]))`,
         headers: {'X-Experimental': '1'}
-})*/
+})
