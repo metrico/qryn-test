@@ -1,0 +1,3 @@
+{"status": "error", "errorType":"error", "error": "code: 47, message: Unknown expression or table expression identifier 'type' in scope main AS (SELECT intDiv(samples.timestamp_ns, 60000000000) * 60000000000 AS timestamp_ns, fingerprint AS fingerprint, '' AS string, countMerge(count) AS value FROM metrics_15s AS samples WHERE (samples.timestamp_ns >= 1750746120000000000) AND (samples.timestamp_ns < 1750746480000000000) AND (type IN (1, 0)) AND (samples.fingerprint IN (fp_sel)) GROUP BY fingerprint, timestamp_ns)"}
+status
+500 Internal Server Error
