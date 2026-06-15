@@ -754,3 +754,24 @@ _itShouldMatrixReq({
     testID: `${testID}_DDMetric`
   })
 */
+
+// line filter boolean expressions (#699)
+// All terms in a single LineFilter share the same operator; to combine
+// different operators use sequential pipeline stages.
+_itShouldStdReq('line filter or',
+    `{test_id="${testID}", freq="2"} |~ "2[0-9]$" or "3[0-9]$"`)
+
+_itShouldStdReq('line filter and',
+    `{test_id="${testID}", freq="2"} |= "FREQ_TEST_2" and "FREQ"`)
+
+_itShouldStdReq('line filter grouped or then and',
+    `{test_id="${testID}", freq="2"} |= ("FREQ_TEST_2" or "FREQ_TEST_3") and "FREQ"`)
+
+_itShouldStdReq('line filter not and',
+    `{test_id="${testID}", freq="2"} != "FREQ_TEST_20" and "FREQ_TEST_30"`)
+
+_itShouldStdReq('line filter nested groups',
+    `{test_id="${testID}", freq="2"} |= ("FREQ_TEST_2" or "FREQ_TEST_3") and ("FREQ" or "TEST")`)
+
+_itShouldMatrixReq('line filter or + rate aggregation',
+    `rate({test_id="${testID}", freq="2"} |~ "2[0-9]$" or "3[0-9]$" [1s])`)
