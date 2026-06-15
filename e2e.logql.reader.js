@@ -48,7 +48,11 @@ const adjustMatrixResult = (resp, id) => {
     resp.data.data.result = resp.data.data.result.map(stream => {
         expect((stream.metric.test_id || '').substring(0, id.length)).toEqual(id)
         stream.metric.test_id = 'TEST_ID'
-        stream.values = stream.values.map(v => [v[0] - Math.floor(start / 1000), v[1]])
+        stream.values = stream.values.map(v => {
+            const n = parseFloat(v[1])
+            const val = isNaN(n) ? v[1] : parseFloat(n.toPrecision(6)).toString()
+            return [v[0] - Math.floor(start / 1000), val]
+        })
         return stream
     })
 }
@@ -633,6 +637,162 @@ _itShouldMatrixReq('bottomk', `bottomk(1, rate({test_id="${testID}"}[5s]))`)
 
 _itShouldMatrixReq('quantile',
     `quantile_over_time(0.5, {test_id=~"${testID}_json"} | json f="int_val" | unwrap f [5s]) by (test_id)`)
+
+// --- Binary arithmetic expressions (#760) ------------------------------------
+
+// Paren unwrapping: a paren-wrapped atomic expression must produce the same
+// result as the bare expression.
+_it('binary: paren-wrapped expression equals unwrapped', async () => {
+    const [r1, r2] = await Promise.all([
+        runRequest(`sum(rate({test_id="${testID}"}[5s])) by (test_id)`),
+        runRequest(`(sum(rate({test_id="${testID}"}[5s])) by (test_id))`)
+    ])
+    expect(r1.data.data.result.length).toBeGreaterThan(0)
+    expect(r1.data.data.result.length).toEqual(r2.data.data.result.length)
+    for (let i = 0; i < r1.data.data.result.length; i++) {
+        expect(r1.data.data.result[i].values).toEqual(r2.data.data.result[i].values)
+    }
+}, ['push logs http'])
+
+// Snapshot: paren-wrapped binary sub-expression.
+_itShouldMatrixReq('binary: paren-wrapped sub-expression (snapshot)',
+    `(sum(rate({test_id="${testID}"}[5s])) by (test_id))`)
+
+// Division: dividing a series by itself must yield 1.0 for every sample.
+_it('binary: CH path — divide identical series gives 1.0', async () => {
+    const resp = await runRequest(
+        `sum(rate({test_id="${testID}"}[5s])) by (test_id) / sum(rate({test_id="${testID}"}[5s])) by (test_id)`
+    )
+    expect(resp.data.data.result.length).toBeGreaterThan(0)
+    for (const series of resp.data.data.result) {
+        for (const [, val] of series.values) {
+            expect(parseFloat(val)).toBeCloseTo(1.0, 5)
+        }
+    }
+}, ['push logs http'])
+
+_itShouldMatrixReq('binary: division (snapshot)',
+    `sum(rate({test_id="${testID}"}[5s])) by (test_id) / sum(rate({test_id="${testID}"}[5s])) by (test_id)`)
+
+// Addition: adding a series to itself must be exactly double.
+_it('binary: addition gives double', async () => {
+    const [rBase, rAdd] = await Promise.all([
+        runRequest(`sum(rate({test_id="${testID}"}[5s])) by (test_id)`),
+        runRequest(`sum(rate({test_id="${testID}"}[5s])) by (test_id) + sum(rate({test_id="${testID}"}[5s])) by (test_id)`)
+    ])
+    expect(rBase.data.data.result.length).toBeGreaterThan(0)
+    for (let i = 0; i < rBase.data.data.result.length; i++) {
+        const base = rBase.data.data.result[i].values
+        const add  = rAdd.data.data.result[i].values
+        expect(add.length).toBeGreaterThan(0)
+        for (let j = 0; j < Math.min(base.length, add.length); j++) {
+            expect(parseFloat(add[j][1])).toBeCloseTo(parseFloat(base[j][1]) * 2, 5)
+        }
+    }
+}, ['push logs http'])
+
+_itShouldMatrixReq('binary: addition (snapshot)',
+    `sum(rate({test_id="${testID}"}[5s])) by (test_id) + sum(rate({test_id="${testID}"}[5s])) by (test_id)`)
+
+// Subtraction: a series minus itself must be 0 → ZeroEater produces empty result.
+_it('binary: subtract identical series yields empty result (ZeroEater)', async () => {
+    const resp = await runRequest(
+        `sum(rate({test_id="${testID}"}[5s])) by (test_id) - sum(rate({test_id="${testID}"}[5s])) by (test_id)`
+    )
+    expect(resp.data.data.result.length).toBe(0)
+}, ['push logs http'])
+
+// Integer scalar multiplication.
+_it('binary: multiply by integer scalar gives N× value', async () => {
+    const [rBase, rMul] = await Promise.all([
+        runRequest(`sum(rate({test_id="${testID}"}[5s])) by (test_id)`),
+        runRequest(`sum(rate({test_id="${testID}"}[5s])) by (test_id) * 2`)
+    ])
+    expect(rBase.data.data.result.length).toBeGreaterThan(0)
+    for (let i = 0; i < rBase.data.data.result.length; i++) {
+        const base = rBase.data.data.result[i].values
+        const mul  = rMul.data.data.result[i].values
+        expect(mul.length).toBeGreaterThan(0)
+        for (let j = 0; j < Math.min(base.length, mul.length); j++) {
+            expect(parseFloat(mul[j][1])).toBeCloseTo(parseFloat(base[j][1]) * 2, 5)
+        }
+    }
+}, ['push logs http'])
+
+_itShouldMatrixReq('binary: scalar integer multiply (snapshot)',
+    `sum(rate({test_id="${testID}"}[5s])) by (test_id) * 2`)
+
+// Float scalar multiplication.
+_it('binary: multiply by float scalar gives 1.5× value', async () => {
+    const [rBase, rMul] = await Promise.all([
+        runRequest(`sum(rate({test_id="${testID}"}[5s])) by (test_id)`),
+        runRequest(`sum(rate({test_id="${testID}"}[5s])) by (test_id) * 1.5`)
+    ])
+    expect(rBase.data.data.result.length).toBeGreaterThan(0)
+    for (let i = 0; i < rBase.data.data.result.length; i++) {
+        const base = rBase.data.data.result[i].values
+        const mul  = rMul.data.data.result[i].values
+        expect(mul.length).toBeGreaterThan(0)
+        for (let j = 0; j < Math.min(base.length, mul.length); j++) {
+            expect(parseFloat(mul[j][1])).toBeCloseTo(parseFloat(base[j][1]) * 1.5, 5)
+        }
+    }
+}, ['push logs http'])
+
+_itShouldMatrixReq('binary: scalar float multiply (snapshot)',
+    `sum(rate({test_id="${testID}"}[5s])) by (test_id) * 1.5`)
+
+// Modulo.
+_itShouldMatrixReq('binary: modulo scalar (snapshot)',
+    `sum(rate({test_id="${testID}"}[5s])) by (test_id) % 3`)
+
+// Chained binary — (a / a) * 100 must be 100.0 for every sample.
+_it('binary: chained (a / a) * 100 gives 100.0', async () => {
+    const resp = await runRequest(
+        `(sum(rate({test_id="${testID}"}[5s])) by (test_id) / sum(rate({test_id="${testID}"}[5s])) by (test_id)) * 100`
+    )
+    expect(resp.data.data.result.length).toBeGreaterThan(0)
+    for (const series of resp.data.data.result) {
+        for (const [, val] of series.values) {
+            expect(parseFloat(val)).toBeCloseTo(100.0, 4)
+        }
+    }
+}, ['push logs http'])
+
+_itShouldMatrixReq('binary: chained division then scalar multiply (snapshot)',
+    `(sum(rate({test_id="${testID}"}[5s])) by (test_id) / sum(rate({test_id="${testID}"}[5s])) by (test_id)) * 100`)
+
+// Syntax error: raw StrSelector as binary operand must be rejected.
+_it('binary: StrSelector operand is rejected', async () => {
+    let threw = false
+    try {
+        await runRequest(`{test_id="${testID}"} / rate({test_id="${testID}"}[5s])`)
+    } catch (e) {
+        threw = true
+    }
+    expect(threw).toBe(true)
+}, ['push logs http'])
+
+// RAM path: json parser creates an internal breakpoint, forcing in-memory merge.
+_it('binary: RAM path — divide identical json series gives 1.0', async () => {
+    const resp = await runRequest(
+        `sum(rate({test_id="${testID}_json"}|json [5s])) by (test_id) / sum(rate({test_id="${testID}_json"}|json [5s])) by (test_id)`
+    )
+    expect(resp.data.data.result.length).toBeGreaterThan(0)
+    for (const series of resp.data.data.result) {
+        for (const [, val] of series.values) {
+            expect(parseFloat(val)).toBeCloseTo(1.0, 5)
+        }
+    }
+}, ['push logs http'])
+
+_itShouldMatrixReq('binary: RAM path division (snapshot)',
+    `sum(rate({test_id="${testID}_json"}|json [5s])) by (test_id) / sum(rate({test_id="${testID}_json"}|json [5s])) by (test_id)`)
+
+_itShouldMatrixReq('binary: RAM path scalar multiply (snapshot)',
+    `sum(rate({test_id="${testID}_json"}|json [5s])) by (test_id) * 2`)
+
+// --- End binary arithmetic ---------------------------------------------------
 
 //--- POST
 /* TODO not supported
