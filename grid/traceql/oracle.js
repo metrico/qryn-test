@@ -191,7 +191,8 @@ const ONE_HOP = {
 // oneHop evaluates a one-hop operator. Traces with a root and a missing
 // parent resolve root reachability by pointer jumping, under the round limit.
 const oneHop = (op, lhs, rhs, ctx) => {
-  const candidates = [...traceIds(lhs)].filter(id => traceIds(rhs).has(id))
+  const rt = traceIds(rhs)
+  const candidates = [...traceIds(lhs)].filter(id => rt.has(id))
   const incomplete = candidates.filter(id => {
     const ss = ctx.spans.filter(s => s.traceId === id)
     return ss.some(s => s.parentId === null) && ss.some(s => s.parentId !== null && !ctx.byId.has(`${id}/${s.parentId}`))
@@ -215,7 +216,8 @@ const isAncestor = (a, s, ctx) => {
 // `<<` (a descendant does) and their `!` and `&` variants. Every span of the
 // traces where both sides yield spans must resolve under the round limit.
 const transitive = (op, lhs, rhs, ctx) => {
-  guard(new Set([...traceIds(lhs)].filter(id => traceIds(rhs).has(id))), ctx)
+  const rt = traceIds(rhs)
+  guard(new Set([...traceIds(lhs)].filter(id => rt.has(id))), ctx)
   const kind = op.length === 3 ? op[0] : ''
   const rel = op.endsWith('>>') ? (l, r) => isAncestor(l, r, ctx) : (l, r) => isAncestor(r, l, ctx)
   return result(kind, lhs, rhs, related(lhs, rhs, rel, ctx))
@@ -254,8 +256,8 @@ const newestFirst = (a, b) => b.start - a.start || (a.spanId < b.spanId ? 1 : a.
  * by their newest result span (ties by trace id, descending). Parents,
  * ancestors, siblings and roots count wherever they start.
  * @param query {Object} the case AST
- * @param spans {Object[]} from dataset()
- * Only the first `pushes` ingest batches have landed when it is set.
+ * @param all {Object[]} from dataset(); with opts.pushes only the spans of
+ *   the first `pushes` ingest batches count
  * @param opts {{from: number, to: number, limit: number, spss?: number, rounds?: number, pushes?: number}}
  */
 const search = (query, all, { from, to, limit, spss = DEFAULT_SPSS, rounds = ROUNDS, pushes }) => {

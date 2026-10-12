@@ -156,10 +156,8 @@ const HOP_UNION_CHILD = {
   attrs: 8
 }
 
-// Transitive operators between every span that resolves under R=3 (spss
-// 100): spans with an in-range ancestor, spans with an in-range descendant,
-// and both. Edge spans relate only to out-of-range ancestors; spans that
-// cannot reach a root never relate.
+// Transitive operators between every span that resolves under R=3 (spss 100):
+// spans with an in-range ancestor, with an in-range descendant, and both.
 const TR_DESCENDANT = {
   chain8: [['c8_1', 'c8_2', 'c8_3', 'c8_4', 'c8_5', 'c8_6', 'c8_7'], 7],
   fanout: 70,

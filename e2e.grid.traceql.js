@@ -1,7 +1,6 @@
 // TraceQL grid suite: every case in grid/traceql/cases.json must return the
 // traces, spans and matched counts the oracle computes from the seed. Cases
-// with `pushes` run once that many seed batches have landed and before the
-// next one is pushed: tests run in declaration order.
+// with `pushes` run between that many seed batches landing and the next push.
 const { _it, testID } = require('./common')
 const seed = require('./grid/traceql/seed')
 const oracle = require('./grid/traceql/oracle')

@@ -1,6 +1,6 @@
 // Normalises TraceQL search responses and diffs them against the oracle. A
-// result is [{trace, spans: [span name, ...], matched}], or {error} for a
-// failed search.
+// result is [{trace, spans: [span name, ...], matched}], or {status, error}
+// for a failed search.
 
 // UNRESOLVED_ERROR is the error of a search whose ancestry does not resolve
 // within the round limit.
