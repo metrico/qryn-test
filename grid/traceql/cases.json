@@ -5490,6 +5490,1257 @@
           }
         ]
       }
+    },
+    {
+      "id": "fe_attr_eq_attr",
+      "note": "Two attributes compare as numbers when both are, else as strings.",
+      "query": "{ .v = .w }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".v"
+              },
+              "rhs": {
+                "attr": ".w"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_attr_ne_attr",
+      "note": "An attribute-vs-attribute != is false when either is missing or only one is a number.",
+      "query": "{ .v != .w }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "!=",
+              "lhs": {
+                "attr": ".v"
+              },
+              "rhs": {
+                "attr": ".w"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_attr_lt_attr",
+      "note": "Attribute-vs-attribute ordering compares numbers by value.",
+      "query": "{ .v < .w }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "<",
+              "lhs": {
+                "attr": ".v"
+              },
+              "rhs": {
+                "attr": ".w"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_arith",
+      "note": "Arithmetic casts the attribute to a number; non-numbers and missing values are nil.",
+      "query": "{ .v + 1 > 100 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "op": "+",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "num": 1
+                }
+              },
+              "rhs": {
+                "num": 100
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_precedence_mul",
+      "note": "* binds tighter than binary -.",
+      "query": "{ .w - .v * 2 = 13 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "op": "-",
+                "lhs": {
+                  "attr": ".w"
+                },
+                "rhs": {
+                  "op": "*",
+                  "lhs": {
+                    "attr": ".v"
+                  },
+                  "rhs": {
+                    "num": 2
+                  }
+                }
+              },
+              "rhs": {
+                "num": 13
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_pow",
+      "note": "^ is right-associative and raises the base to the exponent.",
+      "query": "{ .w ^ 1 ^ 2 = 7 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "op": "^",
+                "lhs": {
+                  "attr": ".w"
+                },
+                "rhs": {
+                  "op": "^",
+                  "lhs": {
+                    "num": 1
+                  },
+                  "rhs": {
+                    "num": 2
+                  }
+                }
+              },
+              "rhs": {
+                "num": 7
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_pow_int",
+      "note": "int ^ int keeps base and exponent in place.",
+      "query": "{ .w ^ 2 = 49 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "op": "^",
+                "lhs": {
+                  "attr": ".w"
+                },
+                "rhs": {
+                  "num": 2
+                }
+              },
+              "rhs": {
+                "num": 49
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_int_div",
+      "note": "Integer division truncates toward zero.",
+      "query": "{ .v / 2 = -1 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "op": "/",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "num": 2
+                }
+              },
+              "rhs": {
+                "num": -1
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_float_div",
+      "note": "Division with a float operand is float division.",
+      "query": "{ .v / 2 = 0.75 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "op": "/",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "num": 2
+                }
+              },
+              "rhs": {
+                "num": 0.75
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_div_zero",
+      "note": "Integer division by zero is nil; float division by zero is infinite.",
+      "query": "{ .v / 0 > 1 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "op": "/",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              },
+              "rhs": {
+                "num": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_mod_zero_ne",
+      "note": "Integer modulo by zero is nil, so even != is false; float modulo by zero is NaN.",
+      "query": "{ .v % 0 != 1 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "!=",
+              "lhs": {
+                "op": "%",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              },
+              "rhs": {
+                "num": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_mod",
+      "note": "% on integers.",
+      "query": "{ .w % 4 = 3 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "op": "%",
+                "lhs": {
+                  "attr": ".w"
+                },
+                "rhs": {
+                  "num": 4
+                }
+              },
+              "rhs": {
+                "num": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_unary_minus",
+      "note": "Unary minus binds at the level of binary -: (-.v) + 1.",
+      "query": "{ -.v + 1 = 4 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "op": "+",
+                "lhs": {
+                  "unary": "-",
+                  "expr": {
+                    "attr": ".v"
+                  }
+                },
+                "rhs": {
+                  "num": 1
+                }
+              },
+              "rhs": {
+                "num": 4
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_int_float_mul",
+      "note": "An int and a float multiply as floats.",
+      "query": "{ .v * 2 = 3 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "op": "*",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "num": 2
+                }
+              },
+              "rhs": {
+                "num": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_failed_cast",
+      "note": "A value that does not cast to a number is nil: the duration string fails a duration comparison.",
+      "query": "{ .v >= 0ms }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">=",
+              "lhs": {
+                "attr": ".v"
+              },
+              "rhs": {
+                "dur": "0ms"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_not_eq",
+      "note": "!(.v = 200) matches spans without .v (#988).",
+      "query": "{ .shape = \"attrs\" && !(.v = 200) }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              },
+              "rhs": {
+                "unary": "!",
+                "expr": {
+                  "paren": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".v"
+                    },
+                    "rhs": {
+                      "num": 200
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_not_ne",
+      "note": "!(.v != 200) matches spans where the != is false, missing and non-numeric .v included.",
+      "query": "{ .shape = \"attrs\" && !(.v != 200) }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              },
+              "rhs": {
+                "unary": "!",
+                "expr": {
+                  "paren": {
+                    "op": "!=",
+                    "lhs": {
+                      "attr": ".v"
+                    },
+                    "rhs": {
+                      "num": 200
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_not_bool",
+      "note": "!x on a missing or non-bool value is false.",
+      "query": "{ !.w }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "unary": "!",
+              "expr": {
+                "attr": ".w"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_not_precedence",
+      "note": "! binds tighter than =: (!.w) = true.",
+      "query": "{ .shape = \"attrs\" && !.w = true }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "unary": "!",
+                  "expr": {
+                    "attr": ".w"
+                  }
+                },
+                "rhs": {
+                  "bool": true
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_bool_attr",
+      "note": "A bare attribute matches when it is the bool true.",
+      "query": "{ .v }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "attr": ".v"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_bool_ne",
+      "note": "A bool comparison with a non-bool value is false, != included.",
+      "query": "{ .w != true }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "!=",
+              "lhs": {
+                "attr": ".w"
+              },
+              "rhs": {
+                "bool": true
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_nil_absent",
+      "note": "= nil tests absence.",
+      "query": "{ .shape = \"attrs\" && .v = nil }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "nil": true
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_nil_present",
+      "note": "!= nil tests presence.",
+      "query": "{ span.w != nil }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "!=",
+              "lhs": {
+                "attr": "span.w"
+              },
+              "rhs": {
+                "nil": true
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_nil_resource",
+      "note": "Span and resource attributes share one namespace, so a resource-scoped nil test reads the same key.",
+      "query": "{ .shape = \"attrs\" && resource.v = nil }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": "resource.v"
+                },
+                "rhs": {
+                  "nil": true
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_nil_or",
+      "note": "A nil test combines with comparisons.",
+      "query": "{ .shape = \"attrs\" && (.v = nil || .v < 0) }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              },
+              "rhs": {
+                "paren": {
+                  "op": "||",
+                  "lhs": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".v"
+                    },
+                    "rhs": {
+                      "nil": true
+                    }
+                  },
+                  "rhs": {
+                    "op": "<",
+                    "lhs": {
+                      "attr": ".v"
+                    },
+                    "rhs": {
+                      "num": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_sum_ne_nil",
+      "note": "Nil propagates through arithmetic, so != is false when an operand is missing.",
+      "query": "{ .shape = \"attrs\" && .v + .w != 0 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              },
+              "rhs": {
+                "op": "!=",
+                "lhs": {
+                  "op": "+",
+                  "lhs": {
+                    "attr": ".v"
+                  },
+                  "rhs": {
+                    "attr": ".w"
+                  }
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_duration_number",
+      "note": "duration compares with a bare number as nanoseconds.",
+      "query": "{ .shape = \"attrs\" && duration > 100000000 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              },
+              "rhs": {
+                "op": ">",
+                "lhs": {
+                  "attr": "duration"
+                },
+                "rhs": {
+                  "num": 100000000
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_duration_arith",
+      "note": "duration takes part in arithmetic.",
+      "query": "{ .shape = \"attrs\" && duration * 2 >= 200ms }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              },
+              "rhs": {
+                "op": ">=",
+                "lhs": {
+                  "op": "*",
+                  "lhs": {
+                    "attr": "duration"
+                  },
+                  "rhs": {
+                    "num": 2
+                  }
+                },
+                "rhs": {
+                  "dur": "200ms"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_duration_or",
+      "note": "An || of a duration and an attribute comparison reads every span.",
+      "query": "{ duration > 200ms || .v = \"abc\" }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "||",
+              "lhs": {
+                "op": ">",
+                "lhs": {
+                  "attr": "duration"
+                },
+                "rhs": {
+                  "dur": "200ms"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "str": "abc"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_status_and",
+      "note": "status combines with attribute comparisons.",
+      "query": "{ status = error && .svc = \"api\" }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": "status"
+                },
+                "rhs": {
+                  "enum": "error"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_and_or_level",
+      "note": "&& and || share one level, left-associative.",
+      "query": "{ .shape = \"attrs\" || .v = 200 && .w = 7 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "||",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "attrs"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".v"
+                  },
+                  "rhs": {
+                    "num": 200
+                  }
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".w"
+                },
+                "rhs": {
+                  "num": 7
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_regex_not",
+      "note": "! over a regex match keeps spans without a match, missing values included.",
+      "query": "{ .shape = \"attrs\" && !(.v =~ \"^[0-9.-]+$\") }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              },
+              "rhs": {
+                "unary": "!",
+                "expr": {
+                  "paren": {
+                    "op": "=~",
+                    "lhs": {
+                      "attr": ".v"
+                    },
+                    "rhs": {
+                      "str": "^[0-9.-]+$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_string_order",
+      "note": "A string literal orders the attribute as a string.",
+      "query": "{ .v > \"a\" }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".v"
+              },
+              "rhs": {
+                "str": "a"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_literal_left",
+      "note": "A literal may sit on the left.",
+      "query": "{ 100 < .v }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "<",
+              "lhs": {
+                "num": 100
+              },
+              "rhs": {
+                "attr": ".v"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_child",
+      "note": "Field expressions filter the operands of structural operators.",
+      "query": "{ .shape = \"attrs\" && .v = nil } > { .v = .w }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "attrs"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".v"
+                  },
+                  "rhs": {
+                    "nil": true
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "attr": ".w"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_agg_sum_expr",
+      "note": "sum over a field expression skips spans where it is nil.",
+      "query": "{ .shape = \"attrs\" } | sum(.v + .w) > 0",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "attrs"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "sum",
+                "arg": {
+                  "op": "+",
+                  "lhs": {
+                    "attr": ".v"
+                  },
+                  "rhs": {
+                    "attr": ".w"
+                  }
+                }
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_agg_avg_div",
+      "note": "avg over integer and float division.",
+      "query": "{ .shape = \"attrs\" } | avg(.v / 2) > 0",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "attrs"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "avg",
+                "arg": {
+                  "op": "/",
+                  "lhs": {
+                    "attr": ".v"
+                  },
+                  "rhs": {
+                    "num": 2
+                  }
+                }
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_agg_duration_expr",
+      "note": "An aggregate over duration arithmetic is a duration.",
+      "query": "{ .shape = \"attrs\" } | max(duration * 2) > 900ms",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "attrs"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "max",
+                "arg": {
+                  "op": "*",
+                  "lhs": {
+                    "attr": "duration"
+                  },
+                  "rhs": {
+                    "num": 2
+                  }
+                }
+              },
+              "rhs": {
+                "dur": "900ms"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_agg_canonical",
+      "note": "The aggregate is named by its canonical form, operands parenthesised.",
+      "query": "{ .shape = \"attrs\" } | min(.w - .v * 2) < 0",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "attrs"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": "<",
+              "lhs": {
+                "agg": "min",
+                "arg": {
+                  "op": "-",
+                  "lhs": {
+                    "attr": ".w"
+                  },
+                  "rhs": {
+                    "op": "*",
+                    "lhs": {
+                      "attr": ".v"
+                    },
+                    "rhs": {
+                      "num": 2
+                    }
+                  }
+                }
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fe_agg_all_nil",
+      "note": "A spanset whose argument is nil on every span fails.",
+      "query": "{ .shape = \"attrs\" } | avg(.v * .nope) > 0",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "attrs"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "avg",
+                "arg": {
+                  "op": "*",
+                  "lhs": {
+                    "attr": ".v"
+                  },
+                  "rhs": {
+                    "attr": ".nope"
+                  }
+                }
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          }
+        ]
+      }
     }
   ],
   "metrics": [
@@ -6922,6 +8173,69 @@
           "fn": "count_over_time"
         }
       }
+    },
+    {
+      "id": "m_fe_attr_eq_attr",
+      "note": "Metrics count the spans of a pivot filter.",
+      "query": "{ .v = .w } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".v"
+              },
+              "rhs": {
+                "attr": ".w"
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_fe_not",
+      "note": "Metrics count the spans a negated comparison keeps.",
+      "query": "{ .shape = \"attrs\" && !(.v = 200) } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              },
+              "rhs": {
+                "unary": "!",
+                "expr": {
+                  "paren": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".v"
+                    },
+                    "rhs": {
+                      "num": 200
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
     }
   ],
   "autocomplete": [
@@ -7505,6 +8819,27 @@
               },
               "rhs": {
                 "num": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_field",
+      "note": "Autocomplete suggests from the spans of a pivot filter.",
+      "query": "{ .v = .w }",
+      "tag": "name",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".v"
+              },
+              "rhs": {
+                "attr": ".w"
               }
             }
           }

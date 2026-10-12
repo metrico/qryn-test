@@ -2,7 +2,7 @@
 // result of a case's AST from the seed. It encodes gigapipe's contract.
 
 const seed = require('./seed')
-const { printScalar } = require('./ast')
+const { canonicalScalar } = require('./ast')
 
 const DEFAULT_SPSS = 3
 
@@ -85,34 +85,163 @@ const attrKey = (attr) => {
   return null
 }
 
-const INTRINSIC_KEYS = { name: 'name', 'span:name': 'name', status: 'status', kind: 'kind' }
+const INTRINSIC_KEYS = {
+  name: 'name',
+  'span:name': 'name',
+  status: 'status',
+  kind: 'kind',
+  statusMessage: 'statusMessage',
+  rootName: 'name',
+  rootServiceName: 'service.name'
+}
 
-// comparison evaluates `attr op literal` on a span.
-const comparison = (span, { op, lhs, rhs }) => {
-  if (lhs.attr === undefined) throw new Error('oracle: comparison lhs must be an attribute')
-  if (lhs.attr === 'duration' || lhs.attr === 'span:duration') {
-    if (rhs.dur === undefined) throw new Error('oracle: duration compares with a duration literal')
-    return compare(op, span.durationNs, durationNs(rhs.dur))
+const isDuration = (attr) => attr === 'duration' || attr === 'span:duration'
+
+// INT matches the stored values ClickHouse reads as integers.
+const INT = /^[+-]?\d+$/
+
+const ARITHMETIC = ['+', '-', '*', '/', '%', '^']
+
+/**
+ * Field expressions evaluate under the nil rule: a missing attribute, a value
+ * that does not cast and an integer division or modulo by zero are nil (null),
+ * nil propagates through arithmetic, and a comparison with nil is false. An
+ * attribute is cast to the type of the operand it meets; two attributes
+ * compare as numbers when both are, as strings when neither is, and are nil
+ * otherwise. `!x` and `x` as a condition are false unless x is a boolean.
+ */
+
+// domain is the type a field node casts to: 'num', 'str', 'bool', or 'any'
+// for an attribute.
+const domain = (f) => {
+  if (f.paren !== undefined) return domain(f.paren)
+  if (f.attr !== undefined) {
+    if (isDuration(f.attr)) return 'num'
+    return attrKey(f.attr) === null && INTRINSIC_KEYS[f.attr] ? 'str' : 'any'
   }
-  const key = attrKey(lhs.attr) || INTRINSIC_KEYS[lhs.attr]
-  if (!key) throw new Error(`oracle: attribute ${lhs.attr}`)
-  const val = span.attrs[key]
-  if (val === undefined) return false
-  if (rhs.num !== undefined) return NUMBER.test(val) && compare(op, parseFloat(val), rhs.num)
-  const text = rhs.str !== undefined ? rhs.str : rhs.enum
-  if (text === undefined) throw new Error(`oracle: literal ${JSON.stringify(rhs)}`)
-  if (op === '=~') return new RegExp(text).test(val)
-  if (op === '!~') return !new RegExp(text).test(val)
-  if (op !== '=' && op !== '!=') throw new Error(`oracle: string comparison ${op}`)
-  return compare(op, val, text)
+  if (f.num !== undefined || f.dur !== undefined) return 'num'
+  if (f.str !== undefined || f.enum !== undefined) return 'str'
+  if (f.unary !== undefined) return f.unary === '-' ? 'num' : 'bool'
+  if (f.op !== undefined) return ARITHMETIC.includes(f.op) ? 'num' : 'bool'
+  return 'bool'
 }
 
-const matches = (span, f) => {
-  if (f.paren !== undefined) return matches(span, f.paren)
-  if (f.op === '&&') return matches(span, f.lhs) && matches(span, f.rhs)
-  if (f.op === '||') return matches(span, f.lhs) || matches(span, f.rhs)
-  return comparison(span, f)
+// raw is an attribute's stored text, or null when the span lacks it.
+const raw = (span, attr) => {
+  const key = attrKey(attr) || INTRINSIC_KEYS[attr]
+  if (!key) throw new Error(`oracle: attribute ${attr}`)
+  const val = span.attrs[key]
+  return val === undefined ? null : val
 }
+
+// num evaluates a numeric node to {v, int} or null; a duration is in ns.
+const num = (span, f) => {
+  if (f.paren !== undefined) return num(span, f.paren)
+  if (f.attr !== undefined) {
+    if (isDuration(f.attr)) return { v: span.durationNs, int: false }
+    const val = raw(span, f.attr)
+    return val !== null && NUMBER.test(val) ? { v: parseFloat(val), int: INT.test(val) } : null
+  }
+  if (f.num !== undefined) return { v: f.num, int: Number.isInteger(f.num) }
+  if (f.dur !== undefined) return { v: durationNs(f.dur), int: false }
+  if (f.unary === '-') {
+    const x = num(span, f.expr)
+    return x && { v: -x.v, int: x.int }
+  }
+  if (ARITHMETIC.includes(f.op)) {
+    const l = num(span, f.lhs)
+    const r = num(span, f.rhs)
+    if (l === null || r === null) return null
+    const int = l.int && r.int
+    switch (f.op) {
+      case '+': return { v: l.v + r.v, int }
+      case '-': return { v: l.v - r.v, int }
+      case '*': return { v: l.v * r.v, int }
+      case '/': return int ? (r.v === 0 ? null : { v: Math.trunc(l.v / r.v), int }) : { v: l.v / r.v, int }
+      case '%': return int && r.v === 0 ? null : { v: l.v % r.v, int }
+      case '^': return { v: Math.pow(l.v, r.v), int }
+    }
+  }
+  throw new Error(`oracle: not a number ${JSON.stringify(f)}`)
+}
+
+// str evaluates a string node, or null.
+const str = (span, f) => {
+  if (f.paren !== undefined) return str(span, f.paren)
+  if (f.attr !== undefined) return raw(span, f.attr)
+  if (f.str !== undefined) return f.str
+  if (f.enum !== undefined) return f.enum
+  throw new Error(`oracle: not a string ${JSON.stringify(f)}`)
+}
+
+// bool evaluates a boolean node to true, false or null (not a boolean).
+const bool = (span, f) => {
+  if (f.paren !== undefined) return bool(span, f.paren)
+  if (f.attr !== undefined) {
+    const val = raw(span, f.attr)
+    return val === 'true' ? true : val === 'false' ? false : null
+  }
+  if (f.bool !== undefined) return f.bool
+  if (f.unary === '!') {
+    const x = bool(span, f.expr)
+    return x === null ? false : !x
+  }
+  if (f.op === '&&') return bool(span, f.lhs) === true && bool(span, f.rhs) === true
+  if (f.op === '||') return bool(span, f.lhs) === true || bool(span, f.rhs) === true
+  if (f.op !== undefined) return comparison(span, f)
+  throw new Error(`oracle: not a boolean ${JSON.stringify(f)}`)
+}
+
+// value evaluates a node in its own domain, null when nil.
+const value = (span, f) => {
+  switch (domain(f)) {
+    case 'num': return num(span, f)
+    case 'bool': return bool(span, f)
+  }
+  return str(span, f)
+}
+
+const regex = (op, text, re) => {
+  if (text === null) return false
+  const m = new RegExp(re).test(text)
+  return op === '=~' ? m : !m
+}
+
+// comparison evaluates `lhs op rhs`, false when either side is nil.
+const comparison = (span, { op, lhs, rhs }) => {
+  if (rhs.nil !== undefined || lhs.nil !== undefined) {
+    if (rhs.nil !== undefined && lhs.nil !== undefined) return false
+    const present = value(span, rhs.nil !== undefined ? lhs : rhs) !== null
+    return op === '!=' ? present : !present
+  }
+  const d = domain(lhs) !== 'any' ? domain(lhs) : domain(rhs)
+  const both = (eval_) => {
+    const a = eval_(span, lhs)
+    const b = eval_(span, rhs)
+    return a === null || b === null ? null : [a, b]
+  }
+  let pair
+  switch (d) {
+    case 'num':
+      pair = both(num)
+      return pair !== null && compare(op, pair[0].v, pair[1].v)
+    case 'bool':
+      pair = both(bool)
+      return pair !== null && compare(op, pair[0], pair[1])
+    case 'str':
+      if (op === '=~' || op === '!~') return regex(op, str(span, lhs), str(span, rhs))
+      pair = both(str)
+      return pair !== null && compare(op, pair[0], pair[1])
+  }
+  pair = both(str)
+  if (pair === null) return false
+  const [a, b] = pair.map(x => NUMBER.test(x) ? parseFloat(x) : null)
+  if (a !== null && b !== null) return compare(op, a, b)
+  return a === null && b === null && compare(op, pair[0], pair[1])
+}
+
+// matches reports whether a span passes a spanset filter.
+const matches = (span, f) => bool(span, f) === true
 
 // union returns the spans of both lists, each once, in first-seen order.
 const union = (a, b) => [...new Set([...a, ...b])]
@@ -247,17 +376,20 @@ const spansetSpans = (expr, spans, ctx) => {
   throw new Error(`oracle: unsupported spanset expression ${JSON.stringify(expr)}`)
 }
 
-// INT matches the stored values ClickHouse reads as integers.
-const INT = /^[+-]?\d+$/
+// argOf is an aggregate's argument as a field node.
+const argOf = (x) => x.arg || { attr: x.attr }
 
-// aggregateValue returns a span's value of an aggregate argument as
-// {num, int}, a duration in ns, or null when it has none.
-const aggregateValue = (s, attr) => {
-  if (attr === 'duration' || attr === 'span:duration') return { num: s.durationNs, int: true }
-  const key = attrKey(attr)
-  if (!key) throw new Error(`oracle: aggregate argument ${attr}`)
-  const val = s.attrs[key]
-  return val !== undefined && NUMBER.test(val) ? { num: parseFloat(val), int: INT.test(val) } : null
+// staticType is the type of a field node before it reads a span: an
+// arithmetic result has the type of its first operand that is not an
+// attribute.
+const staticType = (f) => {
+  if (f.paren !== undefined) return staticType(f.paren)
+  if (f.attr !== undefined) return isDuration(f.attr) ? 'duration' : 'attr'
+  if (f.dur !== undefined) return 'duration'
+  if (f.num !== undefined) return 'number'
+  if (f.unary !== undefined) return staticType(f.expr)
+  const l = staticType(f.lhs)
+  return l !== 'attr' ? l : staticType(f.rhs)
 }
 
 /**
@@ -266,11 +398,13 @@ const aggregateValue = (s, attr) => {
  * value. sum is an int when every value is one; min and max take the type of
  * the winning value; avg is a float, or a duration truncated to whole ns.
  */
-const aggregate = ({ agg, attr }, spans) => {
+const aggregate = (x, spans) => {
+  const { agg } = x
   if (agg === 'count') return { type: 'int', value: spans.length }
-  const vals = spans.map(s => aggregateValue(s, attr)).filter(v => v !== null)
+  const arg = argOf(x)
+  const vals = spans.map(s => num(s, arg)).filter(v => v !== null).map(v => ({ num: v.v, int: v.int }))
   if (!vals.length) return null
-  const duration = attr === 'duration' || attr === 'span:duration'
+  const duration = staticType(arg) === 'duration'
   const typed = (int, value) => ({ type: duration ? 'duration' : int ? 'int' : 'float', value })
   const sum = vals.reduce((a, v) => a + v.num, 0)
   switch (agg) {
@@ -297,7 +431,7 @@ const scalarValue = (x) => {
 const scalarFilter = ({ op, lhs, rhs }, sets) => {
   if (lhs.agg === undefined) throw new Error('oracle: scalar filter lhs must be an aggregate')
   const want = scalarValue(rhs)
-  const key = printScalar(lhs)
+  const key = canonicalScalar(lhs)
   const out = []
   for (const ss of sets) {
     const v = aggregate(lhs, ss.spans)

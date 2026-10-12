@@ -112,18 +112,19 @@ const traces = () => {
   out.push({ name: 'mixed2', shape: 'mixed2', spans: mixed('mix2', 'mixed2', 0, 1) })
 
   // 8. An attribute matrix: v is missing, int, float, string, bool or a
-  // duration string; intrinsic durations vary too.
+  // duration string; w pairs with v as an equal, a different or a
+  // mismatched value; intrinsic durations vary too.
   out.push({
     name: 'attrs',
     shape: 'attrs',
     spans: [
       span('am_root', null, { shape: 'attrs' }, { duration: 500 }),
-      span('am_missing', 'am_root', { shape: 'attrs' }, { duration: 1 }),
-      span('am_int', 'am_root', { shape: 'attrs', v: '200' }, { duration: 2 }),
-      span('am_int_neg', 'am_root', { shape: 'attrs', v: '-3' }, { duration: 3 }),
-      span('am_float', 'am_root', { shape: 'attrs', v: '1.5' }, { duration: 250 }),
-      span('am_str', 'am_root', { shape: 'attrs', v: 'abc' }, { duration: 100 }),
-      span('am_bool', 'am_root', { shape: 'attrs', v: 'true' }, { duration: 50 }),
+      span('am_missing', 'am_root', { shape: 'attrs', w: '1' }, { duration: 1 }),
+      span('am_int', 'am_root', { shape: 'attrs', v: '200', w: '200' }, { duration: 2 }),
+      span('am_int_neg', 'am_root', { shape: 'attrs', v: '-3', w: '7' }, { duration: 3 }),
+      span('am_float', 'am_root', { shape: 'attrs', v: '1.5', w: 'abc' }, { duration: 250 }),
+      span('am_str', 'am_root', { shape: 'attrs', v: 'abc', w: 'abc' }, { duration: 100 }),
+      span('am_bool', 'am_root', { shape: 'attrs', v: 'true', w: 'false' }, { duration: 50 }),
       span('am_dur', 'am_root', { shape: 'attrs', v: '5ms' }, { duration: 5 })
     ]
   })

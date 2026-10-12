@@ -42,6 +42,7 @@ describe('traceql grid seed', () => {
     expect(ts.mixed2.spans.find(s => s.parent === null).push).toEqual(1)
     expect(ts.mixed2.spans.filter(s => s.parent !== null).every(s => s.push === 0)).toBe(true)
     expect(new Set(ts.attrs.spans.map(s => s.attrs.v))).toEqual(new Set([undefined, '200', '-3', '1.5', 'abc', 'true', '5ms']))
+    expect(new Set(ts.attrs.spans.map(s => s.attrs.w))).toEqual(new Set([undefined, '1', '200', '7', 'abc', 'false']))
     const start = (name) => seed.traces().flatMap(t => t.spans).find(s => s.name === name).start
     expect([start('ec_root'), start('ec_mid')]).toEqual([-seed.HOUR, -10 * seed.MINUTE])
     expect([start('eb_from'), start('eb_to'), start('el_b')]).toEqual([0, seed.WINDOW, seed.WINDOW + 5 * seed.MINUTE])
@@ -448,7 +449,47 @@ const EXPECTED = {
   agg_chain8_depth: { chain8: [['c8_7', 'c8_6', 'c8_5'], 7, { 'max(.depth)': intAttr(7), 'min(.depth)': intAttr(1) }] },
   agg_paren_operand: { mixed: [MIXED_NEWEST, 6] },
   agg_paren_operand_fails: {},
-  agg_unresolved: oracle.UNRESOLVED
+  agg_unresolved: oracle.UNRESOLVED,
+  fe_attr_eq_attr: { attrs: [['am_str', 'am_int'], 2] },
+  fe_attr_ne_attr: { attrs: [['am_bool', 'am_int_neg'], 2] },
+  fe_attr_lt_attr: { attrs: [['am_int_neg'], 1] },
+  fe_arith: { attrs: [['am_int'], 1] },
+  fe_precedence_mul: { attrs: [['am_int_neg'], 1] },
+  fe_pow: { attrs: [['am_int_neg'], 1] },
+  fe_pow_int: { attrs: [['am_int_neg'], 1] },
+  fe_int_div: { attrs: [['am_int_neg'], 1] },
+  fe_float_div: { attrs: [['am_float'], 1] },
+  fe_div_zero: { attrs: [['am_float'], 1] },
+  fe_mod_zero_ne: { attrs: [['am_float'], 1] },
+  fe_mod: { attrs: [['am_int_neg'], 1] },
+  fe_unary_minus: { attrs: [['am_int_neg'], 1] },
+  fe_int_float_mul: { attrs: [['am_float'], 1] },
+  fe_failed_cast: { attrs: [['am_float', 'am_int'], 2] },
+  fe_not_eq: { attrs: [['am_dur', 'am_bool', 'am_str', 'am_float', 'am_int_neg', 'am_missing', 'am_root'], 7] },
+  fe_not_ne: { attrs: [['am_dur', 'am_bool', 'am_str', 'am_int', 'am_missing', 'am_root'], 6] },
+  fe_not_bool: { attrs: [['am_bool'], 1] },
+  fe_not_precedence: { attrs: [['am_bool'], 1] },
+  fe_bool_attr: { attrs: [['am_bool'], 1] },
+  fe_bool_ne: { attrs: [['am_bool'], 1] },
+  fe_nil_absent: { attrs: [['am_missing', 'am_root'], 2] },
+  fe_nil_present: { attrs: [['am_bool', 'am_str', 'am_float', 'am_int_neg', 'am_int', 'am_missing'], 6] },
+  fe_nil_resource: { attrs: [['am_missing', 'am_root'], 2] },
+  fe_nil_or: { attrs: [['am_int_neg', 'am_missing', 'am_root'], 3] },
+  fe_sum_ne_nil: { attrs: [['am_int_neg', 'am_int'], 2] },
+  fe_duration_number: { attrs: [['am_float', 'am_root'], 2] },
+  fe_duration_arith: { attrs: [['am_str', 'am_float', 'am_root'], 3] },
+  fe_duration_or: { attrs: [['am_str', 'am_float', 'am_root'], 3] },
+  fe_status_and: { mixed: [['mix_b'], 1], mixed2: [['mix2_b'], 1] },
+  fe_and_or_level: { attrs: [['am_int_neg'], 1] },
+  fe_regex_not: { attrs: [['am_dur', 'am_bool', 'am_str', 'am_missing', 'am_root'], 5] },
+  fe_string_order: { attrs: [['am_bool', 'am_str'], 2] },
+  fe_literal_left: { attrs: [['am_int'], 1] },
+  fe_child: { attrs: [['am_str', 'am_int'], 2] },
+  fe_agg_sum_expr: { attrs: [ATTRS_NEWEST, 8, { 'sum(.v + .w)': intAttr(404) }] },
+  fe_agg_avg_div: { attrs: [ATTRS_NEWEST, 8, { 'avg(.v / 2)': doubleAttr(33.25) }] },
+  fe_agg_duration_expr: { attrs: [ATTRS_NEWEST, 8, { 'max(duration * 2)': durationAttr('1s') }] },
+  fe_agg_canonical: { attrs: [ATTRS_NEWEST, 8, { 'min(.w - (.v * 2))': intAttr(-200) }] },
+  fe_agg_all_nil: {}
 }
 
 describe('traceql oracle on hand-checked results', () => {
@@ -535,6 +576,23 @@ describe('traceql oracle rules', () => {
     expect(oracle.search(avg('>', { num: 67 }), spans, opts)).toEqual([])
     const zero = { pipeline: [sel(null).pipeline[0], { scalarFilter: { op: '<', lhs: { agg: 'count' }, rhs: { num: 1 } } }] }
     expect(oracle.search(zero, spans, opts)).toEqual([])
+  })
+
+  it('evaluates field expressions under the nil rule', () => {
+    const span = { attrs: { a: '5', s: 'x', t: 'false' }, durationNs: 1e6 }
+    const m = (f) => oracle.matches(span, f)
+    const missing = { attr: '.missing' }
+    expect(m({ op: '!=', lhs: missing, rhs: { num: 1 } })).toBe(false)
+    expect(m({ op: '!~', lhs: missing, rhs: { str: 'y' } })).toBe(false)
+    expect(m({ unary: '!', expr: { paren: { op: '=', lhs: missing, rhs: { num: 1 } } } })).toBe(true)
+    expect(m({ unary: '!', expr: { attr: '.s' } })).toBe(false)
+    expect(m({ unary: '!', expr: { attr: '.t' } })).toBe(true)
+    expect(m({ op: '=', lhs: { op: '/', lhs: { attr: '.a' }, rhs: { num: 0 } }, rhs: { nil: true } })).toBe(true)
+    expect(m({ op: '=', lhs: { op: '+', lhs: missing, rhs: { num: 1 } }, rhs: { nil: true } })).toBe(true)
+    expect(m({ op: '!=', lhs: { attr: '.a' }, rhs: { attr: '.s' } })).toBe(false)
+    expect(m({ op: '=', lhs: { attr: '.a' }, rhs: { str: '5' } })).toBe(true)
+    expect(m({ op: '=', lhs: { attr: '.s' }, rhs: { num: 5 } })).toBe(false)
+    expect(m({ op: '>', lhs: { attr: 'duration' }, rhs: { num: 999999 } })).toBe(true)
   })
 
   it('rejects a spanset filter after a pipeline stage and a literal on the left', () => {
@@ -636,7 +694,9 @@ const EXPECTED_METRICS = {
   m_unresolved: oracle.UNRESOLVED,
   m_agg_gate: count({ 2: 6 }),
   m_agg_gate_fails: {},
-  m_agg_bare: count({ 0: 22, 1: 40, 2: 9 })
+  m_agg_bare: count({ 0: 22, 1: 40, 2: 9 }),
+  m_fe_attr_eq_attr: count({ 2: 2 }),
+  m_fe_not: count({ 2: 7 })
 }
 
 // compare() over the DESC_SPANS spans with selection `.db.system = "postgres"` (mix_a1 and
@@ -759,7 +819,7 @@ describe('traceql metrics diff', () => {
 // Hand-checked autocomplete results: the exact suggestions, or {superset} for
 // a query that selects every span, or UNRESOLVED.
 const SEED_KEYS = ['chain', 'db.system', 'depth', 'http.method', 'idx', 'local_endpoint_service_name', 'lvl', 'name', 'op',
-  'otel.status_code', 'role', 'service.name', 'shape', 'status', 'suite', 'svc', 'test_id', 'v']
+  'otel.status_code', 'role', 'service.name', 'shape', 'status', 'suite', 'svc', 'test_id', 'v', 'w']
 const SPAN_KEYS = ['local_endpoint_service_name', 'name', 'service.name', 'shape', 'suite', 'test_id']
 const SERVICES = ['attrs', 'chain', 'edge', 'fanout', 'mixed', 'mixed2', 'orphan', 'rootless', 'tworoots'].map(s => `grid-${s}`)
 const EXPECTED_AUTOCOMPLETE = {
@@ -783,7 +843,8 @@ const EXPECTED_AUTOCOMPLETE = {
   ac_values_limit: ['fan_c00', 'fan_c00_g0', 'fan_c00_g1'],
   ac_values_range: ['eb_from', 'eb_root', 'ec_mid'],
   ac_tags_unresolved: oracle.UNRESOLVED,
-  ac_values_agg: ['mix_a1', 'mix_a2', 'mix_b1']
+  ac_values_agg: ['mix_a1', 'mix_a2', 'mix_b1'],
+  ac_values_field: ['am_int', 'am_str']
 }
 
 describe('traceql autocomplete oracle on hand-checked results', () => {
