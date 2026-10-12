@@ -103,10 +103,8 @@ const fromMetricsResponse = (resp, kind) => {
 
 const close = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b))
 
-/**
- * exemplarDiff checks a range series' exemplars: one per bucket with result
- * spans, each naming the trace and start time of a result span of its bucket.
- */
+// exemplarDiff checks a range series' exemplars: one per bucket with result
+// spans, each naming the trace and start time of one result span of its bucket.
 const exemplarDiff = (name, exemplars, want, step, traceNames) => {
   const out = []
   const buckets = Object.keys(want.buckets).length
@@ -115,8 +113,9 @@ const exemplarDiff = (name, exemplars, want, step, traceNames) => {
     const ts = Number(ex.timestampMs)
     const spans = want.buckets[Math.floor(ts / step) * step] || []
     const trace = labelsOf(ex.labels)['trace:id']
-    if (!spans.some(s => s.traceId === trace)) out.push(`${name} exemplar trace ${traceNames[trace] || trace} at ${ts} is not a result trace of its bucket`)
-    if (!spans.some(s => s.start === ts)) out.push(`${name} exemplar at ${ts} is not a result span start of its bucket`)
+    if (!spans.some(s => s.traceId === trace && s.start === ts)) {
+      out.push(`${name} exemplar ${traceNames[trace] || trace} at ${ts} is not a result span of its bucket`)
+    }
   }
   return out
 }

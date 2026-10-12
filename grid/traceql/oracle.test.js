@@ -511,7 +511,9 @@ describe('traceql result diff', () => {
 // UNRESOLVED. The mixed and mixed2 trees start in minute 2.
 const COUNT = 'count_over_time'
 const count = (byMinute) => ({ [`__name__=${COUNT}`]: byMinute })
-const DESC = 10 // `{ .svc = "gateway" } >> { .lvl > 0 }`: a, b, a1, a2, b1 of both trees
+// DESC_SPANS counts the result spans of `{ .svc = "gateway" } >> { .lvl > 0 }`:
+// a, b, a1, a2 and b1 of both trees.
+const DESC_SPANS = 10
 const EXPECTED_METRICS = {
   m_mixed_child: count({ 2: 3 }),
   m_mixed_parent: count({ 2: 1 }),
@@ -528,8 +530,8 @@ const EXPECTED_METRICS = {
   m_mixed_not_ancestor: count({ 2: 5 }),
   m_mixed_union_descendant: count({ 2: 5 }),
   m_mixed_union_ancestor: count({ 2: 3 }),
-  m_fn_rate: { '__name__=rate': { 2: DESC / 60 } },
-  m_fn_count_over_time: count({ 2: DESC }),
+  m_fn_rate: { '__name__=rate': { 2: DESC_SPANS / 60 } },
+  m_fn_count_over_time: count({ 2: DESC_SPANS }),
   m_fn_avg_over_time: { '__name__=avg_over_time': { 2: 0.044 } },
   m_fn_min_over_time: { '__name__=min_over_time': { 2: 0.005 } },
   m_fn_max_over_time: { '__name__=max_over_time': { 2: 0.08 } },
@@ -549,7 +551,7 @@ const EXPECTED_METRICS = {
     'resource.service.name=grid-mixed2,span.svc=db': { 2: 2 },
     'resource.service.name=grid-mixed2,span.svc=cache': { 2: 1 }
   },
-  m_fn_rate_instant: { '': DESC / 1800 },
+  m_fn_rate_instant: { '': DESC_SPANS / 1800 },
   m_fn_by_instant: { 'span.svc=api': 4, 'span.svc=db': 4, 'span.svc=cache': 2 },
   m_or: count({ 2: 6 }),
   m_and: count({ 2: 4 }),
@@ -559,7 +561,7 @@ const EXPECTED_METRICS = {
   m_unresolved: oracle.UNRESOLVED
 }
 
-// compare() over DESC with selection `.db.system = "postgres"` (mix_a1 and
+// compare() over the DESC_SPANS spans with selection `.db.system = "postgres"` (mix_a1 and
 // mix2_a1): 39 series, of which these.
 const COMPARE = {
   total: 39,
@@ -623,7 +625,7 @@ describe('traceql metrics oracle rules', () => {
   })
   it('keeps every result span with its bucket for the exemplar check', () => {
     const [s] = metrics({ ...desc, metrics: { fn: 'rate' } }, spans, opts)
-    expect(Object.values(s.buckets).flat()).toHaveLength(DESC)
+    expect(Object.values(s.buckets).flat()).toHaveLength(DESC_SPANS)
   })
   it('rejects a compare() top-N cut through a tie', () => {
     const tie = { ...desc, metrics: { fn: 'compare', compare: { filter: null, count: 1 } } }
@@ -645,13 +647,17 @@ describe('traceql metrics diff', () => {
   it('matches equal series, ignoring zero samples', () => {
     expect(metricsDiff(fromMetricsResponse(resp([ex('t1', 121000)]), 'range'), want, { kind: 'range', step: STEP })).toEqual([])
   })
+  it('wants an exemplar\'s trace and start time from one result span', () => {
+    expect(metricsDiff(fromMetricsResponse(resp([ex('t1', 122000)]), 'range'), want, { kind: 'range', step: STEP }))
+      .toEqual([`{__name__=${COUNT}} exemplar t1 at 122000 is not a result span of its bucket`])
+  })
   it('reports values, series and exemplars that differ', () => {
     const got = fromMetricsResponse(resp([ex('t3', 121000), ex('t1', 125000)], [{ timestampMs: '120000', value: 3 }]), 'range')
     expect(metricsDiff(got, want, { kind: 'range', step: STEP })).toEqual([
       `{__name__=${COUNT}} at +120s: 3, want 2`,
       `{__name__=${COUNT}} has 2 exemplars, want 1`,
-      `{__name__=${COUNT}} exemplar trace t3 at 121000 is not a result trace of its bucket`,
-      `{__name__=${COUNT}} exemplar at 125000 is not a result span start of its bucket`
+      `{__name__=${COUNT}} exemplar t3 at 121000 is not a result span of its bucket`,
+      `{__name__=${COUNT}} exemplar t1 at 125000 is not a result span of its bucket`
     ])
     expect(metricsDiff([], want, { kind: 'range', step: STEP })).toEqual([`{__name__=${COUNT}} missing`])
   })

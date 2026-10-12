@@ -29,11 +29,16 @@ const quantile = (xs, q) => {
   return lo + 1 < sorted.length ? sorted[lo] * (1 - (i - lo)) + sorted[lo + 1] * (i - lo) : sorted[lo]
 }
 
-// histogramBucket is the power-of-2 upper bound of a span's duration in ns.
+/**
+ * histogramBucket is the power-of-2 upper bound of a span's duration in ns.
+ * @param s {{durationNs: number}}
+ */
 const histogramBucket = (s) => s.durationNs > 0 ? 2 ** Math.ceil(Math.log2(s.durationNs)) : 0
 
-// value aggregates spans for fn; window is the bucket width in seconds.
-const value = (fn, spans, window, m) => {
+// aggregate applies the metrics function m to spans; window is the bucket
+// width in seconds.
+const aggregate = (m, spans, window) => {
+  const fn = m.fn
   const durs = () => {
     if (m.attr !== 'duration') throw new Error(`oracle: ${fn} over ${m.attr}`)
     return spans.map(seconds)
@@ -51,7 +56,7 @@ const value = (fn, spans, window, m) => {
   throw new Error(`oracle: metrics function ${fn}`)
 }
 
-// seriesLabels returns the labels of a range series of fn.
+// seriesLabels returns the labels of a range series of m in a group.
 const seriesLabels = (m, group) => {
   if (m.fn === 'histogram_over_time') return group
   if (m.by) return group
@@ -59,10 +64,14 @@ const seriesLabels = (m, group) => {
   return { __name__: m.fn }
 }
 
-// labelKey is a canonical key of a label set.
+/**
+ * labelKey is a canonical key of a label set.
+ * @param labels {Object<string, string>}
+ */
 const labelKey = (labels) => Object.keys(labels).sort().map(k => `${k}=${labels[k]}`).join(',')
 
-// groupKey returns the series labels a span falls in, before the function's own labels.
+// groupOf returns the group labels of a span: its by-label values, or its
+// duration bucket for histogram_over_time.
 const groupOf = (m, s) => {
   if (m.fn === 'histogram_over_time') return { __bucket: String(histogramBucket(s) / 1e9) }
   return Object.fromEntries((m.by || []).map(l => [l, byValue(s, l)]))
@@ -71,8 +80,10 @@ const groupOf = (m, s) => {
 /**
  * range returns the expected series of a range query:
  * [{labels, samples: {ts (ms): value}, buckets: {ts: [span]}}], with zero
- * values left out, or UNRESOLVED. Spans fall in the step bucket of their
- * start time.
+ * values left out. Spans fall in the step bucket of their start time.
+ * @param m {Object} the metrics node of the case AST
+ * @param found {Object[]} the result spans
+ * @param step {number} ms
  */
 const range = (m, found, step) => {
   const series = new Map()
@@ -87,7 +98,7 @@ const range = (m, found, step) => {
   return [...series.values()].map(({ labels, buckets }) => {
     const samples = {}
     for (const [ts, spans] of Object.entries(buckets)) {
-      const v = value(m.fn, spans, step / 1000, m)
+      const v = aggregate(m, spans, step / 1000)
       if (v !== 0) samples[ts] = v
     }
     return { labels, samples, buckets }
@@ -103,7 +114,7 @@ const instant = (m, found, from, to) => {
     if (!groups.has(key)) groups.set(key, { labels, spans: [] })
     groups.get(key).spans.push(s)
   }
-  return [...groups.values()].map(({ labels, spans }) => ({ labels, value: value(m.fn, spans, (to - from) / 1000, m) }))
+  return [...groups.values()].map(({ labels, spans }) => ({ labels, value: aggregate(m, spans, (to - from) / 1000) }))
 }
 
 /**
