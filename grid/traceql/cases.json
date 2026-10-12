@@ -4757,6 +4757,739 @@
           }
         ]
       }
+    },
+    {
+      "id": "agg_desc_count",
+      "note": "count() counts the whole expression's result spans per trace, not the last selector's.",
+      "query": "{ .svc = \"api\" } >> { .lvl > 0 } | count() = 3",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": "=",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_desc_count_fails",
+      "note": "A failing scalar filter drops the trace.",
+      "query": "{ .svc = \"api\" } >> { .lvl > 0 } | count() > 3",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_bare_count",
+      "note": "A bare scalar filter counts every in-range span of each trace.",
+      "query": "count() > 50",
+      "ast": {
+        "pipeline": [
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 50
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_bare_count_eq",
+      "note": "A bare scalar filter with =.",
+      "query": "count() = 8",
+      "ast": {
+        "pipeline": [
+          {
+            "scalarFilter": {
+              "op": "=",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 8
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_chained",
+      "note": "Chained scalar filters act as AND and accumulate attributes; avg(duration) truncates to whole ns.",
+      "query": "{ .shape = \"mixed\" } | count() > 2 | avg(duration) > 50ms",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 2
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "avg",
+                "attr": "duration"
+              },
+              "rhs": {
+                "dur": "50ms"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_chained_fails",
+      "note": "The second of two chained filters drops the trace.",
+      "query": "{ .shape = \"mixed\" } | count() > 2 | avg(duration) > 60ms",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 2
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "avg",
+                "attr": "duration"
+              },
+              "rhs": {
+                "dur": "60ms"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_nil_skipped",
+      "note": "avg skips spans without a numeric value.",
+      "query": "{ .shape = \"attrs\" } | avg(.v) > 60",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "attrs"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "avg",
+                "attr": ".v"
+              },
+              "rhs": {
+                "num": 60
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_all_nil_dropped",
+      "note": "A spanset where no span has a value is dropped, for != too.",
+      "query": "{ .shape = \"mixed\" } | sum(.v) != 0",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": "!=",
+              "lhs": {
+                "agg": "sum",
+                "attr": ".v"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_count_zero",
+      "note": "count() = 0 never matches.",
+      "query": "{ .shape = \"mixed\" } | count() = 0",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": "=",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_number_vs_duration",
+      "note": "A bare number against a duration is nanoseconds.",
+      "query": "{ .shape = \"attrs\" } | max(duration) > 400000000",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "attrs"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "max",
+                "attr": "duration"
+              },
+              "rhs": {
+                "num": 400000000
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_int_vs_float",
+      "note": "An int aggregate compares with a float literal as a float.",
+      "query": "{ .shape = \"mixed\" } | count() > 5.5",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 5.5
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_sum_float",
+      "note": "sum over ints and a float is a float.",
+      "query": "{ .shape = \"attrs\" } | sum(.v) = 198.5",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "attrs"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": "=",
+              "lhs": {
+                "agg": "sum",
+                "attr": ".v"
+              },
+              "rhs": {
+                "num": 198.5
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_min_int",
+      "note": "min takes the type of the winning value: an int.",
+      "query": "{ .shape = \"attrs\" } | min(.v) < 0",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "attrs"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": "<",
+              "lhs": {
+                "agg": "min",
+                "attr": ".v"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_max_float",
+      "note": "max takes the type of the winning value: a float.",
+      "query": "{ .shape = \"attrs\" && .v != \"200\" } | max(.v) < 2",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              },
+              "rhs": {
+                "op": "!=",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "str": "200"
+                }
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": "<",
+              "lhs": {
+                "agg": "max",
+                "attr": ".v"
+              },
+              "rhs": {
+                "num": 2
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_union_descendant_sum",
+      "note": "A scalar filter after & counts both sides' spans.",
+      "query": "{ .svc = \"api\" } &>> { .svc = \"db\" } | sum(duration) >= 150ms",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&>>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">=",
+              "lhs": {
+                "agg": "sum",
+                "attr": "duration"
+              },
+              "rhs": {
+                "dur": "150ms"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_chain8_depth",
+      "note": "Aggregates over a transitive result: depths 1 to 7.",
+      "query": "{ .chain = \"8\" } >> { .chain = \"8\" } | max(.depth) = 7 | min(.depth) = 1",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "8"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "8"
+                }
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": "=",
+              "lhs": {
+                "agg": "max",
+                "attr": ".depth"
+              },
+              "rhs": {
+                "num": 7
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": "=",
+              "lhs": {
+                "agg": "min",
+                "attr": ".depth"
+              },
+              "rhs": {
+                "num": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_paren_operand",
+      "note": "A parenthesised pipeline is an operand; its attributes are dropped.",
+      "query": "({ .shape = \"mixed\" } | count() > 5) && { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "paren": {
+                "pipeline": [
+                  {
+                    "selector": {
+                      "op": "=",
+                      "lhs": {
+                        "attr": ".shape"
+                      },
+                      "rhs": {
+                        "str": "mixed"
+                      }
+                    }
+                  },
+                  {
+                    "scalarFilter": {
+                      "op": ">",
+                      "lhs": {
+                        "agg": "count"
+                      },
+                      "rhs": {
+                        "num": 5
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_paren_operand_fails",
+      "note": "A failing filter inside a parenthesised operand empties it.",
+      "query": "({ .shape = \"mixed\" } | count() > 6) && { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "paren": {
+                "pipeline": [
+                  {
+                    "selector": {
+                      "op": "=",
+                      "lhs": {
+                        "attr": ".shape"
+                      },
+                      "rhs": {
+                        "str": "mixed"
+                      }
+                    }
+                  },
+                  {
+                    "scalarFilter": {
+                      "op": ">",
+                      "lhs": {
+                        "agg": "count"
+                      },
+                      "rhs": {
+                        "num": 6
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "agg_unresolved",
+      "note": "Unresolved ancestry errors through a scalar filter.",
+      "query": "{ .chain = \"9\" } >> { .chain = \"9\" } | count() > 1",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "9"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "9"
+                }
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 1
+              }
+            }
+          }
+        ]
+      }
     }
   ],
   "metrics": [
@@ -6070,6 +6803,125 @@
           "fn": "count_over_time"
         }
       }
+    },
+    {
+      "id": "m_agg_gate",
+      "note": "A scalar filter before a metrics function gates traces; the survivors' spans all count.",
+      "query": "{ .svc = \"api\" } >> { .lvl > 0 } | count() = 3 | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": "=",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 3
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_agg_gate_fails",
+      "note": "A failing scalar filter leaves no spans to count.",
+      "query": "{ .svc = \"api\" } >> { .lvl > 0 } | count() > 3 | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 3
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_agg_bare",
+      "note": "A bare scalar filter gates every in-range span.",
+      "query": "count() > 50 | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 50
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
     }
   ],
   "autocomplete": [
@@ -6607,6 +7459,52 @@
                 "rhs": {
                   "str": "9"
                 }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_agg",
+      "note": "Autocomplete suggests from the spans of the traces a scalar filter keeps.",
+      "query": "{ .svc = \"api\" } >> { .shape = \"mixed\" } | count() = 3",
+      "tag": "name",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": "=",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 3
               }
             }
           }

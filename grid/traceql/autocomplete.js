@@ -8,6 +8,7 @@ const oracle = require('./oracle')
 // selectsEverySpan reports whether a query has no selector or is a lone `{}`.
 const selectsEverySpan = (query) => {
   if (query.pipeline.length === 0) return true
+  if (query.pipeline.length > 1) return false
   let expr = query.pipeline[0]
   while (expr.paren !== undefined) expr = expr.paren
   return expr.selector === null
@@ -43,13 +44,12 @@ const suggestions = (spans, tag) => {
  * @param opts {{from: number, to: number, tag?: string, limit?: number, rounds?: number, pushes?: number}}
  */
 const autocomplete = (query, all, opts) => {
-  if (query.pipeline.length > 1) throw new Error('oracle: pipelines of one spanset expression only')
   const { from, to, tag, limit, pushes } = opts
   if (selectsEverySpan(query)) {
     const spans = all.filter(s => s.start > from && s.start <= to && (pushes === undefined || s.push < pushes))
     return { values: suggestions(spans, tag), superset: true }
   }
-  const found = oracle.resultSpans(query.pipeline[0], all, opts)
+  const found = oracle.resultSpans(query.pipeline, all, opts)
   if (found === oracle.UNRESOLVED) return oracle.UNRESOLVED
   const values = suggestions(found, tag)
   return { values: limit ? values.slice(0, limit) : values, superset: false }

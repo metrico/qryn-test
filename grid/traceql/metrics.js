@@ -162,9 +162,8 @@ const compare = (m, baseline, from, to) => {
  * @param opts {{from: number, to: number, step: number, instant?: boolean, rounds?: number, pushes?: number}}
  */
 const metrics = (query, all, opts) => {
-  if (query.pipeline.length !== 1) throw new Error('oracle: pipelines of one spanset expression only')
   const m = query.metrics
-  const found = oracle.resultSpans(query.pipeline[0], all, opts)
+  const found = oracle.resultSpans(query.pipeline, all, opts)
   if (found === oracle.UNRESOLVED) return oracle.UNRESOLVED
   if (m.fn === 'compare') return compare(m, found, opts.from, opts.to)
   if (opts.instant) return m.fn === 'histogram_over_time' ? [] : instant(m, found, opts.from, opts.to)

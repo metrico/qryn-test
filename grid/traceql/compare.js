@@ -1,7 +1,8 @@
 // Normalises TraceQL search, metrics and autocomplete responses and diffs
 // them against the oracle. A search result is
-// [{trace, spans: [span name, ...], matched}], or {status, error} for a
-// failed search.
+// [{trace, spans: [span name, ...], matched, attributes}], or {status, error}
+// for a failed search; attributes maps a spanset attribute's name to its OTLP
+// value.
 
 const { labelKey } = require('./metrics')
 
@@ -21,6 +22,7 @@ const fromApi = (body, names) => body.traces.map(t => {
     trace: name(t.traceID, 'trace'),
     spans: set.spans.map(s => name(s.spanID, 'span')),
     matched: set.matched,
+    attributes: Object.fromEntries((set.attributes || []).map(a => [a.key, a.value])),
     spanSets: t.spanSets ? t.spanSets.length : 0,
     spanSetMatchesFirst: JSON.stringify(t.spanSet) === JSON.stringify(t.spanSets && t.spanSets[0])
   }
@@ -35,10 +37,24 @@ const fromResponse = (resp, names) => resp.status === 200
   ? fromApi(resp.data, names)
   : { status: resp.status, error: (resp.data && resp.data.error) || JSON.stringify(resp.data) }
 
+// attributesDiff compares spanset attributes, names in order and doubles
+// within rounding.
+const attributesDiff = (name, got, want) => {
+  const show = (a) => JSON.stringify(a)
+  const same = Object.keys(got).join('\n') === Object.keys(want).join('\n') && Object.keys(want).every(k => {
+    const g = got[k]
+    const w = want[k]
+    if (typeof g.doubleValue === 'number' && typeof w.doubleValue === 'number') return close(g.doubleValue, w.doubleValue)
+    return show(g) === show(w)
+  })
+  return same ? [] : [`${name} attributes ${show(got)}, want ${show(want)}`]
+}
+
 /**
  * diff returns [] when got and want hold the same traces, spans and matched
- * counts, or one line per mismatch. Order is not compared. A want of
- * {error} expects the unresolved-ancestry error.
+ * counts, and the same attributes where want lists them, or one line per
+ * mismatch. Trace and span order are not compared. A want of {error} expects
+ * the unresolved-ancestry error.
  */
 const diff = (got, want) => {
   const err = unresolvedDiff(got, want, (g) => `${g.length} traces`)
@@ -57,6 +73,7 @@ const diff = (got, want) => {
     const ws = [...wt.spans].sort().join(',')
     if (gs !== ws) out.push(`${name} spans ${gs}, want ${ws}`)
     if (gt.matched !== wt.matched) out.push(`${name} matched ${gt.matched}, want ${wt.matched}`)
+    if (wt.attributes !== undefined) out.push(...attributesDiff(name, gt.attributes || {}, wt.attributes))
     if (gt.spanSets !== undefined && gt.spanSets !== 1) out.push(`${name} has ${gt.spanSets} spanSets, want 1`)
     if (gt.spanSetMatchesFirst === false) out.push(`${name} spanSet differs from spanSets[0]`)
   }

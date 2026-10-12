@@ -190,9 +190,20 @@ const TR_UNION = {
   attrs: 8
 }
 
-// Hand-checked results per case: trace -> [listed spans, matched], or just
-// matched when the listed spans are the trace's spss newest; UNRESOLVED when
-// ancestry does not resolve within the round limit.
+// Spanset attribute values as search returns them.
+const intAttr = (n) => ({ intValue: String(n) })
+const doubleAttr = (x) => ({ doubleValue: x })
+const durationAttr = (d) => ({ stringValue: d })
+
+// The three newest spans of the mixed trees and of the attribute matrix.
+const MIXED_NEWEST = ['mix_b1', 'mix_a2', 'mix_a1']
+const MIXED2_NEWEST = ['mix2_b1', 'mix2_a2', 'mix2_a1']
+const ATTRS_NEWEST = ['am_dur', 'am_bool', 'am_str']
+
+// Hand-checked results per case: trace -> [listed spans, matched,
+// attributes?], or just matched when the listed spans are the trace's spss
+// newest; UNRESOLVED when ancestry does not resolve within the round limit.
+// Attributes map a name to its OTLP value and default to none.
 const EXPECTED = {
   all: NEWEST,
   all_limit_3: { edge_bound: NEWEST.edge_bound, edge_late: NEWEST.edge_late, edge_chain: NEWEST.edge_chain },
@@ -406,7 +417,38 @@ const EXPECTED = {
   tr_edge_not_descendant: { edge_chain: [['ec_leaf'], 1] },
   tr_late_parent_before: {},
   tr_late_parent_before_not: { mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 5] },
-  tr_late_parent_after: { mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 3] }
+  tr_late_parent_after: { mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 3] },
+  // Scalar filters. The api spans' descendants below level 0 are a1, a2 and
+  // b1; the mixed tree's durations are 120, 80, 60, 30, 5 and 45ms; the
+  // attribute matrix's numeric v are 200, -3 and 1.5.
+  agg_desc_count: {
+    mixed: [MIXED_NEWEST, 3, { 'count()': intAttr(3) }],
+    mixed2: [MIXED2_NEWEST, 3, { 'count()': intAttr(3) }]
+  },
+  agg_desc_count_fails: {},
+  agg_bare_count: { fanout: [['fan_c49', 'fan_c48', 'fan_c47'], 71, { 'count()': intAttr(71) }] },
+  agg_bare_count_eq: {
+    chain8: [['c8_7', 'c8_6', 'c8_5'], 8, { 'count()': intAttr(8) }],
+    attrs: [ATTRS_NEWEST, 8, { 'count()': intAttr(8) }]
+  },
+  agg_chained: { mixed: [MIXED_NEWEST, 6, { 'count()': intAttr(6), 'avg(duration)': durationAttr('56.666666ms') }] },
+  agg_chained_fails: {},
+  agg_nil_skipped: { attrs: [ATTRS_NEWEST, 8, { 'avg(.v)': doubleAttr(198.5 / 3) }] },
+  agg_all_nil_dropped: {},
+  agg_count_zero: {},
+  agg_number_vs_duration: { attrs: [ATTRS_NEWEST, 8, { 'max(duration)': durationAttr('500ms') }] },
+  agg_int_vs_float: { mixed: [MIXED_NEWEST, 6, { 'count()': intAttr(6) }] },
+  agg_sum_float: { attrs: [ATTRS_NEWEST, 8, { 'sum(.v)': doubleAttr(198.5) }] },
+  agg_min_int: { attrs: [ATTRS_NEWEST, 8, { 'min(.v)': intAttr(-3) }] },
+  agg_max_float: { attrs: [ATTRS_NEWEST, 5, { 'max(.v)': doubleAttr(1.5) }] },
+  agg_union_descendant_sum: {
+    mixed: [['mix_b1', 'mix_a1', 'mix_b'], 4, { 'sum(duration)': durationAttr('215ms') }],
+    mixed2: [['mix2_b1', 'mix2_a1', 'mix2_b'], 4, { 'sum(duration)': durationAttr('215ms') }]
+  },
+  agg_chain8_depth: { chain8: [['c8_7', 'c8_6', 'c8_5'], 7, { 'max(.depth)': intAttr(7), 'min(.depth)': intAttr(1) }] },
+  agg_paren_operand: { mixed: [MIXED_NEWEST, 6] },
+  agg_paren_operand_fails: {},
+  agg_unresolved: oracle.UNRESOLVED
 }
 
 describe('traceql oracle on hand-checked results', () => {
@@ -420,8 +462,8 @@ describe('traceql oracle on hand-checked results', () => {
       if (EXPECTED[run.id] === oracle.UNRESOLVED) return expect(got).toEqual(oracle.UNRESOLVED)
       const spss = run.spss || oracle.DEFAULT_SPSS
       const want = Object.entries(EXPECTED[run.id] || {}).map(([trace, e]) => typeof e === 'number'
-        ? { trace, spans: got.find(t => t.trace === trace)?.spans || [], matched: e, spssCheck: Math.min(spss, e) }
-        : { trace, spans: e[0], matched: e[1] })
+        ? { trace, spans: got.find(t => t.trace === trace)?.spans || [], matched: e, attributes: {}, spssCheck: Math.min(spss, e) }
+        : { trace, spans: e[0], matched: e[1], attributes: e[2] || {} })
       for (const w of want.filter(w => w.spssCheck !== undefined)) expect(w.spans).toHaveLength(w.spssCheck)
       expect(diff(got, want)).toEqual([])
       for (const t of got) {
@@ -480,6 +522,27 @@ describe('traceql oracle rules', () => {
     expect(oracle.durationNs('2s')).toEqual(2e9)
     expect(() => oracle.durationNs('5')).toThrow()
   })
+
+  it('formats durations like Go', () => {
+    expect([0, 999, 1000, 500225, 56666666, 2e6, 1.5e9, 61e9, 3600e9, 3723.5e9].map(oracle.goDuration))
+      .toEqual(['0s', '999ns', '1\u00b5s', '500.225\u00b5s', '56.666666ms', '2ms', '1.5s', '1m1s', '1h0m0s', '1h2m3.5s'])
+  })
+
+  it('evaluates scalar filters per spanset, skipping values that are not numbers', () => {
+    const avg = (op, rhs) => ({ pipeline: [sel({ op: '=', lhs: { attr: '.shape' }, rhs: { str: 'attrs' } }).pipeline[0],
+      { scalarFilter: { op, lhs: { agg: 'avg', attr: '.v' }, rhs } }] })
+    expect(oracle.search(avg('>', { num: 66 }), spans, opts).map(t => t.trace)).toEqual(['attrs'])
+    expect(oracle.search(avg('>', { num: 67 }), spans, opts)).toEqual([])
+    const zero = { pipeline: [sel(null).pipeline[0], { scalarFilter: { op: '<', lhs: { agg: 'count' }, rhs: { num: 1 } } }] }
+    expect(oracle.search(zero, spans, opts)).toEqual([])
+  })
+
+  it('rejects a spanset filter after a pipeline stage and a literal on the left', () => {
+    const count = { scalarFilter: { op: '>', lhs: { agg: 'count' }, rhs: { num: 1 } } }
+    expect(() => oracle.search({ pipeline: [sel(null).pipeline[0], count, sel(null).pipeline[0]] }, spans, opts)).toThrow(/unsupported/)
+    const flipped = { scalarFilter: { op: '<', lhs: { num: 1 }, rhs: { agg: 'count' } } }
+    expect(() => oracle.search({ pipeline: [sel(null).pipeline[0], flipped] }, spans, opts)).toThrow(/aggregate/)
+  })
 })
 
 describe('traceql result diff', () => {
@@ -501,6 +564,16 @@ describe('traceql result diff', () => {
     expect(diff({ status: 500, error: 'boom' }, oracle.UNRESOLVED)).toEqual(['error 500: boom, want an unresolved-ancestry error'])
     expect(diff([t('a', ['x'], 1)], oracle.UNRESOLVED)).toEqual(['want an unresolved-ancestry error, got 1 traces'])
     expect(diff(err, [])).toEqual([`unexpected error 500: ${err.error}`])
+  })
+  it('compares attributes in order, doubles within rounding', () => {
+    const a = (trace, attributes) => ({ ...t(trace, ['x'], 1), attributes })
+    const want = [a('a', { 'count()': { intValue: '3' }, 'avg(.v)': { doubleValue: 0.1 + 0.2 } })]
+    expect(diff([a('a', { 'count()': { intValue: '3' }, 'avg(.v)': { doubleValue: 0.3 } })], want)).toEqual([])
+    expect(diff([a('a', { 'avg(.v)': { doubleValue: 0.3 }, 'count()': { intValue: '3' } })], want)).toHaveLength(1)
+    expect(diff([a('a', { 'count()': { doubleValue: 3 }, 'avg(.v)': { doubleValue: 0.3 } })], want)).toHaveLength(1)
+    expect(diff([a('a', {})], [a('a', {})])).toEqual([])
+    expect(diff([a('a', { 'count()': { intValue: '3' } })], [a('a', {})]))
+      .toEqual(['a attributes {"count()":{"intValue":"3"}}, want {}'])
   })
   it('reports a spanSet that differs from spanSets[0] and extra spansets', () => {
     const got = [{ ...t('a', ['x'], 1), spanSets: 2, spanSetMatchesFirst: false }]
@@ -560,7 +633,10 @@ const EXPECTED_METRICS = {
   m_boundary: count({ 3: 1, 30: 1 }),
   m_boundary_sibling: count({ 3: 1, 30: 1 }),
   m_uncapped: count({ 0: 21, 1: 40, 2: 9 }),
-  m_unresolved: oracle.UNRESOLVED
+  m_unresolved: oracle.UNRESOLVED,
+  m_agg_gate: count({ 2: 6 }),
+  m_agg_gate_fails: {},
+  m_agg_bare: count({ 0: 22, 1: 40, 2: 9 })
 }
 
 // compare() over the DESC_SPANS spans with selection `.db.system = "postgres"` (mix_a1 and
@@ -706,7 +782,8 @@ const EXPECTED_AUTOCOMPLETE = {
   ac_values_or_structural: ['mix2_a', 'mix2_b', 'mix_a', 'mix_b', 'rl_a'],
   ac_values_limit: ['fan_c00', 'fan_c00_g0', 'fan_c00_g1'],
   ac_values_range: ['eb_from', 'eb_root', 'ec_mid'],
-  ac_tags_unresolved: oracle.UNRESOLVED
+  ac_tags_unresolved: oracle.UNRESOLVED,
+  ac_values_agg: ['mix_a1', 'mix_a2', 'mix_b1']
 }
 
 describe('traceql autocomplete oracle on hand-checked results', () => {

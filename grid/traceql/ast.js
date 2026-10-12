@@ -1,7 +1,9 @@
 // JSON AST of the TraceQL grid cases and its canonical printer; the
 // self-check holds each case's query equal to print(ast).
 //
-// query {pipeline: [spanset], metrics?}; spanset {selector: field|null} | {spansetOp, lhs, rhs} | {paren}
+// query {pipeline: [element], metrics?}; element spanset | {scalarFilter: {op, lhs: scalar, rhs: scalar}}
+// spanset {selector: field|null} | {spansetOp, lhs, rhs} | {paren: spanset} | {pipeline: [element]}
+// scalar {agg, attr?} | {num} | {dur}
 // field {attr} | {str} | {num} | {dur} | {enum} | {op, lhs, rhs} | {paren}
 // metrics {fn, attr?, q?, by?: [label]} | {fn: 'compare', compare: {filter: field|null, count?}}
 
@@ -16,12 +18,28 @@ const printField = (f) => {
   throw new Error(`ast: unknown field node ${JSON.stringify(f)}`)
 }
 
+const printScalar = (x) => {
+  if (x.agg !== undefined) return `${x.agg}(${x.attr || ''})`
+  if (x.num !== undefined) return String(x.num)
+  if (x.dur !== undefined) return x.dur
+  throw new Error(`ast: unknown scalar node ${JSON.stringify(x)}`)
+}
+
 const printSpanset = (s) => {
   if (s.selector !== undefined) return s.selector === null ? '{}' : `{ ${printField(s.selector)} }`
   if (s.spansetOp !== undefined) return `${printSpanset(s.lhs)} ${s.spansetOp} ${printSpanset(s.rhs)}`
   if (s.paren !== undefined) return `(${printSpanset(s.paren)})`
+  if (s.pipeline !== undefined) return printPipeline(s.pipeline)
   throw new Error(`ast: unknown spanset node ${JSON.stringify(s)}`)
 }
+
+const printElement = (e) => {
+  if (e.scalarFilter === undefined) return printSpanset(e)
+  const f = e.scalarFilter
+  return `${printScalar(f.lhs)} ${f.op} ${printScalar(f.rhs)}`
+}
+
+const printPipeline = (elements) => elements.map(printElement).join(' | ')
 
 const printMetrics = (m) => {
   let args = m.attr || ''
@@ -34,7 +52,7 @@ const printMetrics = (m) => {
   return `${m.fn}(${args})${by}`
 }
 
-const print = (query) => query.pipeline.map(printSpanset).join(' | ') +
+const print = (query) => printPipeline(query.pipeline) +
   (query.metrics ? ` | ${printMetrics(query.metrics)}` : '')
 
 module.exports = { print, printField, printSpanset }
