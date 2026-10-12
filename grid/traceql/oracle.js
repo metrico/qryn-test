@@ -103,11 +103,24 @@ const matches = (span, f) => {
   return comparison(span, f)
 }
 
-// spansetSpans returns the spans a spanset expression yields.
+// union returns the spans of both lists, each once, in first-seen order.
+const union = (a, b) => [...new Set([...a, ...b])]
+
+// spansetSpans returns the spans a spanset expression yields. `&&` keeps both
+// sides' spans in traces where both sides yield spans; `||` keeps either side's.
 const spansetSpans = (expr, spans) => {
   if (expr.paren !== undefined) return spansetSpans(expr.paren, spans)
   if (expr.selector !== undefined) {
     return expr.selector === null ? spans : spans.filter(s => matches(s, expr.selector))
+  }
+  if (expr.spansetOp === '||') return union(spansetSpans(expr.lhs, spans), spansetSpans(expr.rhs, spans))
+  if (expr.spansetOp === '&&') {
+    const lhs = spansetSpans(expr.lhs, spans)
+    const rhs = spansetSpans(expr.rhs, spans)
+    const traces = (ss) => new Set(ss.map(s => s.traceId))
+    const lt = traces(lhs)
+    const rt = traces(rhs)
+    return union(lhs.filter(s => rt.has(s.traceId)), rhs.filter(s => lt.has(s.traceId)))
   }
   throw new Error(`oracle: unsupported spanset expression ${JSON.stringify(expr)}`)
 }

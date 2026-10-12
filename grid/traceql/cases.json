@@ -567,6 +567,713 @@
           }
         ]
       }
+    },
+    {
+      "id": "and_parent_child",
+      "note": "Trace-level &&: a parent and its child, never one span matching both.",
+      "query": "{ name = \"mix_a\" } && { name = \"mix_a1\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": "name"
+                },
+                "rhs": {
+                  "str": "mix_a"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": "name"
+                },
+                "rhs": {
+                  "str": "mix_a1"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "and_svc_db_gateway",
+      "note": "&& returns both sides' spans in traces holding both.",
+      "query": "{ .svc = \"db\" } && { .svc = \"gateway\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "and_no_shared_trace",
+      "note": "&& is empty when no trace holds both sides.",
+      "query": "{ .svc = \"db\" } && { .role = \"root\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "root"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "and_dedup",
+      "note": "A span matching both sides of && is listed and counted once.",
+      "query": "{ .lvl = 2 } && { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 2
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "and_fanout_spss",
+      "note": "&& over the fan-out: 20 grandchildren plus the root, capped at spss.",
+      "query": "{ .role = \"grandchild\" } && { .role = \"root\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "grandchild"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "root"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "and_three",
+      "note": "A left-associative && chain of three operands.",
+      "query": "{ name = \"mix_a\" } && { name = \"mix_b\" } && { name = \"mix_root\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "spansetOp": "&&",
+              "lhs": {
+                "selector": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": "name"
+                  },
+                  "rhs": {
+                    "str": "mix_a"
+                  }
+                }
+              },
+              "rhs": {
+                "selector": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": "name"
+                  },
+                  "rhs": {
+                    "str": "mix_b"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": "name"
+                },
+                "rhs": {
+                  "str": "mix_root"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "and_out_of_range_operand",
+      "note": "&& never draws an operand from outside (from, to]: ec_mid starts at from - 10m.",
+      "query": "{ .role = \"mid\" } && { .role = \"leaf\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "mid"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "leaf"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "and_orphan",
+      "note": "&& ignores the span tree: orphan spans pair with the root.",
+      "query": "{ .role = \"orphan\" } && { .role = \"root\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "root"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "and_rootless",
+      "note": "&& in a root-less trace.",
+      "query": "{ .role = \"top\" } && { .role = \"child\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "top"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "child"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "and_across_pushes",
+      "note": "&& over the mixed tree sent in two pushes.",
+      "query": "{ name = \"mix2_root\" } && { name = \"mix2_b1\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": "name"
+                },
+                "rhs": {
+                  "str": "mix2_root"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": "name"
+                },
+                "rhs": {
+                  "str": "mix2_b1"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "and_chain_attrs",
+      "note": "&& keeps traces where both sides match: chain8 has no chain = \"9\" span.",
+      "query": "{ .depth >= 7 } && { .chain = \"9\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": ">=",
+                "lhs": {
+                  "attr": ".depth"
+                },
+                "rhs": {
+                  "num": 7
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "9"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "or_union",
+      "note": "|| returns either side's spans; ec_root and eb_root are out of range.",
+      "query": "{ .svc = \"db\" } || { .role = \"root\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "||",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "root"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "or_union_limit_2",
+      "note": "limit counts traces of the || result by their newest span.",
+      "query": "{ .svc = \"db\" } || { .role = \"root\" }",
+      "limit": 2,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "||",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "root"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "or_dedup",
+      "note": "A span matching both sides of || is listed and counted once.",
+      "query": "{ .lvl = 2 } || { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "||",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 2
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "or_boundary",
+      "note": "|| keeps the (from, to] boundary: eb_from and el_b are out of range.",
+      "query": "{ .role = \"sibling\" } || { .role = \"late\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "||",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "sibling"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "late"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "or_attrs",
+      "note": "|| over the attribute matrix.",
+      "query": "{ .v > 1 } || { .v = \"abc\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "||",
+            "lhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "num": 1
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "str": "abc"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "and_or_left_assoc",
+      "note": "&& and || share one level, left-associative: ({db} || {root}) && {tworoots}.",
+      "query": "{ .svc = \"db\" } || { .role = \"root\" } && { .shape = \"tworoots\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "spansetOp": "||",
+              "lhs": {
+                "selector": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".svc"
+                  },
+                  "rhs": {
+                    "str": "db"
+                  }
+                }
+              },
+              "rhs": {
+                "selector": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".role"
+                  },
+                  "rhs": {
+                    "str": "root"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "tworoots"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "or_paren_and",
+      "note": "Parentheses group the right-hand && first.",
+      "query": "{ .svc = \"db\" } || ({ .role = \"root\" } && { .shape = \"tworoots\" })",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "||",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            },
+            "rhs": {
+              "paren": {
+                "spansetOp": "&&",
+                "lhs": {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".role"
+                    },
+                    "rhs": {
+                      "str": "root"
+                    }
+                  }
+                },
+                "rhs": {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".shape"
+                    },
+                    "rhs": {
+                      "str": "tworoots"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "and_paren_or",
+      "note": "A parenthesised || as the left operand of &&.",
+      "query": "({ name = \"mix_a\" } || { name = \"mix2_a\" }) && { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "paren": {
+                "spansetOp": "||",
+                "lhs": {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": "name"
+                    },
+                    "rhs": {
+                      "str": "mix_a"
+                    }
+                  }
+                },
+                "rhs": {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": "name"
+                    },
+                    "rhs": {
+                      "str": "mix2_a"
+                    }
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ]
+      }
     }
   ]
 }

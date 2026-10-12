@@ -140,7 +140,33 @@ const EXPECTED = {
   edge_out_of_range_root: {},
   edge_late: {},
   edge_late_wider: { edge_late: [['el_b'], 1] },
-  edge_wider_start: { edge_chain: [['ec_leaf', 'ec_mid'], 2], edge_bound: [['eb_to', 'eb_mid', 'eb_from'], 4], edge_late: [['el_a'], 1] }
+  edge_wider_start: { edge_chain: [['ec_leaf', 'ec_mid'], 2], edge_bound: [['eb_to', 'eb_mid', 'eb_from'], 4], edge_late: [['el_a'], 1] },
+  and_parent_child: { mixed: [['mix_a1', 'mix_a'], 2] },
+  and_svc_db_gateway: { mixed: [['mix_b1', 'mix_a1', 'mix_root'], 3], mixed2: [['mix2_b1', 'mix2_a1', 'mix2_root'], 3] },
+  and_no_shared_trace: {},
+  and_dedup: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 3], mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 3] },
+  and_fanout_spss: { fanout: [['fan_c45_g1', 'fan_c45_g0', 'fan_c40_g1'], 21] },
+  and_three: { mixed: [['mix_b', 'mix_a', 'mix_root'], 3] },
+  and_out_of_range_operand: {},
+  and_orphan: { orphan: [['orph_o2', 'orph_o1', 'orph_root'], 3] },
+  and_rootless: { rootless: [['rl_c', 'rl_b', 'rl_a'], 3] },
+  and_across_pushes: { mixed2: [['mix2_b1', 'mix2_root'], 2] },
+  and_chain_attrs: { chain9: [['c9_8', 'c9_7', 'c9_6'], 9] },
+  or_union: {
+    mixed: [['mix_b1', 'mix_a1'], 2],
+    mixed2: [['mix2_b1', 'mix2_a1'], 2],
+    fanout: [['fan_root'], 1],
+    orphan: [['orph_root'], 1],
+    tworoots: [['two_r2', 'two_r1'], 2],
+    edge_late: [['el_a'], 1]
+  },
+  or_union_limit_2: { edge_late: [['el_a'], 1], mixed2: [['mix2_b1', 'mix2_a1'], 2] },
+  or_dedup: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 3], mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 3] },
+  or_boundary: { edge_bound: [['eb_to', 'eb_mid'], 2] },
+  or_attrs: { attrs: [['am_str', 'am_float', 'am_int'], 3] },
+  and_or_left_assoc: { tworoots: [['two_r2c', 'two_r1c', 'two_r2'], 4] },
+  or_paren_and: { mixed: [['mix_b1', 'mix_a1'], 2], mixed2: [['mix2_b1', 'mix2_a1'], 2], tworoots: [['two_r2c', 'two_r1c', 'two_r2'], 4] },
+  and_paren_or: { mixed: [['mix_b1', 'mix_a1', 'mix_a'], 3], mixed2: [['mix2_b1', 'mix2_a1', 'mix2_a'], 3] }
 }
 
 describe('traceql oracle on hand-checked results', () => {
