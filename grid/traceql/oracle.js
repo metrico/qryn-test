@@ -215,9 +215,9 @@ const comparison = (span, { op, lhs, rhs }) => {
     return op === '!=' ? present : !present
   }
   const d = domain(lhs) !== 'any' ? domain(lhs) : domain(rhs)
-  const both = (eval_) => {
-    const a = eval_(span, lhs)
-    const b = eval_(span, rhs)
+  const both = (evaluate) => {
+    const a = evaluate(span, lhs)
+    const b = evaluate(span, rhs)
     return a === null || b === null ? null : [a, b]
   }
   let pair
