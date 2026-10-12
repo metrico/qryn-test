@@ -1,0 +1,559 @@
+{
+  "defaults": {
+    "limit": 100
+  },
+  "cases": [
+    {
+      "id": "all",
+      "note": "Every trace with a span in range, through the attribute-less planner.",
+      "query": "{}",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "all_spss_100",
+      "note": "spss above every trace size lists all in-range spans.",
+      "query": "{}",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "suite",
+      "note": "Every in-range span through the attribute index.",
+      "query": "{ .suite = \"traceql-grid\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".suite"
+              },
+              "rhs": {
+                "str": "traceql-grid"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "suite_limit_2",
+      "note": "limit counts traces by their newest result span.",
+      "query": "{ .suite = \"traceql-grid\" }",
+      "limit": 2,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".suite"
+              },
+              "rhs": {
+                "str": "traceql-grid"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fanout",
+      "note": "spss=3 truncates a 71-span trace and matched stays 71.",
+      "query": "{ .shape = \"fanout\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "fanout"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fanout_children_spss_5",
+      "note": "spss=5 over the 50 children.",
+      "query": "{ .shape = \"fanout\" && .role = \"child\" }",
+      "spss": 5,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "fanout"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "child"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fanout_spss_1",
+      "note": "spss=1 lists only the newest span.",
+      "query": "{ .shape = \"fanout\" }",
+      "spss": 1,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "fanout"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "name",
+      "note": "name intrinsic.",
+      "query": "{ name = \"mix_a\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": "name"
+              },
+              "rhs": {
+                "str": "mix_a"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "lvl_numeric",
+      "note": "Numeric comparison on a string-stored attribute.",
+      "query": "{ .lvl = 2 }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "num": 2
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "depth_ge_7",
+      "note": "Numeric >= across the chains.",
+      "query": "{ .depth >= 7 }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">=",
+              "lhs": {
+                "attr": ".depth"
+              },
+              "rhs": {
+                "num": 7
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "svc_db_and_lvl",
+      "note": "A two-term && filter.",
+      "query": "{ .svc = \"db\" && .lvl = 2 }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 2
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "svc_db_or_gateway",
+      "note": "A two-term || filter.",
+      "query": "{ .svc = \"db\" || .svc = \"gateway\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "||",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "svc_regex",
+      "note": "Regex match.",
+      "query": "{ .svc =~ \"ca.*\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=~",
+              "lhs": {
+                "attr": ".svc"
+              },
+              "rhs": {
+                "str": "ca.*"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "span_scope",
+      "note": "span.-scoped attribute.",
+      "query": "{ span.db.system = \"postgres\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": "span.db.system"
+              },
+              "rhs": {
+                "str": "postgres"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "resource_scope",
+      "note": "resource.-scoped attribute.",
+      "query": "{ resource.service.name = \"grid-tworoots\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": "resource.service.name"
+              },
+              "rhs": {
+                "str": "grid-tworoots"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "status_error",
+      "note": "status enum.",
+      "query": "{ status = error }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": "status"
+              },
+              "rhs": {
+                "enum": "error"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "duration_gt_100ms",
+      "note": "duration intrinsic.",
+      "query": "{ duration > 100ms }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": "duration"
+              },
+              "rhs": {
+                "dur": "100ms"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "v_gt_1",
+      "note": "Attribute matrix: numeric > skips non-numeric and missing values.",
+      "query": "{ .v > 1 }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".v"
+              },
+              "rhs": {
+                "num": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "v_ne_abc",
+      "note": "Attribute matrix: != requires the attribute.",
+      "query": "{ .v != \"abc\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "!=",
+              "lhs": {
+                "attr": ".v"
+              },
+              "rhs": {
+                "str": "abc"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge",
+      "note": "Spans starting at or before from, or after to, never count.",
+      "query": "{ .shape = \"edge\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "edge"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge_at_from",
+      "note": "A span starting exactly at from is excluded.",
+      "query": "{ name = \"eb_from\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": "name"
+              },
+              "rhs": {
+                "str": "eb_from"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge_at_to",
+      "note": "A span starting exactly at to is included.",
+      "query": "{ name = \"eb_to\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": "name"
+              },
+              "rhs": {
+                "str": "eb_to"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge_out_of_range_root",
+      "note": "An ancestor before the range is not an operand.",
+      "query": "{ name = \"ec_root\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": "name"
+              },
+              "rhs": {
+                "str": "ec_root"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge_late",
+      "note": "A span only at to + 5m returns nothing.",
+      "query": "{ name = \"el_b\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": "name"
+              },
+              "rhs": {
+                "str": "el_b"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge_late_wider",
+      "note": "The same span in a range reaching to + 5m.",
+      "query": "{ name = \"el_b\" }",
+      "range": {
+        "from": 0,
+        "to": 2100000
+      },
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": "name"
+              },
+              "rhs": {
+                "str": "el_b"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge_wider_start",
+      "note": "A range from from - 11m holds ec_mid, eb_root and eb_from but not ec_root at from - 1h.",
+      "query": "{ .shape = \"edge\" }",
+      "range": {
+        "from": -660000,
+        "to": 1800000
+      },
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "edge"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
