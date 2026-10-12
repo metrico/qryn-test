@@ -106,22 +106,69 @@ const matches = (span, f) => {
 // union returns the spans of both lists, each once, in first-seen order.
 const union = (a, b) => [...new Set([...a, ...b])]
 
+// reachable returns the ids of the spans whose parent chain ends at a root,
+// keyed by trace id. Every span counts, whenever it starts.
+const reachable = (spans) => {
+  const byId = new Map(spans.map(s => [`${s.traceId}/${s.spanId}`, s]))
+  const out = new Set()
+  for (const s of spans) {
+    const seen = new Set()
+    let cur = s
+    while (cur && cur.parentId !== null && !seen.has(cur)) {
+      seen.add(cur)
+      cur = byId.get(`${cur.traceId}/${cur.parentId}`)
+    }
+    if (cur && cur.parentId === null) out.add(`${s.traceId}/${s.spanId}`)
+  }
+  return out
+}
+
+// ONE_HOP relates a LHS span l to a RHS span r of the same trace; all roots
+// of a trace are siblings.
+const ONE_HOP = {
+  '>': (l, r) => r.parentId === l.spanId,
+  '<': (l, r) => l.parentId === r.spanId,
+  '~': (l, r) => l.parentId === r.parentId && l.spanId !== r.spanId
+}
+
+// oneHop evaluates a one-hop operator: plain returns the related RHS spans,
+// `&` adds the related LHS spans and `!` returns the unrelated RHS spans.
+// Spans that cannot reach a root are never related.
+const oneHop = (op, lhs, rhs, ctx) => {
+  const kind = op.length === 2 ? op[0] : ''
+  const rel = ONE_HOP[op[op.length - 1]]
+  const ok = (s) => ctx.reach.has(`${s.traceId}/${s.spanId}`)
+  const pairs = []
+  for (const r of rhs.filter(ok)) {
+    for (const l of lhs.filter(ok)) {
+      if (l.traceId === r.traceId && rel(l, r)) pairs.push([l, r])
+    }
+  }
+  const matched = new Set(pairs.map(([, r]) => r))
+  if (kind === '!') return rhs.filter(r => !matched.has(r))
+  if (kind === '&') return union(rhs.filter(r => matched.has(r)), lhs.filter(l => pairs.some(([pl]) => pl === l)))
+  return rhs.filter(r => matched.has(r))
+}
+
 // spansetSpans returns the spans a spanset expression yields. `&&` keeps both
 // sides' spans in traces where both sides yield spans; `||` keeps either side's.
-const spansetSpans = (expr, spans) => {
-  if (expr.paren !== undefined) return spansetSpans(expr.paren, spans)
+// Selectors match only spans, the operands; ctx.reach holds the root-reachable
+// span keys of the whole seed.
+const spansetSpans = (expr, spans, ctx) => {
+  if (expr.paren !== undefined) return spansetSpans(expr.paren, spans, ctx)
   if (expr.selector !== undefined) {
     return expr.selector === null ? spans : spans.filter(s => matches(s, expr.selector))
   }
-  if (expr.spansetOp === '||') return union(spansetSpans(expr.lhs, spans), spansetSpans(expr.rhs, spans))
+  const lhs = spansetSpans(expr.lhs, spans, ctx)
+  const rhs = spansetSpans(expr.rhs, spans, ctx)
+  if (expr.spansetOp === '||') return union(lhs, rhs)
   if (expr.spansetOp === '&&') {
-    const lhs = spansetSpans(expr.lhs, spans)
-    const rhs = spansetSpans(expr.rhs, spans)
     const traces = (ss) => new Set(ss.map(s => s.traceId))
     const lt = traces(lhs)
     const rt = traces(rhs)
     return union(lhs.filter(s => rt.has(s.traceId)), rhs.filter(s => lt.has(s.traceId)))
   }
+  if (/^[!&]?[<>~]$/.test(expr.spansetOp)) return oneHop(expr.spansetOp, lhs, rhs, ctx)
   throw new Error(`oracle: unsupported spanset expression ${JSON.stringify(expr)}`)
 }
 
@@ -132,7 +179,8 @@ const newestFirst = (a, b) => b.start - a.start || (a.spanId < b.spanId ? 1 : a.
  * search returns the expected traces of a search, newest first:
  * [{trace, traceId, spans: [span name, ...], matched}]. Operand spans start in
  * (from, to]; a trace lists its spss newest result spans; limit counts traces
- * by their newest result span (ties by trace id, descending).
+ * by their newest result span (ties by trace id, descending). Parents,
+ * siblings and roots count wherever they start.
  * @param query {Object} the case AST
  * @param spans {Object[]} from dataset()
  * @param opts {{from: number, to: number, limit: number, spss?: number}}
@@ -141,7 +189,7 @@ const search = (query, spans, { from, to, limit, spss = DEFAULT_SPSS }) => {
   if (query.pipeline.length !== 1) throw new Error('oracle: pipelines of one spanset expression only')
   const inRange = spans.filter(s => s.start > from && s.start <= to)
   const byTrace = new Map()
-  for (const s of spansetSpans(query.pipeline[0], inRange)) {
+  for (const s of spansetSpans(query.pipeline[0], inRange, { reach: reachable(spans) })) {
     if (!byTrace.has(s.traceId)) byTrace.set(s.traceId, [])
     byTrace.get(s.traceId).push(s)
   }

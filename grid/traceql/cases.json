@@ -1274,6 +1274,1617 @@
           }
         ]
       }
+    },
+    {
+      "id": "hop_child_all",
+      "note": "> between every grid span, on every seed shape.",
+      "query": "{ .suite = \"traceql-grid\" } > { .suite = \"traceql-grid\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_parent_all",
+      "note": "< between every grid span, on every seed shape.",
+      "query": "{ .suite = \"traceql-grid\" } < { .suite = \"traceql-grid\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_sibling_all",
+      "note": "~ between every grid span, on every seed shape.",
+      "query": "{ .suite = \"traceql-grid\" } ~ { .suite = \"traceql-grid\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_not_child_all",
+      "note": "!> between every grid span, on every seed shape.",
+      "query": "{ .suite = \"traceql-grid\" } !> { .suite = \"traceql-grid\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_not_parent_all",
+      "note": "!< between every grid span, on every seed shape.",
+      "query": "{ .suite = \"traceql-grid\" } !< { .suite = \"traceql-grid\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_not_sibling_all",
+      "note": "!~ between every grid span, on every seed shape.",
+      "query": "{ .suite = \"traceql-grid\" } !~ { .suite = \"traceql-grid\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_union_child_all",
+      "note": "&> between every grid span, on every seed shape.",
+      "query": "{ .suite = \"traceql-grid\" } &> { .suite = \"traceql-grid\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_union_parent_all",
+      "note": "&< between every grid span, on every seed shape.",
+      "query": "{ .suite = \"traceql-grid\" } &< { .suite = \"traceql-grid\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_union_sibling_all",
+      "note": "&~ between every grid span, on every seed shape.",
+      "query": "{ .suite = \"traceql-grid\" } &~ { .suite = \"traceql-grid\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".suite"
+                },
+                "rhs": {
+                  "str": "traceql-grid"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_child_empty_operands",
+      "note": "{} operands: every in-range span with an in-range parent, without the trace pre-pick.",
+      "query": "{} > {}",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": null
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_not_sibling_empty_operands",
+      "note": "!~ over {} operands keeps spans without an in-range sibling.",
+      "query": "{} !~ {}",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!~",
+            "lhs": {
+              "selector": null
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_union_parent_empty_operands",
+      "note": "&< over {} operands keeps every parent and child.",
+      "query": "{} &< {}",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&<",
+            "lhs": {
+              "selector": null
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_child",
+      "note": "Spans whose direct parent matches the LHS.",
+      "query": "{ .lvl = \"1\" } > { .lvl = \"2\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "1"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_parent",
+      "note": "Spans that are the direct parent of a LHS span.",
+      "query": "{ .lvl = \"2\" } < { .lvl = \"1\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "1"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_sibling",
+      "note": "A sibling of a db span, never the span itself.",
+      "query": "{ .svc = \"db\" } ~ { .svc = \"cache\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "cache"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_not_child",
+      "note": "!> keeps RHS spans whose parent is not a LHS span.",
+      "query": "{ .op = \"read\" } !> { .lvl = \"2\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".op"
+                },
+                "rhs": {
+                  "str": "read"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_not_parent",
+      "note": "!< keeps RHS spans with no LHS child.",
+      "query": "{ .db.system = \"postgres\" } !< { .lvl = \"1\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".db.system"
+                },
+                "rhs": {
+                  "str": "postgres"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "1"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_not_sibling",
+      "note": "!~ keeps RHS spans without a different LHS sibling.",
+      "query": "{ .svc = \"cache\" } !~ { .lvl = \"2\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "cache"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_union_child",
+      "note": "&> returns the child and the parent it matched.",
+      "query": "{ .op = \"write\" } &> { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".op"
+                },
+                "rhs": {
+                  "str": "write"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_union_parent",
+      "note": "&< returns the parent and the child it matched.",
+      "query": "{ .svc = \"cache\" } &< { .svc = \"api\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "cache"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_union_sibling",
+      "note": "&~ returns both siblings.",
+      "query": "{ .op = \"read\" } &~ { .op = \"write\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".op"
+                },
+                "rhs": {
+                  "str": "read"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".op"
+                },
+                "rhs": {
+                  "str": "write"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_chain",
+      "note": "A chain is a root -> level 1 -> level 2 path.",
+      "query": "{ .lvl = \"0\" } > { .lvl = \"1\" } > { .lvl = \"2\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "spansetOp": ">",
+              "lhs": {
+                "selector": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".lvl"
+                  },
+                  "rhs": {
+                    "str": "0"
+                  }
+                }
+              },
+              "rhs": {
+                "selector": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".lvl"
+                  },
+                  "rhs": {
+                    "str": "1"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_chain_depth",
+      "note": "A three-span path inside the deep chains.",
+      "query": "{ .depth = \"2\" } > { .depth = \"3\" } > { .depth = \"4\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "spansetOp": ">",
+              "lhs": {
+                "selector": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".depth"
+                  },
+                  "rhs": {
+                    "str": "2"
+                  }
+                }
+              },
+              "rhs": {
+                "selector": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".depth"
+                  },
+                  "rhs": {
+                    "str": "3"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".depth"
+                },
+                "rhs": {
+                  "str": "4"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_group_rhs",
+      "note": "Grouping the RHS: one parent must match both read and level 1.",
+      "query": "{ .op = \"read\" } > ({ .lvl = \"1\" } > { .lvl = \"2\" })",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".op"
+                },
+                "rhs": {
+                  "str": "read"
+                }
+              }
+            },
+            "rhs": {
+              "paren": {
+                "spansetOp": ">",
+                "lhs": {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".lvl"
+                    },
+                    "rhs": {
+                      "str": "1"
+                    }
+                  }
+                },
+                "rhs": {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".lvl"
+                    },
+                    "rhs": {
+                      "str": "2"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_group_lhs",
+      "note": "Left-associative: a level 1 span under a read span, then its children.",
+      "query": "({ .op = \"read\" } > { .lvl = \"1\" }) > { .lvl = \"2\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "paren": {
+                "spansetOp": ">",
+                "lhs": {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".op"
+                    },
+                    "rhs": {
+                      "str": "read"
+                    }
+                  }
+                },
+                "rhs": {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".lvl"
+                    },
+                    "rhs": {
+                      "str": "1"
+                    }
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_chain_child",
+      "note": "The child of depth 7 in the chain of 9.",
+      "query": "{ .depth = \"7\" } > { .chain = \"9\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".depth"
+                },
+                "rhs": {
+                  "str": "7"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "9"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_chain_parent",
+      "note": "The parent of a depth-7 span in the chain of 9.",
+      "query": "{ .depth = \"7\" } < { .chain = \"9\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".depth"
+                },
+                "rhs": {
+                  "str": "7"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "9"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_orphan_child",
+      "note": "A parent and child under a missing parent never match.",
+      "query": "{ .role = \"orphan\" } > { .role = \"orphan\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_orphan_not_child",
+      "note": "! operators always return spans that cannot reach a root.",
+      "query": "{ .role = \"orphan\" } !> { .role = \"orphan\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_orphan_rooted_child",
+      "note": "The rooted part of the orphan trace still relates.",
+      "query": "{ .role = \"root\" } > { .shape = \"orphan\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "root"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_orphan_sibling",
+      "note": "Nothing in the orphan trace has a reachable sibling.",
+      "query": "{ .shape = \"orphan\" } ~ { .shape = \"orphan\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_rootless_child",
+      "note": "A root-less trace never matches a positive operator.",
+      "query": "{ .role = \"top\" } > { .role = \"child\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "top"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "child"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_rootless_not_child",
+      "note": "!> returns root-less children too.",
+      "query": "{ .role = \"top\" } !> { .role = \"child\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "top"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "child"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_rootless_sibling",
+      "note": "Root-less siblings are not siblings.",
+      "query": "{ .shape = \"rootless\" } ~ { .shape = \"rootless\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "rootless"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "rootless"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_roots_siblings",
+      "note": "All roots of a trace are siblings.",
+      "query": "{ .role = \"root\" } ~ { .role = \"root\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "root"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "root"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_root_children",
+      "note": "Children of every root, including the second root.",
+      "query": "{ .role = \"root\" } > { .role = \"child\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "root"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "child"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_fanout_union_spss",
+      "note": "&> over the fan-out lists the newest three of 30.",
+      "query": "{ .role = \"child\" } &> { .role = \"grandchild\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "child"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "grandchild"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_fanout_grandchild_siblings",
+      "note": "Every grandchild pair are siblings.",
+      "query": "{ .role = \"grandchild\" } ~ { .role = \"grandchild\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "grandchild"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "grandchild"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_fanout_siblings_spss_5",
+      "note": "{} LHS: the 50 children are siblings; spss lists five.",
+      "query": "{} ~ { .role = \"child\" }",
+      "spss": 5,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": null
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "child"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_db_parent_any",
+      "note": "{} LHS: db spans with any in-range parent.",
+      "query": "{} > { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": null
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_attrs_sibling",
+      "note": "A sibling of a numeric attribute match.",
+      "query": "{ .v > 1 } ~ { .v = \"abc\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "num": 1
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "str": "abc"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_attrs_union_parent",
+      "note": "The parent of the string attribute span, with it.",
+      "query": "{ .v = \"abc\" } &< { .shape = \"attrs\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "str": "abc"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_edge_siblings",
+      "note": "Siblings under a root that starts before the range.",
+      "query": "{ .role = \"sibling\" } ~ { .role = \"sibling\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "sibling"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "sibling"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_edge_out_of_range_parent",
+      "note": "A parent before the range is not an operand.",
+      "query": "{ .role = \"mid\" } > { .role = \"leaf\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "mid"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "leaf"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_edge_wider_parent",
+      "note": "With the parent in range, the root before it still roots the chain.",
+      "query": "{ .role = \"mid\" } > { .role = \"leaf\" }",
+      "range": {
+        "from": -900000,
+        "to": 1800000
+      },
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "mid"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "leaf"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_edge_late_child",
+      "note": "A child after the range is not an operand.",
+      "query": "{ .role = \"root\" } > { .role = \"late\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "root"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "late"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hop_edge_empty_lhs",
+      "note": "An empty LHS makes !< return every RHS span.",
+      "query": "{ .role = \"late\" } !< { .shape = \"edge\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "late"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "edge"
+                }
+              }
+            }
+          }
+        ]
+      }
     }
   ]
 }

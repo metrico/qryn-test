@@ -111,6 +111,51 @@ const NEWEST = {
 // Every trace's in-range span count.
 const IN_RANGE = { chain9: 9, chain8: 8, fanout: 71, mixed: 6, orphan: 4, tworoots: 4, rootless: 3, mixed2: 6, attrs: 8, edge_chain: 1, edge_bound: 2, edge_late: 1 }
 
+// One-hop operators between every in-range span (spss 100): spans with an
+// in-range parent, with a different in-range sibling, without one, and every
+// parent and child. Spans that cannot reach a root never relate.
+const HOP_CHILD = {
+  chain9: 8,
+  chain8: 7,
+  fanout: 70,
+  mixed: [['mix_a', 'mix_b', 'mix_a1', 'mix_a2', 'mix_b1'], 5],
+  orphan: [['orph_child'], 1],
+  tworoots: [['two_r1c', 'two_r2c'], 2],
+  mixed2: [['mix2_a', 'mix2_b', 'mix2_a1', 'mix2_a2', 'mix2_b1'], 5],
+  attrs: 7
+}
+const HOP_SIBLING = {
+  fanout: 70,
+  mixed: [['mix_a', 'mix_b', 'mix_a1', 'mix_a2'], 4],
+  tworoots: [['two_r1', 'two_r2'], 2],
+  mixed2: [['mix2_a', 'mix2_b', 'mix2_a1', 'mix2_a2'], 4],
+  attrs: 7,
+  edge_bound: [['eb_mid', 'eb_to'], 2]
+}
+const HOP_NOT_SIBLING = {
+  chain9: 9,
+  chain8: 8,
+  fanout: [['fan_root'], 1],
+  mixed: [['mix_root', 'mix_b1'], 2],
+  orphan: [['orph_root', 'orph_child', 'orph_o1', 'orph_o2'], 4],
+  tworoots: [['two_r1c', 'two_r2c'], 2],
+  rootless: [['rl_a', 'rl_b', 'rl_c'], 3],
+  mixed2: [['mix2_root', 'mix2_b1'], 2],
+  attrs: [['am_root'], 1],
+  edge_chain: [['ec_leaf'], 1],
+  edge_late: [['el_a'], 1]
+}
+const HOP_UNION_CHILD = {
+  chain9: 9,
+  chain8: 8,
+  fanout: 71,
+  mixed: 6,
+  orphan: [['orph_root', 'orph_child'], 2],
+  tworoots: [['two_r1', 'two_r2', 'two_r1c', 'two_r2c'], 4],
+  mixed2: 6,
+  attrs: 8
+}
+
 // Hand-checked results per case: trace -> [listed spans, matched], or just
 // matched when the listed spans are the trace's spss newest.
 const EXPECTED = {
@@ -166,7 +211,98 @@ const EXPECTED = {
   or_attrs: { attrs: [['am_str', 'am_float', 'am_int'], 3] },
   and_or_left_assoc: { tworoots: [['two_r2c', 'two_r1c', 'two_r2'], 4] },
   or_paren_and: { mixed: [['mix_b1', 'mix_a1'], 2], mixed2: [['mix2_b1', 'mix2_a1'], 2], tworoots: [['two_r2c', 'two_r1c', 'two_r2'], 4] },
-  and_paren_or: { mixed: [['mix_b1', 'mix_a1', 'mix_a'], 3], mixed2: [['mix2_b1', 'mix2_a1', 'mix2_a'], 3] }
+  and_paren_or: { mixed: [['mix_b1', 'mix_a1', 'mix_a'], 3], mixed2: [['mix2_b1', 'mix2_a1', 'mix2_a'], 3] },
+  hop_child_all: HOP_CHILD,
+  hop_parent_all: {
+    chain9: 8,
+    chain8: 7,
+    fanout: 11,
+    mixed: [['mix_root', 'mix_a', 'mix_b'], 3],
+    orphan: [['orph_root'], 1],
+    tworoots: [['two_r1', 'two_r2'], 2],
+    mixed2: [['mix2_root', 'mix2_a', 'mix2_b'], 3],
+    attrs: [['am_root'], 1]
+  },
+  hop_sibling_all: HOP_SIBLING,
+  hop_not_child_all: {
+    chain9: [['c9_0'], 1],
+    chain8: [['c8_0'], 1],
+    fanout: [['fan_root'], 1],
+    mixed: [['mix_root'], 1],
+    orphan: [['orph_root', 'orph_o1', 'orph_o2'], 3],
+    tworoots: [['two_r1', 'two_r2'], 2],
+    rootless: [['rl_a', 'rl_b', 'rl_c'], 3],
+    mixed2: [['mix2_root'], 1],
+    attrs: [['am_root'], 1],
+    edge_chain: [['ec_leaf'], 1],
+    edge_bound: [['eb_mid', 'eb_to'], 2],
+    edge_late: [['el_a'], 1]
+  },
+  hop_not_parent_all: {
+    chain9: [['c9_8'], 1],
+    chain8: [['c8_7'], 1],
+    fanout: 60,
+    mixed: [['mix_a1', 'mix_a2', 'mix_b1'], 3],
+    orphan: [['orph_child', 'orph_o1', 'orph_o2'], 3],
+    tworoots: [['two_r1c', 'two_r2c'], 2],
+    rootless: [['rl_a', 'rl_b', 'rl_c'], 3],
+    mixed2: [['mix2_a1', 'mix2_a2', 'mix2_b1'], 3],
+    attrs: [['am_missing', 'am_int', 'am_int_neg', 'am_float', 'am_str', 'am_bool', 'am_dur'], 7],
+    edge_chain: [['ec_leaf'], 1],
+    edge_bound: [['eb_mid', 'eb_to'], 2],
+    edge_late: [['el_a'], 1]
+  },
+  hop_not_sibling_all: HOP_NOT_SIBLING,
+  hop_union_child_all: HOP_UNION_CHILD,
+  hop_union_parent_all: HOP_UNION_CHILD,
+  hop_union_sibling_all: HOP_SIBLING,
+  hop_child_empty_operands: HOP_CHILD,
+  hop_not_sibling_empty_operands: HOP_NOT_SIBLING,
+  hop_union_parent_empty_operands: HOP_UNION_CHILD,
+  hop_child: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 3], mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 3] },
+  hop_parent: { mixed: [['mix_b', 'mix_a'], 2], mixed2: [['mix2_b', 'mix2_a'], 2] },
+  hop_sibling: { mixed: [['mix_a2'], 1], mixed2: [['mix2_a2'], 1] },
+  hop_not_child: { mixed: [['mix_b1'], 1], mixed2: [['mix2_b1'], 1] },
+  hop_not_parent: { mixed: [['mix_b'], 1], mixed2: [['mix2_b'], 1] },
+  hop_not_sibling: { mixed: [['mix_b1', 'mix_a2'], 2], mixed2: [['mix2_b1', 'mix2_a2'], 2] },
+  hop_union_child: { mixed: [['mix_b1', 'mix_b'], 2], mixed2: [['mix2_b1', 'mix2_b'], 2] },
+  hop_union_parent: { mixed: [['mix_a2', 'mix_a'], 2], mixed2: [['mix2_a2', 'mix2_a'], 2] },
+  hop_union_sibling: { mixed: [['mix_b', 'mix_a'], 2], mixed2: [['mix2_b', 'mix2_a'], 2] },
+  hop_chain: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 3], mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 3] },
+  hop_chain_depth: { chain9: [['c9_4'], 1], chain8: [['c8_4'], 1] },
+  hop_group_rhs: { mixed: [['mix_a2', 'mix_a1'], 2], mixed2: [['mix2_a2', 'mix2_a1'], 2] },
+  hop_group_lhs: {},
+  hop_chain_child: { chain9: [['c9_8'], 1] },
+  hop_chain_parent: { chain9: [['c9_6'], 1] },
+  hop_orphan_child: {},
+  hop_orphan_not_child: { orphan: [['orph_o2', 'orph_o1'], 2] },
+  hop_orphan_rooted_child: { orphan: [['orph_child'], 1] },
+  hop_orphan_sibling: {},
+  hop_rootless_child: {},
+  hop_rootless_not_child: {
+    fanout: [['fan_c49', 'fan_c48', 'fan_c47'], 50],
+    orphan: [['orph_child'], 1],
+    tworoots: [['two_r2c', 'two_r1c'], 2],
+    rootless: [['rl_c', 'rl_b'], 2]
+  },
+  hop_rootless_sibling: {},
+  hop_roots_siblings: { tworoots: [['two_r2', 'two_r1'], 2] },
+  hop_root_children: {
+    fanout: [['fan_c49', 'fan_c48', 'fan_c47'], 50],
+    orphan: [['orph_child'], 1],
+    tworoots: [['two_r2c', 'two_r1c'], 2]
+  },
+  hop_fanout_union_spss: { fanout: [['fan_c45_g1', 'fan_c45_g0', 'fan_c45'], 30] },
+  hop_fanout_grandchild_siblings: { fanout: [['fan_c45_g1', 'fan_c45_g0', 'fan_c40_g1'], 20] },
+  hop_fanout_siblings_spss_5: { fanout: [['fan_c49', 'fan_c48', 'fan_c47', 'fan_c46', 'fan_c45'], 50] },
+  hop_db_parent_any: { mixed: [['mix_b1', 'mix_a1'], 2], mixed2: [['mix2_b1', 'mix2_a1'], 2] },
+  hop_attrs_sibling: { attrs: [['am_str'], 1] },
+  hop_attrs_union_parent: { attrs: [['am_str', 'am_root'], 2] },
+  hop_edge_siblings: { edge_bound: [['eb_to', 'eb_mid'], 2] },
+  hop_edge_out_of_range_parent: {},
+  hop_edge_wider_parent: { edge_chain: [['ec_leaf'], 1] },
+  hop_edge_late_child: {},
+  hop_edge_empty_lhs: { edge_chain: [['ec_leaf'], 1], edge_bound: [['eb_to', 'eb_mid'], 2], edge_late: [['el_a'], 1] }
 }
 
 describe('traceql oracle on hand-checked results', () => {
