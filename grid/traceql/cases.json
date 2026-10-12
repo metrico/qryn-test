@@ -6556,7 +6556,7 @@
     },
     {
       "id": "ac_values_range",
-      "note": "Operands start in (from, to]: ec_mid, eb_root and eb_from at the window end; ec_root an hour back is out.",
+      "note": "Operands start in (from, to]: ec_mid and eb_root inside, eb_from at to; ec_root an hour back is out.",
       "query": "{ .shape = \"edge\" }",
       "tag": "name",
       "range": {
