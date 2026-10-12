@@ -249,29 +249,42 @@ const spansetSpans = (expr, spans, ctx) => {
 const newestFirst = (a, b) => b.start - a.start || (a.spanId < b.spanId ? 1 : a.spanId > b.spanId ? -1 : 0)
 
 /**
- * search returns the expected traces of a search, newest first:
- * [{trace, traceId, spans: [span name, ...], matched}], or UNRESOLVED when
- * ancestry does not resolve within the round limit. Operand spans start in
- * (from, to]; a trace lists its spss newest result spans; limit counts traces
- * by their newest result span (ties by trace id, descending). Parents,
- * ancestors, siblings and roots count wherever they start.
- * @param query {Object} the case AST
+ * resultSpans returns the spans a spanset expression yields, or UNRESOLVED
+ * when ancestry does not resolve within the round limit. Operand spans start
+ * in (from, to]; parents, ancestors, siblings and roots count wherever they
+ * start.
+ * @param expr {Object} a spanset node of the case AST
  * @param all {Object[]} from dataset(); with opts.pushes only the spans of
  *   the first `pushes` ingest batches count
- * @param opts {{from: number, to: number, limit: number, spss?: number, rounds?: number, pushes?: number}}
+ * @param opts {{from: number, to: number, rounds?: number, pushes?: number}}
  */
-const search = (query, all, { from, to, limit, spss = DEFAULT_SPSS, rounds = ROUNDS, pushes }) => {
-  if (query.pipeline.length !== 1) throw new Error('oracle: pipelines of one spanset expression only')
+const resultSpans = (expr, all, { from, to, rounds = ROUNDS, pushes }) => {
   const spans = pushes === undefined ? all : all.filter(s => s.push < pushes)
   const inRange = spans.filter(s => s.start > from && s.start <= to)
   const ctx = { spans, byId: new Map(spans.map(s => [`${s.traceId}/${s.spanId}`, s])), reach: reachable(spans), rounds }
-  let found
   try {
-    found = spansetSpans(query.pipeline[0], inRange, ctx)
+    return spansetSpans(expr, inRange, ctx)
   } catch (e) {
     if (e instanceof Unresolved) return UNRESOLVED
     throw e
   }
+}
+
+/**
+ * search returns the expected traces of a search, newest first:
+ * [{trace, traceId, spans: [span name, ...], matched}], or UNRESOLVED when
+ * ancestry does not resolve within the round limit. The result spans are
+ * resultSpans(); a trace lists its spss newest result spans; limit counts
+ * traces by their newest result span (ties by trace id, descending).
+ * @param query {Object} the case AST
+ * @param all {Object[]} from dataset()
+ * @param opts {{from: number, to: number, limit: number, spss?: number, rounds?: number, pushes?: number}}
+ */
+const search = (query, all, opts) => {
+  if (query.pipeline.length !== 1) throw new Error('oracle: pipelines of one spanset expression only')
+  const { limit, spss = DEFAULT_SPSS } = opts
+  const found = resultSpans(query.pipeline[0], all, opts)
+  if (found === UNRESOLVED) return UNRESOLVED
   const byTrace = new Map()
   for (const s of found) {
     if (!byTrace.has(s.traceId)) byTrace.set(s.traceId, [])
@@ -287,4 +300,4 @@ const search = (query, all, { from, to, limit, spss = DEFAULT_SPSS, rounds = ROU
   }))
 }
 
-module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, dataset, search, durationNs }
+module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, dataset, matches, resultSpans, search, durationNs }

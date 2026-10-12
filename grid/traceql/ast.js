@@ -1,8 +1,9 @@
 // JSON AST of the TraceQL grid cases and its canonical printer; the
 // self-check holds each case's query equal to print(ast).
 //
-// query {pipeline: [spanset]}; spanset {selector: field|null} | {spansetOp, lhs, rhs} | {paren}
+// query {pipeline: [spanset], metrics?}; spanset {selector: field|null} | {spansetOp, lhs, rhs} | {paren}
 // field {attr} | {str} | {num} | {dur} | {enum} | {op, lhs, rhs} | {paren}
+// metrics {fn, attr?, q?, by?: [label]} | {fn: 'compare', compare: {filter: field|null, count?}}
 
 const printField = (f) => {
   if (f.attr !== undefined) return f.attr
@@ -22,6 +23,18 @@ const printSpanset = (s) => {
   throw new Error(`ast: unknown spanset node ${JSON.stringify(s)}`)
 }
 
-const print = (query) => query.pipeline.map(printSpanset).join(' | ')
+const printMetrics = (m) => {
+  let args = m.attr || ''
+  if (m.q !== undefined) args += `, ${m.q}`
+  if (m.compare) {
+    args = printSpanset({ selector: m.compare.filter })
+    if (m.compare.count !== undefined) args += `, ${m.compare.count}`
+  }
+  const by = m.by ? ` by (${m.by.join(', ')})` : ''
+  return `${m.fn}(${args})${by}`
+}
+
+const print = (query) => query.pipeline.map(printSpanset).join(' | ') +
+  (query.metrics ? ` | ${printMetrics(query.metrics)}` : '')
 
 module.exports = { print, printField, printSpanset }

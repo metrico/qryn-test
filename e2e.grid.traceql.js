@@ -1,11 +1,13 @@
 // TraceQL grid suite: every case in grid/traceql/cases.json must return the
 // traces, spans and matched counts the oracle computes from the seed. Cases
 // with `pushes` run between that many seed batches landing and the next push.
+// Metrics cases run on the whole seed and must return the oracle's series.
 const { _it, testID } = require('./common')
 const seed = require('./grid/traceql/seed')
 const oracle = require('./grid/traceql/oracle')
-const { runs } = require('./grid/traceql/cases')
-const { fromResponse, diff, names } = require('./grid/traceql/compare')
+const { metrics } = require('./grid/traceql/metrics')
+const { runs, metricsRuns } = require('./grid/traceql/cases')
+const { fromResponse, diff, names, fromMetricsResponse, metricsDiff } = require('./grid/traceql/compare')
 const client = require('./grid/traceql/client')
 
 const TEST_ID = `${testID}_grid_traceql`
@@ -16,12 +18,18 @@ const SPANS = oracle.dataset(FROM, PREFIX, TEST_ID)
 const NAMES = names(seed.ids(PREFIX))
 const BATCHES = seed.zipkinBatches(FROM, PREFIX, TEST_ID)
 const RUNS = runs(FROM)
+const METRICS = metricsRuns(FROM)
 
 const seeded = (pushes) => pushes === BATCHES.length ? 'grid traceql: seed' : `grid traceql: seed ${pushes} of ${BATCHES.length} pushes`
 
 const check = async (run) => {
   const got = fromResponse(await client.search(run), NAMES)
   return diff(got, oracle.search(run.ast, SPANS, run))
+}
+
+const checkMetrics = async (run) => {
+  const got = fromMetricsResponse(await client.metrics(run), run.kind)
+  return metricsDiff(got, metrics(run.ast, SPANS, run), { kind: run.kind, step: run.step, from: FROM, names: NAMES })
 }
 
 let prev
@@ -46,4 +54,10 @@ for (let pushes = 1; pushes <= BATCHES.length; pushes++) {
     }, [step])
   }
   prev = step
+}
+
+for (const run of METRICS) {
+  _it(`grid traceql metrics: ${run.name}`, async () => {
+    expect(await checkMetrics(run)).toEqual([])
+  }, [seeded(BATCHES.length)])
 }

@@ -1,6 +1,7 @@
 {
   "defaults": {
-    "limit": 100
+    "limit": 100,
+    "step": 60
   },
   "cases": [
     {
@@ -4755,6 +4756,1319 @@
             }
           }
         ]
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "id": "m_mixed_child",
+      "note": "count_over_time() counts the spans search returns for > on the mixed tree.",
+      "query": "{ .svc = \"api\" } > { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_parent",
+      "note": "count_over_time() counts the spans search returns for < on the mixed tree.",
+      "query": "{ .svc = \"api\" } < { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_sibling",
+      "note": "count_over_time() counts the spans search returns for ~ on the mixed tree.",
+      "query": "{ .svc = \"api\" } ~ { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_not_child",
+      "note": "count_over_time() counts the spans search returns for !> on the mixed tree.",
+      "query": "{ .svc = \"api\" } !> { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_not_parent",
+      "note": "count_over_time() counts the spans search returns for !< on the mixed tree.",
+      "query": "{ .svc = \"api\" } !< { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_not_sibling",
+      "note": "count_over_time() counts the spans search returns for !~ on the mixed tree.",
+      "query": "{ .svc = \"api\" } !~ { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_union_child",
+      "note": "count_over_time() counts the spans search returns for &> on the mixed tree.",
+      "query": "{ .svc = \"api\" } &> { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_union_parent",
+      "note": "count_over_time() counts the spans search returns for &< on the mixed tree.",
+      "query": "{ .svc = \"api\" } &< { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_union_sibling",
+      "note": "count_over_time() counts the spans search returns for &~ on the mixed tree.",
+      "query": "{ .svc = \"api\" } &~ { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_descendant",
+      "note": "count_over_time() counts the spans search returns for >> on the mixed tree.",
+      "query": "{ .svc = \"api\" } >> { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_ancestor",
+      "note": "count_over_time() counts the spans search returns for << on the mixed tree.",
+      "query": "{ .svc = \"api\" } << { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_not_descendant",
+      "note": "count_over_time() counts the spans search returns for !>> on the mixed tree.",
+      "query": "{ .svc = \"api\" } !>> { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!>>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_not_ancestor",
+      "note": "count_over_time() counts the spans search returns for !<< on the mixed tree.",
+      "query": "{ .svc = \"api\" } !<< { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!<<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_union_descendant",
+      "note": "count_over_time() counts the spans search returns for &>> on the mixed tree.",
+      "query": "{ .svc = \"api\" } &>> { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&>>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_mixed_union_ancestor",
+      "note": "count_over_time() counts the spans search returns for &<< on the mixed tree.",
+      "query": "{ .svc = \"api\" } &<< { .shape = \"mixed\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&<<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_fn_rate",
+      "note": "rate over the result spans of a >> query.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | rate()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "rate"
+        }
+      }
+    },
+    {
+      "id": "m_fn_count_over_time",
+      "note": "count_over_time over the result spans of a >> query.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_fn_avg_over_time",
+      "note": "avg_over_time over the result spans of a >> query.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | avg_over_time(duration)",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "avg_over_time",
+          "attr": "duration"
+        }
+      }
+    },
+    {
+      "id": "m_fn_min_over_time",
+      "note": "min_over_time over the result spans of a >> query.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | min_over_time(duration)",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "min_over_time",
+          "attr": "duration"
+        }
+      }
+    },
+    {
+      "id": "m_fn_max_over_time",
+      "note": "max_over_time over the result spans of a >> query.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | max_over_time(duration)",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "max_over_time",
+          "attr": "duration"
+        }
+      }
+    },
+    {
+      "id": "m_fn_sum_over_time",
+      "note": "sum_over_time over the result spans of a >> query.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | sum_over_time(duration)",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "sum_over_time",
+          "attr": "duration"
+        }
+      }
+    },
+    {
+      "id": "m_fn_quantile_over_time",
+      "note": "quantile_over_time over the result spans of a >> query.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | quantile_over_time(duration, 0.9)",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "quantile_over_time",
+          "attr": "duration",
+          "q": 0.9
+        }
+      }
+    },
+    {
+      "id": "m_fn_histogram_over_time",
+      "note": "histogram_over_time over the result spans of a >> query.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | histogram_over_time(duration)",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "histogram_over_time",
+          "attr": "duration"
+        }
+      }
+    },
+    {
+      "id": "m_fn_by",
+      "note": "count_over_time() by a span attribute and an intrinsic over a >> query.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | count_over_time() by (span.svc, resource.service.name)",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time",
+          "by": [
+            "span.svc",
+            "resource.service.name"
+          ]
+        }
+      }
+    },
+    {
+      "id": "m_fn_compare",
+      "note": "compare() over the result spans of a >> query.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | compare({ .db.system = \"postgres\" })",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "compare",
+          "compare": {
+            "filter": {
+              "op": "=",
+              "lhs": {
+                "attr": ".db.system"
+              },
+              "rhs": {
+                "str": "postgres"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "m_fn_rate_instant",
+      "note": "An instant rate() over the result spans of a >> query.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | rate()",
+      "instant": true,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "rate"
+        }
+      }
+    },
+    {
+      "id": "m_fn_by_instant",
+      "note": "An instant count_over_time() by a span attribute over a >> query.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | count_over_time() by (span.svc)",
+      "instant": true,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time",
+          "by": [
+            "span.svc"
+          ]
+        }
+      }
+    },
+    {
+      "id": "m_fn_compare_instant",
+      "note": "An instant compare() over the result spans of a >> query.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | compare({ .db.system = \"postgres\" })",
+      "instant": true,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "compare",
+          "compare": {
+            "filter": {
+              "op": "=",
+              "lhs": {
+                "attr": ".db.system"
+              },
+              "rhs": {
+                "str": "postgres"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "m_or",
+      "note": "|| counts the union of both sides, not spans matching both.",
+      "query": "{ .svc = \"db\" } || { .svc = \"gateway\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "||",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_and",
+      "note": "&& counts both sides' spans of traces where both sides match.",
+      "query": "{ .svc = \"gateway\" } && { .op = \"read\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".op"
+                },
+                "rhs": {
+                  "str": "read"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_boundary",
+      "note": "A span at exactly from is left out and one at exactly to is counted in the last bucket.",
+      "query": "{ .shape = \"edge\" && .role = \"sibling\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "edge"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "sibling"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_boundary_sibling",
+      "note": "Siblings at the range edges: the one at from is no operand.",
+      "query": "{ .role = \"sibling\" } ~ { .role = \"sibling\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "sibling"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "sibling"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_uncapped",
+      "note": "Metrics count every result span, beyond the spss cap, across buckets.",
+      "query": "{ .shape = \"fanout\" && .role = \"root\" } >> {} | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "fanout"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".role"
+                  },
+                  "rhs": {
+                    "str": "root"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_unresolved",
+      "note": "Metrics fail like search when ancestry does not resolve.",
+      "query": "{ .chain = \"9\" && .depth = \"0\" } >> { .chain = \"9\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "9"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".depth"
+                  },
+                  "rhs": {
+                    "str": "0"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "9"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
       }
     }
   ]

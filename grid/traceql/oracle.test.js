@@ -1,12 +1,13 @@
 // TraceQL oracle self-check, run without a gigapipe stack: the seed holds the
 // nine fixture shapes, every case's query prints from its AST, and the oracle
-// reproduces hand-checked results for every case.
+// reproduces hand-checked results for every search and metrics case.
 
 const seed = require('./seed')
 const oracle = require('./oracle')
+const { metrics, labelKey, histogramBucket } = require('./metrics')
 const { print } = require('./ast')
-const { runs } = require('./cases')
-const { diff } = require('./compare')
+const { runs, metricsRuns } = require('./cases')
+const { diff, metricsDiff, fromMetricsResponse } = require('./compare')
 
 const FROM = Date.UTC(2026, 9, 1, 12)
 const PREFIX = '7ace00000000000000000000'
@@ -83,9 +84,10 @@ describe('traceql grid seed', () => {
 describe('traceql grid cases', () => {
   const file = require('./cases.json')
   it('have unique ids', () => {
-    expect(new Set(file.cases.map(c => c.id)).size).toEqual(file.cases.length)
+    const ids = [...file.cases, ...file.metrics].map(c => c.id)
+    expect(new Set(ids).size).toEqual(ids.length)
   })
-  for (const c of file.cases) {
+  for (const c of [...file.cases, ...file.metrics]) {
     it(`${c.id} prints its query from its AST`, () => {
       expect(print(c.ast)).toEqual(c.query)
     })
@@ -501,5 +503,171 @@ describe('traceql result diff', () => {
   it('reports a spanSet that differs from spanSets[0] and extra spansets', () => {
     const got = [{ ...t('a', ['x'], 1), spanSets: 2, spanSetMatchesFirst: false }]
     expect(diff(got, [t('a', ['x'], 1)])).toEqual(['a has 2 spanSets, want 1', 'a spanSet differs from spanSets[0]'])
+  })
+})
+
+// Hand-checked metrics results: range series by label key -> {minute after
+// FROM: value}; instant and compare() series by label key -> value; or
+// UNRESOLVED. The mixed and mixed2 trees start in minute 2.
+const COUNT = 'count_over_time'
+const count = (byMinute) => ({ [`__name__=${COUNT}`]: byMinute })
+const DESC = 10 // `{ .svc = "gateway" } >> { .lvl > 0 }`: a, b, a1, a2, b1 of both trees
+const EXPECTED_METRICS = {
+  m_mixed_child: count({ 2: 3 }),
+  m_mixed_parent: count({ 2: 1 }),
+  m_mixed_sibling: count({ 2: 2 }),
+  m_mixed_not_child: count({ 2: 3 }),
+  m_mixed_not_parent: count({ 2: 5 }),
+  m_mixed_not_sibling: count({ 2: 4 }),
+  m_mixed_union_child: count({ 2: 5 }),
+  m_mixed_union_parent: count({ 2: 3 }),
+  m_mixed_union_sibling: count({ 2: 2 }),
+  m_mixed_descendant: count({ 2: 3 }),
+  m_mixed_ancestor: count({ 2: 1 }),
+  m_mixed_not_descendant: count({ 2: 3 }),
+  m_mixed_not_ancestor: count({ 2: 5 }),
+  m_mixed_union_descendant: count({ 2: 5 }),
+  m_mixed_union_ancestor: count({ 2: 3 }),
+  m_fn_rate: { '__name__=rate': { 2: DESC / 60 } },
+  m_fn_count_over_time: count({ 2: DESC }),
+  m_fn_avg_over_time: { '__name__=avg_over_time': { 2: 0.044 } },
+  m_fn_min_over_time: { '__name__=min_over_time': { 2: 0.005 } },
+  m_fn_max_over_time: { '__name__=max_over_time': { 2: 0.08 } },
+  m_fn_sum_over_time: { '__name__=sum_over_time': { 2: 0.44 } },
+  m_fn_quantile_over_time: { 'p=0.9': { 2: 0.08 } },
+  m_fn_histogram_over_time: {
+    '__bucket=0.134217728': { 2: 2 },
+    '__bucket=0.067108864': { 2: 4 },
+    '__bucket=0.033554432': { 2: 2 },
+    '__bucket=0.008388608': { 2: 2 }
+  },
+  m_fn_by: {
+    'resource.service.name=grid-mixed,span.svc=api': { 2: 2 },
+    'resource.service.name=grid-mixed,span.svc=db': { 2: 2 },
+    'resource.service.name=grid-mixed,span.svc=cache': { 2: 1 },
+    'resource.service.name=grid-mixed2,span.svc=api': { 2: 2 },
+    'resource.service.name=grid-mixed2,span.svc=db': { 2: 2 },
+    'resource.service.name=grid-mixed2,span.svc=cache': { 2: 1 }
+  },
+  m_fn_rate_instant: { '': DESC / 1800 },
+  m_fn_by_instant: { 'span.svc=api': 4, 'span.svc=db': 4, 'span.svc=cache': 2 },
+  m_or: count({ 2: 6 }),
+  m_and: count({ 2: 4 }),
+  m_boundary: count({ 3: 1, 30: 1 }),
+  m_boundary_sibling: count({ 3: 1, 30: 1 }),
+  m_uncapped: count({ 0: 21, 1: 40, 2: 9 }),
+  m_unresolved: oracle.UNRESOLVED
+}
+
+// compare() over DESC with selection `.db.system = "postgres"` (mix_a1 and
+// mix2_a1): 39 series, of which these.
+const COMPARE = {
+  total: 39,
+  some: {
+    '__meta_type=selection,svc=db': 2,
+    '__meta_type=baseline,svc=db': 2,
+    '__meta_type=baseline,svc=api': 4,
+    '__meta_type=selection,db.system=postgres': 2,
+    '__meta_type=baseline,db.system=mysql': 2,
+    '__meta_type=baseline,lvl=1': 4,
+    '__meta_type=selection,lvl=2': 2,
+    '__meta_type=selection,name=mix2_a1': 1
+  }
+}
+EXPECTED_METRICS.m_fn_compare = COMPARE
+EXPECTED_METRICS.m_fn_compare_instant = COMPARE
+
+describe('traceql metrics oracle on hand-checked results', () => {
+  const all = metricsRuns(FROM)
+  it('has a hand-checked result for exactly the metrics cases in cases.json', () => {
+    expect(Object.keys(EXPECTED_METRICS).sort()).toEqual(all.map(r => r.id).sort())
+  })
+  for (const run of all) {
+    it(run.name, () => {
+      const got = metrics(run.ast, spans, run)
+      const want = EXPECTED_METRICS[run.id]
+      if (want === oracle.UNRESOLVED) return expect(got).toEqual(oracle.UNRESOLVED)
+      const byKey = Object.fromEntries(got.map(s => [labelKey(s.labels), s]))
+      if (run.kind === 'compare') {
+        expect(got).toHaveLength(want.total)
+        for (const [key, v] of Object.entries(want.some)) expect(byKey[key] && byKey[key].value).toEqual(v)
+        return
+      }
+      expect(Object.keys(byKey).sort()).toEqual(Object.keys(want).sort())
+      for (const [key, w] of Object.entries(want)) {
+        if (run.kind === 'instant') {
+          expect(byKey[key].value).toBeCloseTo(w, 12)
+          continue
+        }
+        const minutes = Object.fromEntries(Object.entries(byKey[key].samples).map(([ts, v]) => [(ts - FROM) / 60000, v]))
+        expect(Object.keys(minutes).sort()).toEqual(Object.keys(w).sort())
+        for (const [m, v] of Object.entries(w)) expect(minutes[m]).toBeCloseTo(v, 12)
+      }
+    })
+  }
+})
+
+describe('traceql metrics oracle rules', () => {
+  const desc = require('./cases.json').metrics.find(c => c.id === 'm_fn_count_over_time').ast
+  const opts = { from: FROM, to: FROM + seed.WINDOW, step: 60000 }
+  it('interpolates quantiles between ranks', () => {
+    const q = (p) => metrics({ ...desc, metrics: { fn: 'quantile_over_time', attr: 'duration', q: p } }, spans, opts)[0].samples
+    expect(Object.values(q(0.5))[0]).toBeCloseTo(0.045, 12)
+    expect(Object.values(q(0.25))[0]).toBeCloseTo(0.03 * 0.75 + 0.03 * 0.25, 12)
+    expect(Object.values(q(0))[0]).toBeCloseTo(0.005, 12)
+  })
+  it('buckets durations by their power-of-2 upper bound', () => {
+    expect(histogramBucket({ durationNs: 1024 })).toEqual(1024)
+    expect(histogramBucket({ durationNs: 1025 })).toEqual(2048)
+    expect(histogramBucket({ durationNs: 0 })).toEqual(0)
+  })
+  it('keeps every result span with its bucket for the exemplar check', () => {
+    const [s] = metrics({ ...desc, metrics: { fn: 'rate' } }, spans, opts)
+    expect(Object.values(s.buckets).flat()).toHaveLength(DESC)
+  })
+  it('rejects a compare() top-N cut through a tie', () => {
+    const tie = { ...desc, metrics: { fn: 'compare', compare: { filter: null, count: 1 } } }
+    expect(() => metrics(tie, spans, opts)).toThrow(/tie/)
+  })
+  it('returns no instant series for histogram_over_time', () => {
+    expect(metrics({ ...desc, metrics: { fn: 'histogram_over_time', attr: 'duration' } }, spans, { ...opts, instant: true })).toEqual([])
+  })
+})
+
+describe('traceql metrics diff', () => {
+  const STEP = 60000
+  const want = [{ labels: { __name__: COUNT }, samples: { 120000: 2 }, buckets: { 120000: [{ traceId: 't1', start: 121000 }, { traceId: 't2', start: 122000 }] } }]
+  const ex = (trace, ts) => ({ labels: [{ key: 'trace:id', value: { stringValue: trace } }], value: 0, timestampMs: String(ts) })
+  const resp = (exemplars, samples = [{ timestampMs: '60000' }, { timestampMs: '120000', value: 2 }]) => ({
+    status: 200,
+    data: { series: [{ labels: [{ key: '__name__', value: { stringValue: COUNT } }], samples, exemplars }] }
+  })
+  it('matches equal series, ignoring zero samples', () => {
+    expect(metricsDiff(fromMetricsResponse(resp([ex('t1', 121000)]), 'range'), want, { kind: 'range', step: STEP })).toEqual([])
+  })
+  it('reports values, series and exemplars that differ', () => {
+    const got = fromMetricsResponse(resp([ex('t3', 121000), ex('t1', 125000)], [{ timestampMs: '120000', value: 3 }]), 'range')
+    expect(metricsDiff(got, want, { kind: 'range', step: STEP })).toEqual([
+      `{__name__=${COUNT}} at +120s: 3, want 2`,
+      `{__name__=${COUNT}} has 2 exemplars, want 1`,
+      `{__name__=${COUNT}} exemplar trace t3 at 121000 is not a result trace of its bucket`,
+      `{__name__=${COUNT}} exemplar at 125000 is not a result span start of its bucket`
+    ])
+    expect(metricsDiff([], want, { kind: 'range', step: STEP })).toEqual([`{__name__=${COUNT}} missing`])
+  })
+  it('compares instant and compare() values', () => {
+    const inst = fromMetricsResponse({ status: 200, data: { series: [{ labels: [], value: 0.5 }] } }, 'instant')
+    expect(metricsDiff(inst, [{ labels: {}, value: 0.5 }], { kind: 'instant' })).toEqual([])
+    const cmp = fromMetricsResponse({
+      status: 200,
+      data: { series: [{ labels: [{ key: '__meta_type', value: { stringValue: 'selection' } }, { key: 'svc', value: { stringValue: 'db' } }], samples: [{ timestampMs: '1', value: 2 }] }] }
+    }, 'compare')
+    expect(metricsDiff(cmp, [{ labels: { __meta_type: 'selection', svc: 'db' }, value: 3 }], { kind: 'compare' }))
+      .toEqual(['{__meta_type=selection,svc=db} value 2, want 3'])
+  })
+  it('expects the unresolved-ancestry error', () => {
+    const err = fromMetricsResponse({ status: 500, data: { error: 'TraceQL structural query: a trace is deeper than the round limit of 3 rounds (8 spans) or its parent links form a cycle; raise GIGAPIPE_TRACEQL_ANCESTRY_ROUNDS' } }, 'range')
+    expect(metricsDiff(err, oracle.UNRESOLVED, { kind: 'range' })).toEqual([])
+    expect(metricsDiff([], oracle.UNRESOLVED, { kind: 'range' })).toEqual(['want an unresolved-ancestry error, got 0 series'])
   })
 })

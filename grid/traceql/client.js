@@ -1,5 +1,5 @@
 // gigapipe I/O for the TraceQL grid suite: Zipkin ingest and the Tempo
-// search API.
+// search and metrics APIs.
 
 const { clokiExtUrl, clokiWriteUrl, axiosGet, axiosPost } = require('../../common')
 
@@ -33,6 +33,19 @@ const search = async (run) => {
   return axiosGet(`http://${clokiExtUrl}/api/search?${qs}`, { validateStatus: () => true })
 }
 
+/**
+ * metrics runs a TraceQL metrics query over (from, to] and returns the
+ * response, whatever its status: a range query with the step, or an instant
+ * query.
+ * @param run {{query: string, from: number, to: number, step: number, instant?: boolean}}
+ */
+const metrics = async (run) => {
+  const qs = new URLSearchParams({ q: run.query, start: secs(run.from), end: secs(run.to) })
+  if (!run.instant) qs.set('step', `${secs(run.step)}s`)
+  const path = run.instant ? 'query' : 'query_range'
+  return axiosGet(`http://${clokiExtUrl}/api/metrics/${path}?${qs}`, { validateStatus: () => true })
+}
+
 // waitFor polls fn until it returns true or the timeout passes.
 const waitFor = async (fn, timeoutMs = 60000) => {
   const deadline = Date.now() + timeoutMs
@@ -43,4 +56,4 @@ const waitFor = async (fn, timeoutMs = 60000) => {
   return false
 }
 
-module.exports = { push, search, waitFor }
+module.exports = { push, search, metrics, waitFor }

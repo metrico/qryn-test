@@ -1,6 +1,8 @@
-// Normalises TraceQL search responses and diffs them against the oracle. A
-// result is [{trace, spans: [span name, ...], matched}], or {status, error}
-// for a failed search.
+// Normalises TraceQL search and metrics responses and diffs them against the
+// oracle. A search result is [{trace, spans: [span name, ...], matched}], or
+// {status, error} for a failed search.
+
+const { labelKey } = require('./metrics')
 
 // UNRESOLVED_ERROR is the error of a search whose ancestry does not resolve
 // within the round limit.
@@ -38,11 +40,8 @@ const fromResponse = (resp, names) => resp.status === 200
  * {error} expects the unresolved-ancestry error.
  */
 const diff = (got, want) => {
-  if (want.error || got.error) {
-    if (!want.error) return [`unexpected error ${got.status}: ${got.error}`]
-    if (!got.error) return [`want an unresolved-ancestry error, got ${got.length} traces`]
-    return UNRESOLVED_ERROR.test(got.error) ? [] : [`error ${got.status}: ${got.error}, want an unresolved-ancestry error`]
-  }
+  const err = unresolvedDiff(got, want, (g) => `${g.length} traces`)
+  if (err) return err
   const out = []
   const index = (rs) => new Map(rs.map(r => [r.trace, r]))
   const g = index(got)
@@ -63,10 +62,102 @@ const diff = (got, want) => {
   return out
 }
 
+// unresolvedDiff diffs a result against an expected unresolved-ancestry
+// error, or returns null when neither is an error.
+const unresolvedDiff = (got, want, size) => {
+  if (!want.error && !got.error) return null
+  if (!want.error) return [`unexpected error ${got.status}: ${got.error}`]
+  if (!got.error) return [`want an unresolved-ancestry error, got ${size(got)}`]
+  return UNRESOLVED_ERROR.test(got.error) ? [] : [`error ${got.status}: ${got.error}, want an unresolved-ancestry error`]
+}
+
+// labelsOf flattens a metrics label list to {key: value}.
+const labelsOf = (ls) => Object.fromEntries((ls || []).map(l => {
+  const v = l.value || {}
+  if (v.doubleValue !== undefined) return [l.key, String(v.doubleValue)]
+  if (v.intValue !== undefined) return [l.key, v.intValue]
+  return [l.key, v.stringValue || '']
+}))
+
+/**
+ * fromMetricsResponse normalises a metrics response: range series
+ * [{labels, samples: {ts: value}, exemplars}], or [{labels, value}] for an
+ * instant or compare() query, or {status, error} for a failed query. Zero
+ * samples are left out.
+ * @param resp {{status: number, data: Object}}
+ * @param kind {'range'|'instant'|'compare'}
+ */
+const fromMetricsResponse = (resp, kind) => {
+  if (resp.status !== 200) return { status: resp.status, error: (resp.data && resp.data.error) || JSON.stringify(resp.data) }
+  return (resp.data.series || []).map(s => {
+    const labels = labelsOf(s.labels)
+    if (kind === 'instant') return { labels, value: s.value || 0 }
+    if (kind === 'compare') return { labels, value: s.samples ? s.samples[0].value : s.value }
+    const samples = {}
+    for (const p of s.samples) {
+      if (p.value) samples[p.timestampMs] = p.value
+    }
+    return { labels, samples, exemplars: s.exemplars || [] }
+  })
+}
+
+const close = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b))
+
+/**
+ * exemplarDiff checks a range series' exemplars: one per bucket with result
+ * spans, each naming the trace and start time of a result span of its bucket.
+ */
+const exemplarDiff = (name, exemplars, want, step, traceNames) => {
+  const out = []
+  const buckets = Object.keys(want.buckets).length
+  if (exemplars.length !== buckets) out.push(`${name} has ${exemplars.length} exemplars, want ${buckets}`)
+  for (const ex of exemplars) {
+    const ts = Number(ex.timestampMs)
+    const spans = want.buckets[Math.floor(ts / step) * step] || []
+    const trace = labelsOf(ex.labels)['trace:id']
+    if (!spans.some(s => s.traceId === trace)) out.push(`${name} exemplar trace ${traceNames[trace] || trace} at ${ts} is not a result trace of its bucket`)
+    if (!spans.some(s => s.start === ts)) out.push(`${name} exemplar at ${ts} is not a result span start of its bucket`)
+  }
+  return out
+}
+
+/**
+ * metricsDiff returns [] when got and want hold the same series and values,
+ * or one line per mismatch. Range series also check their exemplars against
+ * the result spans. A want of {error} expects the unresolved-ancestry error.
+ * @param opts {{kind: string, step?: number, from?: number, names?: Object}}
+ */
+const metricsDiff = (got, want, { kind, step, from = 0, names: n = { trace: {} } }) => {
+  const err = unresolvedDiff(got, want, (g) => `${g.length} series`)
+  if (err) return err
+  const out = []
+  const rel = (ts) => `+${(Number(ts) - from) / 1000}s`
+  const g = new Map(got.map(s => [labelKey(s.labels), s]))
+  const w = new Map(want.map(s => [labelKey(s.labels), s]))
+  if (g.size !== got.length) out.push(`duplicate series: ${got.map(s => labelKey(s.labels)).join(' ')}`)
+  for (const key of [...new Set([...g.keys(), ...w.keys()])].sort()) {
+    const gs = g.get(key)
+    const ws = w.get(key)
+    if (!ws) { out.push(`{${key}} extra`); continue }
+    if (!gs) { out.push(`{${key}} missing`); continue }
+    if (kind !== 'range') {
+      if (!close(gs.value, ws.value)) out.push(`{${key}} value ${gs.value}, want ${ws.value}`)
+      continue
+    }
+    for (const ts of [...new Set([...Object.keys(gs.samples), ...Object.keys(ws.samples)])].sort()) {
+      const gv = gs.samples[ts] || 0
+      const wv = ws.samples[ts] || 0
+      if (!close(gv, wv)) out.push(`{${key}} at ${rel(ts)}: ${gv}, want ${wv}`)
+    }
+    out.push(...exemplarDiff(`{${key}}`, gs.exemplars, ws, step, n.trace))
+  }
+  return out
+}
+
 // names inverts seed.ids() for fromApi.
 const names = (ids) => {
   const invert = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [v, k]))
   return { trace: invert(ids.trace), span: invert(ids.span) }
 }
 
-module.exports = { fromApi, fromResponse, diff, names }
+module.exports = { fromApi, fromResponse, diff, names, fromMetricsResponse, metricsDiff }
