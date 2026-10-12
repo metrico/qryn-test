@@ -1,6 +1,7 @@
-// Normalises TraceQL search and metrics responses and diffs them against the
-// oracle. A search result is [{trace, spans: [span name, ...], matched}], or
-// {status, error} for a failed search.
+// Normalises TraceQL search, metrics and autocomplete responses and diffs
+// them against the oracle. A search result is
+// [{trace, spans: [span name, ...], matched}], or {status, error} for a
+// failed search.
 
 const { labelKey } = require('./metrics')
 
@@ -153,10 +154,44 @@ const metricsDiff = (got, want, { kind, step, from = 0, names: n = { trace: {} }
   return out
 }
 
+/**
+ * fromAutocompleteResponse normalises a tags v2 or values v2 response to the
+ * sorted suggestions, or {status, error} for a failed request. Tags are the
+ * resource and span scopes; the intrinsic scope is a fixed list.
+ * @param resp {{status: number, data: Object}}
+ * @param tags {boolean} whether resp is a tags v2 response
+ */
+const fromAutocompleteResponse = (resp, tags) => {
+  if (resp.status !== 200) return { status: resp.status, error: (resp.data && resp.data.error) || JSON.stringify(resp.data) }
+  const values = tags
+    ? (resp.data.scopes || []).filter(s => s.name !== 'intrinsic').flatMap(s => s.tags)
+    : (resp.data.tagValues || []).map(v => v.value)
+  return [...values].sort()
+}
+
+/**
+ * autocompleteDiff returns [] when got holds the expected suggestions, or one
+ * line per mismatch. A superset want only needs its values present. A want of
+ * {error} expects the unresolved-ancestry error.
+ * @param got {string[]|{status: number, error: string}}
+ * @param want {{values: string[], superset: boolean}|{error: string}}
+ */
+const autocompleteDiff = (got, want) => {
+  const err = unresolvedDiff(got, want, (g) => `${g.length} suggestions`)
+  if (err) return err
+  const out = []
+  if (new Set(got).size !== got.length) out.push(`duplicate suggestions: ${got.join(',')}`)
+  const missing = want.values.filter(v => !got.includes(v))
+  if (missing.length) out.push(`missing ${missing.join(',')}`)
+  const extra = got.filter(v => !want.values.includes(v))
+  if (!want.superset && extra.length) out.push(`extra ${extra.join(',')}`)
+  return out
+}
+
 // names inverts seed.ids() for fromApi.
 const names = (ids) => {
   const invert = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [v, k]))
   return { trace: invert(ids.trace), span: invert(ids.span) }
 }
 
-module.exports = { fromApi, fromResponse, diff, names, fromMetricsResponse, metricsDiff }
+module.exports = { fromApi, fromResponse, diff, names, fromMetricsResponse, metricsDiff, fromAutocompleteResponse, autocompleteDiff }

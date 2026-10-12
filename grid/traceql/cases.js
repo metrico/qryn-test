@@ -49,4 +49,26 @@ const metricsRuns = (from) => file.metrics.map(c => {
   }
 })
 
-module.exports = { runs, metricsRuns }
+/**
+ * autocompleteRuns returns one run per autocomplete case:
+ * {id, name, note, query, ast, from, to, tag, limit, pushes}, times in ms.
+ * tag is unset for tags v2 and the tag for values v2.
+ * @param from {number} FROM in ms
+ */
+const autocompleteRuns = (from) => file.autocomplete.map(c => {
+  const range = c.range || { from: 0, to: WINDOW }
+  return {
+    id: c.id,
+    name: `${c.id}: ${c.tag === undefined ? 'tags' : `values of ${c.tag}`} for ${c.query || '(no query)'}`,
+    note: c.note,
+    query: c.query,
+    ast: c.ast,
+    from: from + range.from,
+    to: from + range.to,
+    tag: c.tag,
+    limit: c.limit,
+    pushes: c.pushes
+  }
+})
+
+module.exports = { runs, metricsRuns, autocompleteRuns }

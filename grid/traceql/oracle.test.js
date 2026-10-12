@@ -1,13 +1,15 @@
 // TraceQL oracle self-check, run without a gigapipe stack: the seed holds the
 // nine fixture shapes, every case's query prints from its AST, and the oracle
-// reproduces hand-checked results for every search and metrics case.
+// reproduces hand-checked results for every search, metrics and autocomplete
+// case.
 
 const seed = require('./seed')
 const oracle = require('./oracle')
 const { metrics, labelKey, histogramBucket } = require('./metrics')
+const { autocomplete, selectsEverySpan } = require('./autocomplete')
 const { print } = require('./ast')
-const { runs, metricsRuns } = require('./cases')
-const { diff, metricsDiff, fromMetricsResponse } = require('./compare')
+const { runs, metricsRuns, autocompleteRuns } = require('./cases')
+const { diff, metricsDiff, fromMetricsResponse, fromAutocompleteResponse, autocompleteDiff } = require('./compare')
 
 const FROM = Date.UTC(2026, 9, 1, 12)
 const PREFIX = '7ace00000000000000000000'
@@ -84,10 +86,10 @@ describe('traceql grid seed', () => {
 describe('traceql grid cases', () => {
   const file = require('./cases.json')
   it('have unique ids', () => {
-    const ids = [...file.cases, ...file.metrics].map(c => c.id)
+    const ids = [...file.cases, ...file.metrics, ...file.autocomplete].map(c => c.id)
     expect(new Set(ids).size).toEqual(ids.length)
   })
-  for (const c of [...file.cases, ...file.metrics]) {
+  for (const c of [...file.cases, ...file.metrics, ...file.autocomplete]) {
     it(`${c.id} prints its query from its AST`, () => {
       expect(print(c.ast)).toEqual(c.query)
     })
@@ -675,5 +677,84 @@ describe('traceql metrics diff', () => {
     const err = fromMetricsResponse({ status: 500, data: { error: 'TraceQL structural query: a trace is deeper than the round limit of 3 rounds (8 spans) or its parent links form a cycle; raise GIGAPIPE_TRACEQL_ANCESTRY_ROUNDS' } }, 'range')
     expect(metricsDiff(err, oracle.UNRESOLVED, { kind: 'range' })).toEqual([])
     expect(metricsDiff([], oracle.UNRESOLVED, { kind: 'range' })).toEqual(['want an unresolved-ancestry error, got 0 series'])
+  })
+})
+
+// Hand-checked autocomplete results: the exact suggestions, or {superset} for
+// a query that selects every span, or UNRESOLVED.
+const SEED_KEYS = ['chain', 'db.system', 'depth', 'http.method', 'idx', 'local_endpoint_service_name', 'lvl', 'name', 'op',
+  'otel.status_code', 'role', 'service.name', 'shape', 'status', 'suite', 'svc', 'test_id', 'v']
+const SPAN_KEYS = ['local_endpoint_service_name', 'name', 'service.name', 'shape', 'suite', 'test_id']
+const SERVICES = ['attrs', 'chain', 'edge', 'fanout', 'mixed', 'mixed2', 'orphan', 'rootless', 'tworoots'].map(s => `grid-${s}`)
+const EXPECTED_AUTOCOMPLETE = {
+  ac_tags_no_query: { superset: SEED_KEYS },
+  ac_values_no_query: { superset: ['api', 'cache', 'db', 'gateway'] },
+  ac_tags_empty_selector: { superset: SEED_KEYS },
+  ac_values_empty_selector: { superset: SERVICES },
+  ac_tags_selector: [...SPAN_KEYS, 'db.system', 'lvl', 'svc'],
+  ac_values_selector: ['api', 'cache', 'db', 'gateway'],
+  ac_tags_child: [...SPAN_KEYS, 'lvl', 'op', 'otel.status_code', 'status', 'svc'],
+  ac_values_child: ['mix2_a', 'mix2_b', 'mix_a', 'mix_b'],
+  ac_values_child_pushes: ['mix_a', 'mix_b'],
+  ac_values_union_child: ['mix2_a', 'mix2_b', 'mix2_root', 'mix_a', 'mix_b', 'mix_root'],
+  ac_values_not_descendant: ['mix_root'],
+  ac_values_ancestor: ['mix2_a', 'mix2_b', 'mix2_root'],
+  ac_values_sibling: ['eb_mid', 'eb_to'],
+  ac_values_or: ['mix2_a2', 'mix2_b1', 'mix_a2', 'mix_b1'],
+  ac_tags_or: [...SPAN_KEYS, 'role'],
+  ac_values_and: ['orph_o1', 'orph_o2', 'orph_root'],
+  ac_values_or_structural: ['mix2_a', 'mix2_b', 'mix_a', 'mix_b', 'rl_a'],
+  ac_values_limit: ['fan_c00', 'fan_c00_g0', 'fan_c00_g1'],
+  ac_tags_unresolved: oracle.UNRESOLVED
+}
+
+describe('traceql autocomplete oracle on hand-checked results', () => {
+  const all = autocompleteRuns(FROM)
+  it('has a hand-checked result for exactly the autocomplete cases in cases.json', () => {
+    expect(Object.keys(EXPECTED_AUTOCOMPLETE).sort()).toEqual(all.map(r => r.id).sort())
+  })
+  for (const run of all) {
+    it(run.name, () => {
+      const got = autocomplete(run.ast, spans, run)
+      const want = EXPECTED_AUTOCOMPLETE[run.id]
+      if (want === oracle.UNRESOLVED) return expect(got).toEqual(oracle.UNRESOLVED)
+      if (want.superset) return expect(got).toEqual({ values: [...want.superset].sort(), superset: true })
+      expect(got).toEqual({ values: [...want].sort(), superset: false })
+    })
+  }
+})
+
+describe('traceql autocomplete oracle rules', () => {
+  const opts = { from: FROM, to: FROM + seed.WINDOW }
+  const mixed = { op: '=', lhs: { attr: '.shape' }, rhs: { str: 'mixed' } }
+  const desc = { pipeline: [{ spansetOp: '>>', lhs: { selector: mixed }, rhs: { selector: null } }] }
+  it('reads every span only without a selector or for a lone {}', () => {
+    expect(selectsEverySpan({ pipeline: [] })).toBe(true)
+    expect(selectsEverySpan({ pipeline: [{ paren: { selector: null } }] })).toBe(true)
+    expect(selectsEverySpan(desc)).toBe(false)
+  })
+  it('suggests the values of a scoped tag and of status', () => {
+    expect(autocomplete(desc, spans, { ...opts, tag: 'status' }).values).toEqual(['ERROR'])
+    expect(autocomplete(desc, spans, { ...opts, tag: 'resource.service.name' }).values).toContain('grid-mixed')
+    expect(autocomplete(desc, spans, { ...opts, tag: '.svc' }).values).toEqual(['api', 'cache', 'db'])
+  })
+})
+
+describe('traceql autocomplete diff', () => {
+  const tags = (scopes) => ({ status: 200, data: { scopes } })
+  it('reads the resource and span scopes of tags v2, sorted', () => {
+    const resp = tags([{ name: 'resource', tags: ['service.name'] }, { name: 'span', tags: ['b', 'a'] }, { name: 'intrinsic', tags: ['duration'] }])
+    expect(fromAutocompleteResponse(resp, true)).toEqual(['a', 'b', 'service.name'])
+    expect(fromAutocompleteResponse({ status: 200, data: { tagValues: [{ type: 'string', value: 'y' }, { type: 'string', value: 'x' }] } }, false)).toEqual(['x', 'y'])
+  })
+  it('reports missing and extra suggestions, extras only when exact', () => {
+    expect(autocompleteDiff(['a', 'c'], { values: ['a', 'b'], superset: false })).toEqual(['missing b', 'extra c'])
+    expect(autocompleteDiff(['a', 'b', 'c'], { values: ['a', 'b'], superset: true })).toEqual([])
+    expect(autocompleteDiff(['a', 'a'], { values: ['a'], superset: false })).toEqual(['duplicate suggestions: a,a'])
+  })
+  it('expects the unresolved-ancestry error', () => {
+    const err = fromAutocompleteResponse({ status: 500, data: { error: 'TraceQL structural query: a trace is deeper than the round limit of 3 rounds (8 spans) or its parent links form a cycle; raise GIGAPIPE_TRACEQL_ANCESTRY_ROUNDS' } }, true)
+    expect(autocompleteDiff(err, oracle.UNRESOLVED)).toEqual([])
+    expect(autocompleteDiff([], oracle.UNRESOLVED)).toEqual(['want an unresolved-ancestry error, got 0 suggestions'])
   })
 })

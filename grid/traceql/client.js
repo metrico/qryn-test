@@ -1,5 +1,5 @@
 // gigapipe I/O for the TraceQL grid suite: Zipkin ingest and the Tempo
-// search and metrics APIs.
+// search, metrics and autocomplete APIs.
 
 const { clokiExtUrl, clokiWriteUrl, axiosGet, axiosPost } = require('../../common')
 
@@ -46,6 +46,20 @@ const metrics = async (run) => {
   return axiosGet(`http://${clokiExtUrl}/api/metrics/${path}?${qs}`, { validateStatus: () => true })
 }
 
+/**
+ * autocomplete runs tags v2, or values v2 of run.tag, for a TraceQL query over
+ * (from, to] and returns the response, whatever its status. An empty query
+ * sends no q.
+ * @param run {{query: string, from: number, to: number, tag?: string, limit?: number}}
+ */
+const autocomplete = async (run) => {
+  const qs = new URLSearchParams({ start: secs(run.from), end: secs(run.to) })
+  if (run.query) qs.set('q', run.query)
+  if (run.limit !== undefined) qs.set('limit', String(run.limit))
+  const path = run.tag === undefined ? 'tags' : `tag/${encodeURIComponent(run.tag)}/values`
+  return axiosGet(`http://${clokiExtUrl}/api/v2/search/${path}?${qs}`, { validateStatus: () => true })
+}
+
 // waitFor polls fn until it returns true or the timeout passes.
 const waitFor = async (fn, timeoutMs = 60000) => {
   const deadline = Date.now() + timeoutMs
@@ -56,4 +70,4 @@ const waitFor = async (fn, timeoutMs = 60000) => {
   return false
 }
 
-module.exports = { push, search, metrics, waitFor }
+module.exports = { push, search, metrics, autocomplete, waitFor }

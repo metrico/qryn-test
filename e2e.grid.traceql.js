@@ -2,12 +2,15 @@
 // traces, spans and matched counts the oracle computes from the seed. Cases
 // with `pushes` run between that many seed batches landing and the next push.
 // Metrics cases run on the whole seed and must return the oracle's series.
+// Autocomplete cases must suggest the keys or values of the oracle's result
+// spans.
 const { _it, testID } = require('./common')
 const seed = require('./grid/traceql/seed')
 const oracle = require('./grid/traceql/oracle')
 const { metrics } = require('./grid/traceql/metrics')
-const { runs, metricsRuns } = require('./grid/traceql/cases')
-const { fromResponse, diff, names, fromMetricsResponse, metricsDiff } = require('./grid/traceql/compare')
+const { autocomplete } = require('./grid/traceql/autocomplete')
+const { runs, metricsRuns, autocompleteRuns } = require('./grid/traceql/cases')
+const { fromResponse, diff, names, fromMetricsResponse, metricsDiff, fromAutocompleteResponse, autocompleteDiff } = require('./grid/traceql/compare')
 const client = require('./grid/traceql/client')
 
 const TEST_ID = `${testID}_grid_traceql`
@@ -19,6 +22,7 @@ const NAMES = names(seed.ids(PREFIX))
 const BATCHES = seed.zipkinBatches(FROM, PREFIX, TEST_ID)
 const RUNS = runs(FROM)
 const METRICS = metricsRuns(FROM)
+const AUTOCOMPLETE = autocompleteRuns(FROM)
 
 const seeded = (pushes) => pushes === BATCHES.length ? 'grid traceql: seed' : `grid traceql: seed ${pushes} of ${BATCHES.length} pushes`
 
@@ -30,6 +34,11 @@ const check = async (run) => {
 const checkMetrics = async (run) => {
   const got = fromMetricsResponse(await client.metrics(run), run.kind)
   return metricsDiff(got, metrics(run.ast, SPANS, run), { kind: run.kind, step: run.step, from: FROM, names: NAMES })
+}
+
+const checkAutocomplete = async (run) => {
+  const got = fromAutocompleteResponse(await client.autocomplete(run), run.tag === undefined)
+  return autocompleteDiff(got, autocomplete(run.ast, SPANS, run))
 }
 
 let prev
@@ -51,6 +60,11 @@ for (let pushes = 1; pushes <= BATCHES.length; pushes++) {
   for (const run of cases) {
     _it(`grid traceql: ${run.name}`, async () => {
       expect(await check(run)).toEqual([])
+    }, [step])
+  }
+  for (const run of AUTOCOMPLETE.filter(r => (r.pushes || BATCHES.length) === pushes)) {
+    _it(`grid traceql autocomplete: ${run.name}`, async () => {
+      expect(await checkAutocomplete(run)).toEqual([])
     }, [step])
   }
   prev = step

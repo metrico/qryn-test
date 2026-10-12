@@ -6071,5 +6071,522 @@
         }
       }
     }
+  ],
+  "autocomplete": [
+    {
+      "id": "ac_tags_no_query",
+      "note": "Tags v2 without a query lists every key of the dates in range.",
+      "query": "",
+      "ast": {
+        "pipeline": []
+      }
+    },
+    {
+      "id": "ac_values_no_query",
+      "note": "Values v2 without a query lists the values of the tag, not tag keys.",
+      "query": "",
+      "tag": "span.svc",
+      "ast": {
+        "pipeline": []
+      }
+    },
+    {
+      "id": "ac_tags_empty_selector",
+      "note": "A lone {} keeps the unfiltered path.",
+      "query": "{}",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_empty_selector",
+      "note": "A lone {} lists every value of a resource tag.",
+      "query": "{}",
+      "tag": "resource.service.name",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_tags_selector",
+      "note": "A selector suggests the keys of its spans only.",
+      "query": "{ .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".svc"
+              },
+              "rhs": {
+                "str": "db"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_selector",
+      "note": "A selector suggests the values of its spans only.",
+      "query": "{ .shape = \"mixed\" }",
+      "tag": "span.svc",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_tags_child",
+      "note": "A plain operator suggests from the RHS result spans: no LHS key (http.method) or grandchild key (db.system).",
+      "query": "{ .svc = \"gateway\" } > {}",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_child",
+      "note": "Children of the gateway roots in both mixed trees.",
+      "query": "{ .svc = \"gateway\" } > {}",
+      "tag": "name",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_child_pushes",
+      "note": "Before the mixed2 root lands only the mixed tree has a gateway parent.",
+      "query": "{ .svc = \"gateway\" } > {}",
+      "tag": "name",
+      "pushes": 1,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_union_child",
+      "note": "A union operator suggests from both sides of the relation.",
+      "query": "{ .svc = \"gateway\" } &> { .svc = \"api\" }",
+      "tag": "name",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_not_descendant",
+      "note": "Mixed-tree spans without a gateway ancestor: the roots.",
+      "query": "{ .svc = \"gateway\" } !>> { .shape = \"mixed\" }",
+      "tag": "name",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!>>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_ancestor",
+      "note": "Ancestors of the db spans in mixed2.",
+      "query": "{ .svc = \"db\" } << { .shape = \"mixed2\" }",
+      "tag": "name",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed2"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_sibling",
+      "note": "Siblings start in (from, to]: eb_from at FROM is no operand.",
+      "query": "{ .role = \"sibling\" } ~ { .shape = \"edge\" }",
+      "tag": "name",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "sibling"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "edge"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_or",
+      "note": "|| suggests from either side.",
+      "query": "{ .svc = \"cache\" } || { .db.system = \"mysql\" }",
+      "tag": "name",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "||",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "cache"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".db.system"
+                },
+                "rhs": {
+                  "str": "mysql"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_tags_or",
+      "note": "|| over two shapes suggests their keys only.",
+      "query": "{ .shape = \"rootless\" } || { .shape = \"tworoots\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "||",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "rootless"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "tworoots"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_and",
+      "note": "&& keeps both sides of the traces where both match: the orphan trace only.",
+      "query": "{ .role = \"orphan\" } && { .role = \"root\" }",
+      "tag": "name",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "root"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_or_structural",
+      "note": "|| over a structural operand and a selector.",
+      "query": "({ .svc = \"db\" } < { .lvl = \"1\" }) || { .role = \"top\" }",
+      "tag": "name",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "||",
+            "lhs": {
+              "paren": {
+                "spansetOp": "<",
+                "lhs": {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".svc"
+                    },
+                    "rhs": {
+                      "str": "db"
+                    }
+                  }
+                },
+                "rhs": {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".lvl"
+                    },
+                    "rhs": {
+                      "str": "1"
+                    }
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "top"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_limit",
+      "note": "limit keeps the first values in order.",
+      "query": "{ .shape = \"fanout\" }",
+      "tag": "name",
+      "limit": 3,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "fanout"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_tags_unresolved",
+      "note": "Autocomplete surfaces the unresolved-ancestry error like search.",
+      "query": "{ .chain = \"9\" } >> { .chain = \"9\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "9"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "9"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
   ]
 }
