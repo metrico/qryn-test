@@ -2885,6 +2885,32 @@
           }
         ]
       }
+    },
+    {
+      "id": "and_empty_operand",
+      "note": "{} under && is every in-range span of the traces the other side matches.",
+      "query": "{} && { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": null
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ]
+      }
     }
   ]
 }

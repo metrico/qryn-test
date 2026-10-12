@@ -302,6 +302,7 @@ const EXPECTED = {
   hop_edge_out_of_range_parent: {},
   hop_edge_wider_parent: { edge_chain: [['ec_leaf'], 1] },
   hop_edge_late_child: {},
+  and_empty_operand: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 6], mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 6] },
   hop_edge_empty_lhs: { edge_chain: [['ec_leaf'], 1], edge_bound: [['eb_to', 'eb_mid'], 2], edge_late: [['el_a'], 1] }
 }
 
