@@ -92,12 +92,32 @@ describe('traceql grid cases', () => {
   }
 })
 
+// Every trace's three newest in-range spans and in-range span count.
+const NEWEST = {
+  chain9: [['c9_8', 'c9_7', 'c9_6'], 9],
+  chain8: [['c8_7', 'c8_6', 'c8_5'], 8],
+  fanout: [['fan_c49', 'fan_c48', 'fan_c47'], 71],
+  mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 6],
+  orphan: [['orph_o2', 'orph_o1', 'orph_child'], 4],
+  tworoots: [['two_r2c', 'two_r1c', 'two_r2'], 4],
+  rootless: [['rl_c', 'rl_b', 'rl_a'], 3],
+  mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 6],
+  attrs: [['am_dur', 'am_bool', 'am_str'], 8],
+  edge_chain: [['ec_leaf'], 1],
+  edge_bound: [['eb_to', 'eb_mid'], 2],
+  edge_late: [['el_a'], 1]
+}
+
+// Every trace's in-range span count.
+const IN_RANGE = { chain9: 9, chain8: 8, fanout: 71, mixed: 6, orphan: 4, tworoots: 4, rootless: 3, mixed2: 6, attrs: 8, edge_chain: 1, edge_bound: 2, edge_late: 1 }
+
 // Hand-checked results per case: trace -> [listed spans, matched], or just
 // matched when the listed spans are the trace's spss newest.
 const EXPECTED = {
-  all: { chain9: 9, chain8: 8, fanout: 71, mixed: 6, orphan: 4, tworoots: 4, rootless: 3, mixed2: 6, attrs: 8, edge_chain: 1, edge_bound: 2, edge_late: 1 },
-  all_spss_100: { chain9: 9, chain8: 8, fanout: 71, mixed: 6, orphan: 4, tworoots: 4, rootless: 3, mixed2: 6, attrs: 8, edge_chain: 1, edge_bound: 2, edge_late: 1 },
-  suite: { chain9: 9, chain8: 8, fanout: 71, mixed: 6, orphan: 4, tworoots: 4, rootless: 3, mixed2: 6, attrs: 8, edge_chain: 1, edge_bound: 2, edge_late: 1 },
+  all: NEWEST,
+  all_limit_3: { edge_bound: NEWEST.edge_bound, edge_late: NEWEST.edge_late, edge_chain: NEWEST.edge_chain },
+  all_spss_100: IN_RANGE,
+  suite: NEWEST,
   suite_limit_2: { edge_bound: [['eb_to', 'eb_mid'], 2], edge_late: [['el_a'], 1] },
   fanout: { fanout: [['fan_c49', 'fan_c48', 'fan_c47'], 71] },
   fanout_children_spss_5: { fanout: [['fan_c49', 'fan_c48', 'fan_c47', 'fan_c46', 'fan_c45'], 50] },
@@ -186,7 +206,7 @@ describe('traceql result diff', () => {
     ])
   })
   it('reports a spanSet that differs from spanSets[0] and extra spansets', () => {
-    const got = [{ ...t('a', ['x'], 1), spanSets: 2, legacyMatches: false }]
+    const got = [{ ...t('a', ['x'], 1), spanSets: 2, spanSetMatchesFirst: false }]
     expect(diff(got, [t('a', ['x'], 1)])).toEqual(['a has 2 spanSets, want 1', 'a spanSet differs from spanSets[0]'])
   })
 })

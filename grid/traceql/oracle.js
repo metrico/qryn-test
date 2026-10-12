@@ -66,7 +66,7 @@ const compare = (op, a, b) => {
   throw new Error(`oracle: comparison ${op}`)
 }
 
-// attrKey strips the scope: gigapipe matches span and resource attributes alike.
+// attrKey strips the scope; span and resource attributes share one namespace.
 const attrKey = (attr) => {
   for (const scope of ['span.', 'resource.', '.']) {
     if (attr.startsWith(scope)) return attr.slice(scope.length)

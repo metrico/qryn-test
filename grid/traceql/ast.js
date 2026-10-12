@@ -1,16 +1,8 @@
-// JSON AST for the TraceQL grid cases and its canonical printer. The
-// self-check holds every case's query string equal to print(ast), so a query
-// and its AST cannot drift apart.
+// JSON AST of the TraceQL grid cases and its canonical printer; the
+// self-check holds each case's query equal to print(ast).
 //
-// Query:     {pipeline: [element, ...]}
-// Element:   a spanset expression
-// Spanset:   {selector: field | null}            `{ field }` or `{}`
-//            {spansetOp: op, lhs, rhs}           `lhs op rhs`
-//            {paren: spanset}                    `(spanset)`
-// Field:     {attr: '.x' | 'span.x' | 'resource.x' | 'name' | 'duration' | 'status' | ...}
-//            {str: 'x'} | {num: 1.5} | {dur: '5ms'} | {enum: 'error'}
-//            {op, lhs, rhs}                      binary, e.g. `=`, `&&`
-//            {paren: field}                      `(field)`
+// query {pipeline: [spanset]}; spanset {selector: field|null} | {spansetOp, lhs, rhs} | {paren}
+// field {attr} | {str} | {num} | {dur} | {enum} | {op, lhs, rhs} | {paren}
 
 const printField = (f) => {
   if (f.attr !== undefined) return f.attr

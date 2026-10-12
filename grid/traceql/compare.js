@@ -14,7 +14,7 @@ const fromApi = (body, names) => body.traces.map(t => {
     spans: set.spans.map(s => name(s.spanID, 'span')),
     matched: set.matched,
     spanSets: t.spanSets ? t.spanSets.length : 0,
-    legacyMatches: JSON.stringify(t.spanSet) === JSON.stringify(t.spanSets && t.spanSets[0])
+    spanSetMatchesFirst: JSON.stringify(t.spanSet) === JSON.stringify(t.spanSets && t.spanSets[0])
   }
 })
 
@@ -38,7 +38,7 @@ const diff = (got, want) => {
     if (gs !== ws) out.push(`${name} spans ${gs}, want ${ws}`)
     if (gt.matched !== wt.matched) out.push(`${name} matched ${gt.matched}, want ${wt.matched}`)
     if (gt.spanSets !== undefined && gt.spanSets !== 1) out.push(`${name} has ${gt.spanSets} spanSets, want 1`)
-    if (gt.legacyMatches === false) out.push(`${name} spanSet differs from spanSets[0]`)
+    if (gt.spanSetMatchesFirst === false) out.push(`${name} spanSet differs from spanSets[0]`)
   }
   return out
 }

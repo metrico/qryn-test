@@ -16,6 +16,19 @@
       }
     },
     {
+      "id": "all_limit_3",
+      "note": "The attribute-less planner keeps the traces with the newest in-range spans.",
+      "query": "{}",
+      "limit": 3,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": null
+          }
+        ]
+      }
+    },
+    {
       "id": "all_spss_100",
       "note": "spss above every trace size lists all in-range spans.",
       "query": "{}",

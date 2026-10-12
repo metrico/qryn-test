@@ -62,8 +62,7 @@ const traces = () => {
     out.push({ name: 'fanout', shape: 'fanout', spans })
   }
 
-  // 3 and 7. A three-level mixed tree with distinct per-level attributes;
-  // the second copy is pushed children first.
+  // 3. A three-level mixed tree with distinct per-level attributes.
   const mixed = (prefix, shape, childPush, rootPush) => [
     span(`${prefix}_root`, null, { shape, lvl: '0', svc: 'gateway', 'http.method': 'GET' }, { push: rootPush, duration: 120 }),
     span(`${prefix}_a`, `${prefix}_root`, { shape, lvl: '1', svc: 'api', op: 'read' }, { push: childPush, duration: 80 }),
@@ -109,6 +108,7 @@ const traces = () => {
     ]
   })
 
+  // 7. The mixed tree, children pushed first.
   out.push({ name: 'mixed2', shape: 'mixed2', spans: mixed('mix2', 'mixed2', 0, 1) })
 
   // 8. An attribute matrix: v is missing, int, float, string, bool or a
