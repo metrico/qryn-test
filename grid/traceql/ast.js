@@ -55,4 +55,4 @@ const printMetrics = (m) => {
 const print = (query) => printPipeline(query.pipeline) +
   (query.metrics ? ` | ${printMetrics(query.metrics)}` : '')
 
-module.exports = { print, printField, printSpanset }
+module.exports = { print, printField, printScalar, printSpanset }

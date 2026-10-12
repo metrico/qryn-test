@@ -2,6 +2,7 @@
 // result of a case's AST from the seed. It encodes gigapipe's contract.
 
 const seed = require('./seed')
+const { printScalar } = require('./ast')
 
 const DEFAULT_SPSS = 3
 
@@ -296,7 +297,7 @@ const scalarValue = (x) => {
 const scalarFilter = ({ op, lhs, rhs }, sets) => {
   if (lhs.agg === undefined) throw new Error('oracle: scalar filter lhs must be an aggregate')
   const want = scalarValue(rhs)
-  const key = `${lhs.agg}(${lhs.attr || ''})`
+  const key = printScalar(lhs)
   const out = []
   for (const ss of sets) {
     const v = aggregate(lhs, ss.spans)

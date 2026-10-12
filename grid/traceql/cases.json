@@ -4760,7 +4760,7 @@
     },
     {
       "id": "agg_desc_count",
-      "note": "count() counts the whole expression's result spans per trace, not the last selector's.",
+      "note": "count() counts the whole expression's result spans per trace.",
       "query": "{ .svc = \"api\" } >> { .lvl > 0 } | count() = 3",
       "ast": {
         "pipeline": [
