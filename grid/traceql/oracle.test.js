@@ -705,6 +705,7 @@ const EXPECTED_AUTOCOMPLETE = {
   ac_values_and: ['orph_o1', 'orph_o2', 'orph_root'],
   ac_values_or_structural: ['mix2_a', 'mix2_b', 'mix_a', 'mix_b', 'rl_a'],
   ac_values_limit: ['fan_c00', 'fan_c00_g0', 'fan_c00_g1'],
+  ac_values_range: ['eb_from', 'eb_root', 'ec_mid'],
   ac_tags_unresolved: oracle.UNRESOLVED
 }
 

@@ -16,8 +16,7 @@ const selectsEverySpan = (query) => {
 // TAG_KEYS maps tag names the API rewrites to their attribute key.
 const TAG_KEYS = { status: 'otel.status_code' }
 
-// tagKey is the attribute key of a values v2 tag: scopes are dropped, as span
-// and resource attributes share one namespace.
+// tagKey is the attribute key of a values v2 tag, without its scope.
 const tagKey = (tag) => TAG_KEYS[tag] || tag.replace(/^span\./, '').replace(/^\./, '').replace(/^resource\./, '')
 
 // suggestions returns the sorted distinct keys of spans' attributes, or the

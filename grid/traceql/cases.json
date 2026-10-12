@@ -6083,7 +6083,7 @@
     },
     {
       "id": "ac_values_no_query",
-      "note": "Values v2 without a query lists the values of the tag, not tag keys.",
+      "note": "Values v2 without a query lists every value of the tag in the dates in range.",
       "query": "",
       "tag": "span.svc",
       "ast": {
@@ -6092,7 +6092,7 @@
     },
     {
       "id": "ac_tags_empty_selector",
-      "note": "A lone {} keeps the unfiltered path.",
+      "note": "A lone {} lists every key of the dates in range.",
       "query": "{}",
       "ast": {
         "pipeline": [
@@ -6548,6 +6548,31 @@
               },
               "rhs": {
                 "str": "fanout"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_range",
+      "note": "Operands start in (from, to]: ec_mid, eb_root and eb_from at the window end; ec_root an hour back is out.",
+      "query": "{ .shape = \"edge\" }",
+      "tag": "name",
+      "range": {
+        "from": -900000,
+        "to": 0
+      },
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "edge"
               }
             }
           }
