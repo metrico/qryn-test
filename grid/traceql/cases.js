@@ -6,7 +6,8 @@ const file = require('./cases.json')
 
 /**
  * runs returns one run per case:
- * {id, name, note, query, ast, from, to, limit, spss}, times in ms.
+ * {id, name, note, query, ast, from, to, limit, spss, pushes}, times in ms.
+ * pushes, when set, is how many seed batches have landed when the case runs.
  * @param from {number} FROM in ms
  */
 const runs = (from) => file.cases.map(c => {
@@ -20,7 +21,8 @@ const runs = (from) => file.cases.map(c => {
     from: from + range.from,
     to: from + range.to,
     limit: c.limit || file.defaults.limit,
-    spss: c.spss
+    spss: c.spss,
+    pushes: c.pushes
   }
 })
 

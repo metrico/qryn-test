@@ -1,5 +1,10 @@
 // Normalises TraceQL search responses and diffs them against the oracle. A
-// result is [{trace, spans: [span name, ...], matched}].
+// result is [{trace, spans: [span name, ...], matched}], or {error} for a
+// failed search.
+
+// UNRESOLVED_ERROR is the error of a search whose ancestry does not resolve
+// within the round limit.
+const UNRESOLVED_ERROR = /deeper than the round limit .*GIGAPIPE_TRACEQL_ANCESTRY_ROUNDS/
 
 /**
  * fromApi maps a search response's ids back to seed names.
@@ -19,10 +24,25 @@ const fromApi = (body, names) => body.traces.map(t => {
 })
 
 /**
+ * fromResponse is fromApi for a successful search and {status, error} for a
+ * failed one.
+ * @param resp {{status: number, data: Object}} the /api/search response
+ */
+const fromResponse = (resp, names) => resp.status === 200
+  ? fromApi(resp.data, names)
+  : { status: resp.status, error: (resp.data && resp.data.error) || JSON.stringify(resp.data) }
+
+/**
  * diff returns [] when got and want hold the same traces, spans and matched
- * counts, or one line per mismatch. Order is not compared.
+ * counts, or one line per mismatch. Order is not compared. A want of
+ * {error} expects the unresolved-ancestry error.
  */
 const diff = (got, want) => {
+  if (want.error || got.error) {
+    if (!want.error) return [`unexpected error ${got.status}: ${got.error}`]
+    if (!got.error) return [`want an unresolved-ancestry error, got ${got.length} traces`]
+    return UNRESOLVED_ERROR.test(got.error) ? [] : [`error ${got.status}: ${got.error}, want an unresolved-ancestry error`]
+  }
   const out = []
   const index = (rs) => new Map(rs.map(r => [r.trace, r]))
   const g = index(got)
@@ -49,4 +69,4 @@ const names = (ids) => {
   return { trace: invert(ids.trace), span: invert(ids.span) }
 }
 
-module.exports = { fromApi, diff, names }
+module.exports = { fromApi, fromResponse, diff, names }

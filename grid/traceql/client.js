@@ -18,7 +18,8 @@ const push = async (batches) => {
 }
 
 /**
- * search runs a TraceQL search over (from, to] and returns the response body.
+ * search runs a TraceQL search over (from, to] and returns the response,
+ * whatever its status.
  * @param run {{query: string, from: number, to: number, limit: number, spss?: number}}
  */
 const search = async (run) => {
@@ -29,8 +30,7 @@ const search = async (run) => {
     limit: String(run.limit)
   })
   if (run.spss !== undefined) qs.set('spss', String(run.spss))
-  const resp = await axiosGet(`http://${clokiExtUrl}/api/search?${qs}`)
-  return resp.data
+  return axiosGet(`http://${clokiExtUrl}/api/search?${qs}`, { validateStatus: () => true })
 }
 
 // waitFor polls fn until it returns true or the timeout passes.

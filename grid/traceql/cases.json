@@ -2911,6 +2911,1851 @@
           }
         ]
       }
+    },
+    {
+      "id": "tr_descendant_all",
+      "note": ">> between every span of every shape that resolves under the round limit.",
+      "query": "{ .shape != \"chain\" || .chain = \"8\" } >> { .shape != \"chain\" || .chain = \"8\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "||",
+                "lhs": {
+                  "op": "!=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "chain"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "||",
+                "lhs": {
+                  "op": "!=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "chain"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_ancestor_all",
+      "note": "<< between every span of every shape that resolves under the round limit.",
+      "query": "{ .shape != \"chain\" || .chain = \"8\" } << { .shape != \"chain\" || .chain = \"8\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<<",
+            "lhs": {
+              "selector": {
+                "op": "||",
+                "lhs": {
+                  "op": "!=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "chain"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "||",
+                "lhs": {
+                  "op": "!=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "chain"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_not_descendant_all",
+      "note": "!>> between every span of every shape that resolves under the round limit.",
+      "query": "{ .shape != \"chain\" || .chain = \"8\" } !>> { .shape != \"chain\" || .chain = \"8\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!>>",
+            "lhs": {
+              "selector": {
+                "op": "||",
+                "lhs": {
+                  "op": "!=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "chain"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "||",
+                "lhs": {
+                  "op": "!=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "chain"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_not_ancestor_all",
+      "note": "!<< between every span of every shape that resolves under the round limit.",
+      "query": "{ .shape != \"chain\" || .chain = \"8\" } !<< { .shape != \"chain\" || .chain = \"8\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!<<",
+            "lhs": {
+              "selector": {
+                "op": "||",
+                "lhs": {
+                  "op": "!=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "chain"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "||",
+                "lhs": {
+                  "op": "!=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "chain"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_union_descendant_all",
+      "note": "&>> between every span of every shape that resolves under the round limit.",
+      "query": "{ .shape != \"chain\" || .chain = \"8\" } &>> { .shape != \"chain\" || .chain = \"8\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&>>",
+            "lhs": {
+              "selector": {
+                "op": "||",
+                "lhs": {
+                  "op": "!=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "chain"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "||",
+                "lhs": {
+                  "op": "!=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "chain"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_union_ancestor_all",
+      "note": "&<< between every span of every shape that resolves under the round limit.",
+      "query": "{ .shape != \"chain\" || .chain = \"8\" } &<< { .shape != \"chain\" || .chain = \"8\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&<<",
+            "lhs": {
+              "selector": {
+                "op": "||",
+                "lhs": {
+                  "op": "!=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "chain"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "||",
+                "lhs": {
+                  "op": "!=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "chain"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_chain8_descendants",
+      "note": "The 8-span chain is the deepest that resolves under R=3: every span below its root.",
+      "query": "{ .chain = \"8\" && .depth = \"0\" } >> { .chain = \"8\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".depth"
+                  },
+                  "rhs": {
+                    "str": "0"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "8"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_chain8_ancestors",
+      "note": "Every ancestor of the 8-span chain's leaf.",
+      "query": "{ .chain = \"8\" && .depth = \"7\" } << { .chain = \"8\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<<",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".depth"
+                  },
+                  "rhs": {
+                    "str": "7"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "8"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_chain8_union_ancestor",
+      "note": "&<< returns the ancestor and the descendant it matched.",
+      "query": "{ .chain = \"8\" && .depth = \"7\" } &<< { .chain = \"8\" && .depth = \"3\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&<<",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".depth"
+                  },
+                  "rhs": {
+                    "str": "7"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".depth"
+                  },
+                  "rhs": {
+                    "str": "3"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_chain9_error",
+      "note": "The 9-span chain is deeper than R=3 resolves, so the query fails.",
+      "query": "{ .chain = \"9\" && .depth = \"0\" } >> { .chain = \"9\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "9"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".depth"
+                  },
+                  "rhs": {
+                    "str": "0"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "9"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_chain9_error_shallow_operands",
+      "note": "The guard covers every span of a candidate trace, not only the operands.",
+      "query": "{ .chain = \"9\" && .depth = \"1\" } << { .chain = \"9\" && .depth = \"0\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<<",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "9"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".depth"
+                  },
+                  "rhs": {
+                    "str": "1"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "9"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".depth"
+                  },
+                  "rhs": {
+                    "str": "0"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_chain9_error_nested",
+      "note": "An unresolved operand fails the whole query.",
+      "query": "({ .chain = \"9\" } !>> { .chain = \"9\" }) || { .shape = \"mixed\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "||",
+            "lhs": {
+              "paren": {
+                "spansetOp": "!>>",
+                "lhs": {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".chain"
+                    },
+                    "rhs": {
+                      "str": "9"
+                    }
+                  }
+                },
+                "rhs": {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".chain"
+                    },
+                    "rhs": {
+                      "str": "9"
+                    }
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_empty_operands_error",
+      "note": "{} operands make the 9-span chain a candidate.",
+      "query": "{} >> {}",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": null
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_chain9_no_candidate",
+      "note": "A ! operator with an empty LHS jumps no trace, so the deep chain returns whole.",
+      "query": "{ .shape = \"none\" } !>> { .chain = \"9\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!>>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "none"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "9"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_chain_path",
+      "note": "A chain of >> is an ancestor path.",
+      "query": "{ .chain = \"8\" && .depth = \"1\" } >> { .chain = \"8\" && .depth = \"3\" } >> { .chain = \"8\" && .depth = \"6\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "spansetOp": ">>",
+              "lhs": {
+                "selector": {
+                  "op": "&&",
+                  "lhs": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".chain"
+                    },
+                    "rhs": {
+                      "str": "8"
+                    }
+                  },
+                  "rhs": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".depth"
+                    },
+                    "rhs": {
+                      "str": "1"
+                    }
+                  }
+                }
+              },
+              "rhs": {
+                "selector": {
+                  "op": "&&",
+                  "lhs": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".chain"
+                    },
+                    "rhs": {
+                      "str": "8"
+                    }
+                  },
+                  "rhs": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".depth"
+                    },
+                    "rhs": {
+                      "str": "3"
+                    }
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".depth"
+                  },
+                  "rhs": {
+                    "str": "6"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_chain_group",
+      "note": "A grouped RHS: depth-2 spans above a depth-5 span, below the root.",
+      "query": "{ .chain = \"8\" && .depth = \"0\" } >> ({ .chain = \"8\" && .depth = \"5\" } << { .chain = \"8\" && .depth = \"2\" })",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".chain"
+                  },
+                  "rhs": {
+                    "str": "8"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".depth"
+                  },
+                  "rhs": {
+                    "str": "0"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "paren": {
+                "spansetOp": "<<",
+                "lhs": {
+                  "selector": {
+                    "op": "&&",
+                    "lhs": {
+                      "op": "=",
+                      "lhs": {
+                        "attr": ".chain"
+                      },
+                      "rhs": {
+                        "str": "8"
+                      }
+                    },
+                    "rhs": {
+                      "op": "=",
+                      "lhs": {
+                        "attr": ".depth"
+                      },
+                      "rhs": {
+                        "str": "5"
+                      }
+                    }
+                  }
+                },
+                "rhs": {
+                  "selector": {
+                    "op": "&&",
+                    "lhs": {
+                      "op": "=",
+                      "lhs": {
+                        "attr": ".chain"
+                      },
+                      "rhs": {
+                        "str": "8"
+                      }
+                    },
+                    "rhs": {
+                      "op": "=",
+                      "lhs": {
+                        "attr": ".depth"
+                      },
+                      "rhs": {
+                        "str": "2"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_mixed_descendant",
+      "query": "{ .svc = \"gateway\" } >> { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_mixed_ancestor_root",
+      "query": "{ .svc = \"db\" } << { .lvl = \"0\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "0"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_mixed_ancestor",
+      "query": "{ .svc = \"db\" } << { .svc = \"api\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_mixed_not_descendant",
+      "query": "{ .op = \"read\" } !>> { .lvl = \"2\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!>>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".op"
+                },
+                "rhs": {
+                  "str": "read"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_mixed_not_ancestor",
+      "query": "{ .db.system = \"postgres\" } !<< { .lvl = \"1\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!<<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".db.system"
+                },
+                "rhs": {
+                  "str": "postgres"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "1"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_mixed_union_descendant",
+      "query": "{ .op = \"write\" } &>> { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&>>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".op"
+                },
+                "rhs": {
+                  "str": "write"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_mixed_union_ancestor",
+      "query": "{ .svc = \"cache\" } &<< { .svc = \"api\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&<<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "cache"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_mixed_with_child",
+      "note": ">> then > on the mixed tree.",
+      "query": "{ .lvl = \"0\" } >> { .lvl = \"1\" } > { .lvl = \"2\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "spansetOp": ">>",
+              "lhs": {
+                "selector": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".lvl"
+                  },
+                  "rhs": {
+                    "str": "0"
+                  }
+                }
+              },
+              "rhs": {
+                "selector": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".lvl"
+                  },
+                  "rhs": {
+                    "str": "1"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_mixed_and",
+      "note": "Transitive operators bind tighter than &&.",
+      "query": "{ .svc = \"gateway\" } >> { .svc = \"db\" } && { .svc = \"cache\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "spansetOp": ">>",
+              "lhs": {
+                "selector": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".svc"
+                  },
+                  "rhs": {
+                    "str": "gateway"
+                  }
+                }
+              },
+              "rhs": {
+                "selector": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".svc"
+                  },
+                  "rhs": {
+                    "str": "db"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "cache"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_orphan_descendant",
+      "note": "The orphan subtree never relates.",
+      "query": "{ .shape = \"orphan\" } >> { .shape = \"orphan\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_orphan_not_descendant",
+      "query": "{ .shape = \"orphan\" } !>> { .shape = \"orphan\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!>>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_orphan_ancestor",
+      "query": "{ .shape = \"orphan\" } << { .shape = \"orphan\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_rootless_descendant",
+      "note": "A root-less trace never relates.",
+      "query": "{ .role = \"top\" } >> { .role = \"child\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "top"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "child"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_rootless_not_ancestor",
+      "query": "{ .shape = \"rootless\" } !<< { .shape = \"rootless\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!<<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "rootless"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "rootless"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_tworoots_descendant",
+      "query": "{ .role = \"root\" } >> { .shape = \"tworoots\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "root"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "tworoots"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_fanout_descendant_spss",
+      "query": "{ .shape = \"fanout\" && .role = \"root\" } >> { .role = \"grandchild\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "fanout"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".role"
+                  },
+                  "rhs": {
+                    "str": "root"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "grandchild"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_fanout_ancestor",
+      "query": "{ .role = \"grandchild\" } << { .shape = \"fanout\" }",
+      "spss": 100,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "grandchild"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "fanout"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_fanout_union_descendant",
+      "query": "{ .shape = \"fanout\" && .role = \"root\" } &>> { .role = \"grandchild\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&>>",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "fanout"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".role"
+                  },
+                  "rhs": {
+                    "str": "root"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "grandchild"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_attrs_ancestor",
+      "query": "{ .v > 1 } << { .shape = \"attrs\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "<<",
+            "lhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".v"
+                },
+                "rhs": {
+                  "num": 1
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_empty_lhs_not_ancestor",
+      "note": "An empty LHS returns every RHS span.",
+      "query": "{ .shape = \"none\" } !<< { .shape = \"mixed\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!<<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "none"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_edge_out_of_range_ancestors",
+      "note": "Ancestors outside the range are not operands.",
+      "query": "{ .shape = \"edge\" } >> { .shape = \"edge\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "edge"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "edge"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_edge_wider",
+      "note": "With the ancestors in range the leaf and the siblings relate.",
+      "query": "{ .shape = \"edge\" } >> { .shape = \"edge\" }",
+      "range": {
+        "from": -3900000,
+        "to": 1800000
+      },
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "edge"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "edge"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_edge_not_descendant",
+      "note": "A leaf whose ancestors started before the range has no matching ancestor.",
+      "query": "{ .shape = \"edge\" } !>> { .role = \"leaf\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!>>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "edge"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".role"
+                },
+                "rhs": {
+                  "str": "leaf"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_late_parent_before",
+      "note": "Before the root of the children-first tree lands, its spans reach no root.",
+      "query": "{ .shape = \"mixed2\" && .lvl = \"1\" } >> { .shape = \"mixed2\" }",
+      "pushes": 1,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "mixed2"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".lvl"
+                  },
+                  "rhs": {
+                    "str": "1"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed2"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_late_parent_before_not",
+      "note": "Spans that reach no root match a ! operator.",
+      "query": "{ .shape = \"mixed2\" && .lvl = \"1\" } !>> { .shape = \"mixed2\" }",
+      "pushes": 1,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "!>>",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "mixed2"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".lvl"
+                  },
+                  "rhs": {
+                    "str": "1"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed2"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr_late_parent_after",
+      "note": "Once the root lands the same query matches.",
+      "query": "{ .shape = \"mixed2\" && .lvl = \"1\" } >> { .shape = \"mixed2\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "mixed2"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".lvl"
+                  },
+                  "rhs": {
+                    "str": "1"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed2"
+                }
+              }
+            }
+          }
+        ]
+      }
     }
   ]
 }

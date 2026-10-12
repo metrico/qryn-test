@@ -156,8 +156,41 @@ const HOP_UNION_CHILD = {
   attrs: 8
 }
 
+// Transitive operators between every span that resolves under R=3 (spss
+// 100): spans with an in-range ancestor, spans with an in-range descendant,
+// and both. Edge spans relate only to out-of-range ancestors; spans that
+// cannot reach a root never relate.
+const TR_DESCENDANT = {
+  chain8: [['c8_1', 'c8_2', 'c8_3', 'c8_4', 'c8_5', 'c8_6', 'c8_7'], 7],
+  fanout: 70,
+  mixed: [['mix_a', 'mix_b', 'mix_a1', 'mix_a2', 'mix_b1'], 5],
+  orphan: [['orph_child'], 1],
+  tworoots: [['two_r1c', 'two_r2c'], 2],
+  mixed2: [['mix2_a', 'mix2_b', 'mix2_a1', 'mix2_a2', 'mix2_b1'], 5],
+  attrs: 7
+}
+const TR_ANCESTOR = {
+  chain8: [['c8_0', 'c8_1', 'c8_2', 'c8_3', 'c8_4', 'c8_5', 'c8_6'], 7],
+  fanout: 11,
+  mixed: [['mix_root', 'mix_a', 'mix_b'], 3],
+  orphan: [['orph_root'], 1],
+  tworoots: [['two_r1', 'two_r2'], 2],
+  mixed2: [['mix2_root', 'mix2_a', 'mix2_b'], 3],
+  attrs: [['am_root'], 1]
+}
+const TR_UNION = {
+  chain8: 8,
+  fanout: 71,
+  mixed: 6,
+  orphan: [['orph_root', 'orph_child'], 2],
+  tworoots: [['two_r1', 'two_r2', 'two_r1c', 'two_r2c'], 4],
+  mixed2: 6,
+  attrs: 8
+}
+
 // Hand-checked results per case: trace -> [listed spans, matched], or just
-// matched when the listed spans are the trace's spss newest.
+// matched when the listed spans are the trace's spss newest; UNRESOLVED when
+// ancestry does not resolve within the round limit.
 const EXPECTED = {
   all: NEWEST,
   all_limit_3: { edge_bound: NEWEST.edge_bound, edge_late: NEWEST.edge_late, edge_chain: NEWEST.edge_chain },
@@ -303,7 +336,75 @@ const EXPECTED = {
   hop_edge_wider_parent: { edge_chain: [['ec_leaf'], 1] },
   hop_edge_late_child: {},
   and_empty_operand: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 6], mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 6] },
-  hop_edge_empty_lhs: { edge_chain: [['ec_leaf'], 1], edge_bound: [['eb_to', 'eb_mid'], 2], edge_late: [['el_a'], 1] }
+  hop_edge_empty_lhs: { edge_chain: [['ec_leaf'], 1], edge_bound: [['eb_to', 'eb_mid'], 2], edge_late: [['el_a'], 1] },
+  tr_descendant_all: TR_DESCENDANT,
+  tr_ancestor_all: TR_ANCESTOR,
+  tr_not_descendant_all: {
+    chain8: [['c8_0'], 1],
+    fanout: [['fan_root'], 1],
+    mixed: [['mix_root'], 1],
+    orphan: [['orph_root', 'orph_o1', 'orph_o2'], 3],
+    tworoots: [['two_r1', 'two_r2'], 2],
+    rootless: [['rl_a', 'rl_b', 'rl_c'], 3],
+    mixed2: [['mix2_root'], 1],
+    attrs: [['am_root'], 1],
+    edge_chain: [['ec_leaf'], 1],
+    edge_bound: [['eb_mid', 'eb_to'], 2],
+    edge_late: [['el_a'], 1]
+  },
+  tr_not_ancestor_all: {
+    chain8: [['c8_7'], 1],
+    fanout: 60,
+    mixed: [['mix_a1', 'mix_a2', 'mix_b1'], 3],
+    orphan: [['orph_child', 'orph_o1', 'orph_o2'], 3],
+    tworoots: [['two_r1c', 'two_r2c'], 2],
+    rootless: [['rl_a', 'rl_b', 'rl_c'], 3],
+    mixed2: [['mix2_a1', 'mix2_a2', 'mix2_b1'], 3],
+    attrs: 7,
+    edge_chain: [['ec_leaf'], 1],
+    edge_bound: [['eb_mid', 'eb_to'], 2],
+    edge_late: [['el_a'], 1]
+  },
+  tr_union_descendant_all: TR_UNION,
+  tr_union_ancestor_all: TR_UNION,
+  tr_chain8_descendants: { chain8: 7 },
+  tr_chain8_ancestors: { chain8: [['c8_0', 'c8_1', 'c8_2', 'c8_3', 'c8_4', 'c8_5', 'c8_6'], 7] },
+  tr_chain8_union_ancestor: { chain8: [['c8_7', 'c8_3'], 2] },
+  tr_chain9_error: oracle.UNRESOLVED,
+  tr_chain9_error_shallow_operands: oracle.UNRESOLVED,
+  tr_chain9_error_nested: oracle.UNRESOLVED,
+  tr_empty_operands_error: oracle.UNRESOLVED,
+  tr_chain9_no_candidate: { chain9: 9 },
+  tr_chain_path: { chain8: [['c8_6'], 1] },
+  tr_chain_group: { chain8: [['c8_2'], 1] },
+  tr_mixed_descendant: { mixed: [['mix_b1', 'mix_a1'], 2], mixed2: [['mix2_b1', 'mix2_a1'], 2] },
+  tr_mixed_ancestor_root: { mixed: [['mix_root'], 1], mixed2: [['mix2_root'], 1] },
+  tr_mixed_ancestor: { mixed: [['mix_b', 'mix_a'], 2], mixed2: [['mix2_b', 'mix2_a'], 2] },
+  tr_mixed_not_descendant: { mixed: [['mix_b1'], 1], mixed2: [['mix2_b1'], 1] },
+  tr_mixed_not_ancestor: { mixed: [['mix_b'], 1], mixed2: [['mix2_b'], 1] },
+  tr_mixed_union_descendant: { mixed: [['mix_b1', 'mix_b'], 2], mixed2: [['mix2_b1', 'mix2_b'], 2] },
+  tr_mixed_union_ancestor: { mixed: [['mix_a2', 'mix_a'], 2], mixed2: [['mix2_a2', 'mix2_a'], 2] },
+  tr_mixed_with_child: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 3], mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 3] },
+  tr_mixed_and: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 3], mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 3] },
+  tr_orphan_descendant: { orphan: [['orph_child'], 1] },
+  tr_orphan_not_descendant: { orphan: [['orph_o2', 'orph_o1', 'orph_root'], 3] },
+  tr_orphan_ancestor: { orphan: [['orph_root'], 1] },
+  tr_rootless_descendant: {},
+  tr_rootless_not_ancestor: { rootless: [['rl_c', 'rl_b', 'rl_a'], 3] },
+  tr_tworoots_descendant: { tworoots: [['two_r2c', 'two_r1c'], 2] },
+  tr_fanout_descendant_spss: { fanout: [['fan_c45_g1', 'fan_c45_g0', 'fan_c40_g1'], 20] },
+  tr_fanout_ancestor: {
+    fanout: [['fan_root', 'fan_c00', 'fan_c05', 'fan_c10', 'fan_c15', 'fan_c20', 'fan_c25', 'fan_c30', 'fan_c35', 'fan_c40', 'fan_c45'], 11]
+  },
+  tr_fanout_union_descendant: { fanout: [['fan_c45_g1', 'fan_c45_g0', 'fan_c40_g1'], 21] },
+  tr_attrs_ancestor: { attrs: [['am_root'], 1] },
+  tr_empty_lhs_not_ancestor: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 6] },
+  tr_edge_out_of_range_ancestors: {},
+  tr_edge_wider: { edge_chain: [['ec_leaf', 'ec_mid'], 2], edge_bound: [['eb_to', 'eb_mid', 'eb_from'], 3] },
+  tr_edge_not_descendant: { edge_chain: [['ec_leaf'], 1] },
+  tr_late_parent_before: {},
+  tr_late_parent_before_not: { mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 5] },
+  tr_late_parent_after: { mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 3] }
 }
 
 describe('traceql oracle on hand-checked results', () => {
@@ -314,6 +415,7 @@ describe('traceql oracle on hand-checked results', () => {
   for (const run of all) {
     it(run.name, () => {
       const got = oracle.search(run.ast, spans, run)
+      if (EXPECTED[run.id] === oracle.UNRESOLVED) return expect(got).toEqual(oracle.UNRESOLVED)
       const spss = run.spss || oracle.DEFAULT_SPSS
       const want = Object.entries(EXPECTED[run.id] || {}).map(([trace, e]) => typeof e === 'number'
         ? { trace, spans: got.find(t => t.trace === trace)?.spans || [], matched: e, spssCheck: Math.min(spss, e) }
@@ -343,9 +445,32 @@ describe('traceql oracle rules', () => {
   })
 
   it('rejects what it cannot evaluate', () => {
-    expect(() => oracle.search({ pipeline: [{ spansetOp: '>>', lhs: sel(null).pipeline[0], rhs: sel(null).pipeline[0] }] }, spans, opts)).toThrow(/unsupported/)
+    expect(() => oracle.search({ pipeline: [{ spansetOp: '>>>', lhs: sel(null).pipeline[0], rhs: sel(null).pipeline[0] }] }, spans, opts)).toThrow(/unsupported/)
     expect(() => oracle.search(sel({ op: '=', lhs: { attr: 'foo' }, rhs: { str: 'x' } }), spans, opts)).toThrow(/attribute/)
     expect(oracle.search(sel(named('nope')), spans, opts)).toEqual([])
+  })
+
+  it('resolves ancestry up to 2^rounds spans deep', () => {
+    const chain = (n) => ({ op: '=', lhs: { attr: '.chain' }, rhs: { str: String(n) } })
+    const desc = (n) => ({ pipeline: [{ spansetOp: '>>', lhs: { selector: chain(n) }, rhs: { selector: chain(n) } }] })
+    expect(oracle.ROUNDS).toEqual(3)
+    expect(oracle.search(desc(8), spans, opts)).toHaveLength(1)
+    expect(oracle.search(desc(9), spans, opts)).toEqual(oracle.UNRESOLVED)
+    expect(oracle.search(desc(9), spans, { ...opts, rounds: 4 })[0].matched).toEqual(8)
+    expect(oracle.search(desc(8), spans, { ...opts, rounds: 2 })).toEqual(oracle.UNRESOLVED)
+  })
+
+  it('treats a parent cycle as unresolved', () => {
+    const cyclic = spans.map(s => s.name === 'mix_root' ? { ...s, parentId: spans.find(p => p.name === 'mix_a1').spanId } : s)
+    const q = { pipeline: [{ spansetOp: '<<', lhs: sel(named('mix_a1')).pipeline[0], rhs: sel(named('mix_a')).pipeline[0] }] }
+    expect(oracle.search(q, spans, opts)).toHaveLength(1)
+    expect(oracle.search(q, cyclic, opts)).toEqual(oracle.UNRESOLVED)
+  })
+
+  it('evaluates only the landed pushes', () => {
+    const root = { pipeline: [{ selector: named('mix2_root') }] }
+    expect(oracle.search(root, spans, opts)).toHaveLength(1)
+    expect(oracle.search(root, spans, { ...opts, pushes: 1 })).toEqual([])
   })
 
   it('parses durations', () => {
@@ -367,6 +492,13 @@ describe('traceql result diff', () => {
       'b missing: want z matched 1',
       'c extra: w matched 1'
     ])
+  })
+  it('expects the unresolved-ancestry error', () => {
+    const err = { status: 500, error: 'TraceQL structural query: a trace is deeper than the round limit of 3 rounds (8 spans) or its parent links form a cycle; raise GIGAPIPE_TRACEQL_ANCESTRY_ROUNDS' }
+    expect(diff(err, oracle.UNRESOLVED)).toEqual([])
+    expect(diff({ status: 500, error: 'boom' }, oracle.UNRESOLVED)).toEqual(['error 500: boom, want an unresolved-ancestry error'])
+    expect(diff([t('a', ['x'], 1)], oracle.UNRESOLVED)).toEqual(['want an unresolved-ancestry error, got 1 traces'])
+    expect(diff(err, [])).toEqual([`unexpected error 500: ${err.error}`])
   })
   it('reports a spanSet that differs from spanSets[0] and extra spansets', () => {
     const got = [{ ...t('a', ['x'], 1), spanSets: 2, spanSetMatchesFirst: false }]
