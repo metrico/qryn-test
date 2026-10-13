@@ -8351,6 +8351,65 @@
       }
     },
     {
+      "id": "by_coalesce_ungrouped",
+      "note": "coalesce() without by() keeps the spanset and drops its attributes.",
+      "query": "{ .shape = \"mixed\" } | count() > 5 | coalesce()",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 5
+              }
+            }
+          },
+          {
+            "coalesce": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_no_span_reference",
+      "note": "A by() expression must read the span.",
+      "query": "{ .shape = \"mixed\" } | by(1)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "num": 1
+            }
+          }
+        ]
+      }
+    },
+    {
       "id": "by_spss",
       "note": "spss caps each spanset; matched counts the whole group.",
       "query": "{ .shape = \"fanout\" } | by(.role)",

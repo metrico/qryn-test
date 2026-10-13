@@ -155,8 +155,8 @@ const compare = (m, baseline, from, to) => {
 
 /**
  * metrics returns the expected result of a metrics case: range series, or
- * instant series, or compare series; or the error result of the oracle's
- * result spans (UNRESOLVED, GROUPED).
+ * instant series, or compare series; or the error result of
+ * oracle.resultSpans().
  * @param query {Object} the case AST, with metrics
  * @param all {Object[]} from oracle.dataset()
  * @param opts {{from: number, to: number, step: number, instant?: boolean, rounds?: number, pushes?: number}}

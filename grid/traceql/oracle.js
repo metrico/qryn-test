@@ -512,6 +512,23 @@ const groupBy = (expr, sets) => {
 // coalesce merges the spansets of each trace into one without attributes.
 const coalesce = (sets) => spansetsOf(sets.flatMap(ss => ss.spans))
 
+// referencesSpan reports whether a field expression reads an attribute.
+const referencesSpan = (f) => f.attr !== undefined ||
+  [f.paren, f.expr, f.lhs, f.rhs].some(x => x !== undefined && referencesSpan(x))
+
+// checkGroupBys throws Invalid for a by() that reads no attribute.
+const checkGroupBys = (elements) => {
+  for (const e of elements) {
+    if (e.groupBy !== undefined && !referencesSpan(e.groupBy)) {
+      throw new Invalid(`grouping field expressions must reference the span: by(${canonicalField(e.groupBy)})`)
+    }
+    for (let x = e; x !== undefined; x = x.paren) {
+      if (x.pipeline !== undefined) checkGroupBys(x.pipeline)
+      if (x.spansetOp !== undefined) checkGroupBys([x.lhs, x.rhs])
+    }
+  }
+}
+
 // grouped reports whether a pipeline ends grouped when its input is grouped
 // as `input`, and throws Grouped for a spanset operator over grouped spansets.
 const grouped = (elements, input) => {
@@ -525,6 +542,8 @@ const grouped = (elements, input) => {
 }
 
 class Grouped extends Error {}
+
+class Invalid extends Error {}
 
 const spansetGrouped = (expr, input) => {
   if (expr.paren !== undefined) return spansetGrouped(expr.paren, input)
@@ -580,10 +599,10 @@ const newestFirst = (a, b) => b.start - a.start || (a.spanId < b.spanId ? 1 : a.
 /**
  * resultSpansets returns the spansets a pipeline yields, one per trace and
  * group key with its spans, attributes ([name, {type, value, text?}]) and
- * key; GROUPED for a spanset operator over grouped spansets; or UNRESOLVED
- * when ancestry does not resolve within the round limit. Operand spans start
- * in (from, to]; parents, ancestors, siblings and roots count wherever they
- * start.
+ * key. It returns GROUPED for a spanset operator over grouped spansets,
+ * {error} for a by() that reads no attribute, and UNRESOLVED when ancestry
+ * does not resolve within the round limit. Operand spans start in (from, to];
+ * parents, ancestors, siblings and roots count wherever they start.
  * @param pipeline {Object[]} the pipeline of the case AST
  * @param all {Object[]} from dataset(); with opts.pushes only the spans of
  *   the first `pushes` ingest batches count
@@ -595,10 +614,12 @@ const resultSpansets = (pipeline, all, { from, to, rounds = ROUNDS, pushes }) =>
   const ctx = { spans, byId: new Map(spans.map(s => [`${s.traceId}/${s.spanId}`, s])), reach: reachable(spans), rounds }
   try {
     grouped(pipeline, false)
+    checkGroupBys(pipeline)
     return pipelineSpansets(pipeline, inRange, ctx)
   } catch (e) {
     if (e instanceof Unresolved) return UNRESOLVED
     if (e instanceof Grouped) return GROUPED
+    if (e instanceof Invalid) return { error: e.message }
     throw e
   }
 }

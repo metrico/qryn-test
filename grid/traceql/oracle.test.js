@@ -625,6 +625,8 @@ const EXPECTED = {
   by_coalesce_operand: { mixed: [MIXED_NEWEST, 6], mixed2: [MIXED2_NEWEST, 6] },
   by_grouped_structural: oracle.GROUPED,
   by_grouped_operand: oracle.GROUPED,
+  by_coalesce_ungrouped: { mixed: [MIXED_NEWEST, 6] },
+  by_no_span_reference: { error: 'grouping field expressions must reference the span: by(1)' },
   by_spss: {
     fanout: sets(
       [['fan_c49', 'fan_c48'], 50, { 'by(.role)': strAttr('child') }],

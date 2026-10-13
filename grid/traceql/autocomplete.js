@@ -37,8 +37,8 @@ const suggestions = (spans, tag) => {
 
 /**
  * autocomplete returns the expected tags v2 or values v2 result:
- * {values: [string], superset: boolean}, or the error result of the oracle's
- * result spans (UNRESOLVED, GROUPED). values are sorted and cut to limit.
+ * {values: [string], superset: boolean}, or the error result of
+ * oracle.resultSpans(). values are sorted and cut to limit.
  * @param query {Object} the case AST
  * @param all {Object[]} from oracle.dataset()
  * @param opts {{from: number, to: number, tag?: string, limit?: number, rounds?: number, pushes?: number}}
