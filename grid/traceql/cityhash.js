@@ -4,7 +4,7 @@
 const MASK = (1n << 64n) - 1n
 const K_MUL = 0x9ddfea08eb382d69n
 
-const fetch = (bytes, at, n) => {
+const readLE = (bytes, at, n) => {
   let v = 0n
   for (let i = n - 1; i >= 0; i--) v = (v << 8n) | BigInt(bytes[at + i])
   return v
@@ -29,12 +29,12 @@ const cityHash64 = (hex) => {
   const len = bytes.length
   if (len > 16 || len < 4) throw new Error(`cityHash64: ${len} bytes`)
   if (len > 8) {
-    const a = fetch(bytes, 0, 8)
-    const b = fetch(bytes, len - 8, 8)
+    const a = readLE(bytes, 0, 8)
+    const b = readLE(bytes, len - 8, 8)
     return hashLen16(a, rotate((b + BigInt(len)) & MASK, BigInt(len))) ^ b
   }
-  const a = fetch(bytes, 0, 4)
-  return hashLen16((BigInt(len) + (a << 3n)) & MASK, fetch(bytes, len - 4, 4))
+  const a = readLE(bytes, 0, 4)
+  return hashLen16((BigInt(len) + (a << 3n)) & MASK, readLE(bytes, len - 4, 4))
 }
 
 /**

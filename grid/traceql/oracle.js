@@ -533,7 +533,11 @@ const SELECT_ERROR = 'syntax error: select() takes attributes and intrinsics onl
 
 // LISTED are the intrinsics every listed span or trace carries, so select()
 // adds nothing for them.
-const LISTED = ['duration', 'span:duration', 'rootName', 'rootServiceName']
+const LISTED = ['duration', 'span:duration', 'span:id', 'traceDuration', 'trace:duration', 'trace:id',
+  'rootName', 'trace:rootName', 'rootServiceName', 'trace:rootService']
+
+// SPAN_NAME is the key of a listed span's selected name.
+const SPAN_NAME = '#name'
 
 // isFieldName reports whether an attribute node names a scoped attribute or
 // an intrinsic.
@@ -559,19 +563,19 @@ const checkSelects = (elements) => {
 
 /**
  * selectedKeys lists the stored keys select() reads for each listed span,
- * each once; the span name is `#name`.
+ * each once; the span name is SPAN_NAME.
  * @param elements {Object[]} a pipeline
  */
 const selectedKeys = (elements) => {
   const keys = selects(elements).flat()
     .filter(f => !LISTED.includes(f.attr))
-    .map(f => (f.attr === 'name' || f.attr === 'span:name') ? '#name' : attrKey(f.attr) || INTRINSIC_KEYS[f.attr])
+    .map(f => (f.attr === 'name' || f.attr === 'span:name') ? SPAN_NAME : attrKey(f.attr) || INTRINSIC_KEYS[f.attr])
   return [...new Set(keys)]
 }
 
 // selectedValues returns a span's selected values by key, {} without any.
 const selectedValues = (span, keys) => Object.fromEntries(keys
-  .map(k => [k, span.attrs[k === '#name' ? 'name' : k]])
+  .map(k => [k, span.attrs[k === SPAN_NAME ? 'name' : k]])
   .filter(([, v]) => v !== undefined))
 
 // grouped reports whether a pipeline ends grouped when its input is grouped
@@ -659,7 +663,7 @@ const newestFirst = (a, b) => b.start - a.start || (a.spanId < b.spanId ? 1 : a.
  * group key with its spans, attributes ([name, {type, value, text?}]) and
  * key. It returns GROUPED for a spanset operator over grouped spansets,
  * {error} for a by() that reads no attribute or a select() argument that is
- * no attribute, and UNRESOLVED when ancestry
+ * neither an attribute nor an intrinsic, and UNRESOLVED when ancestry
  * does not resolve within the round limit. Operand spans start in (from, to];
  * parents, ancestors, siblings and roots count wherever they start.
  * @param pipeline {Object[]} the pipeline of the case AST
@@ -740,7 +744,7 @@ const attributeValue = ({ type, value, text }) => {
  * a trace lists them in spanSets by group key, each with its spss newest
  * result spans, matched and attributes as {name: OTLP value}, and the first
  * of them at the top level. selected maps a listed span's name to its
- * select() values, {key: text} with the span name at `#name`, for the spans
+ * select() values, {key: text} with the span name at SPAN_NAME, for the spans
  * that have any. limit counts traces by their newest result span
  * (ties by trace id, descending).
  * @param query {Object} the case AST
@@ -777,4 +781,4 @@ const search = (query, all, opts) => {
   })
 }
 
-module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, dataset, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace }
+module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, SPAN_NAME, dataset, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace }

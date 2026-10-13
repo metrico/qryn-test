@@ -107,8 +107,7 @@ const exemplarLimit = (hints) => hint(hints, 'exemplars', v => v === 'false' ? 0
 
 /**
  * sample keeps the result spans in the hash sample of fraction: by trace id
- * when the pipeline relates spans across a trace, else by span id. Dropping
- * whole traces before evaluation leaves the other traces' results as they are.
+ * when the pipeline relates spans across a trace, else by span id.
  */
 const sample = (pipeline, found, fraction) => {
   const bound = sampleThreshold(fraction)

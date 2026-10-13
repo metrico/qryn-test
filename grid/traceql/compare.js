@@ -7,16 +7,17 @@
 // value, and selected a listed span's name to its select() values.
 
 const { labelKey } = require('./metrics')
+const { SPAN_NAME } = require('./oracle')
 
 // UNRESOLVED_ERROR is the error of a search whose ancestry does not resolve
 // within the round limit.
 const UNRESOLVED_ERROR = /deeper than the round limit .*GIGAPIPE_TRACEQL_ANCESTRY_ROUNDS/
 
 // selectedOf returns a listed span's select() values: its attributes by key
-// and its name at `#name`.
+// and its name at SPAN_NAME.
 const selectedOf = (span) => {
   const out = Object.fromEntries((span.attributes || []).map(a => [a.key, a.value.stringValue]))
-  if (span.name !== undefined) out['#name'] = span.name
+  if (span.name !== undefined) out[SPAN_NAME] = span.name
   return out
 }
 
