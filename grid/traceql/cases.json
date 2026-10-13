@@ -6741,6 +6741,796 @@
           }
         ]
       }
+    },
+    {
+      "id": "nr_stage_intersection",
+      "note": "A spanset stage keeps the spans of the stage before that match it.",
+      "query": "{ .shape = \"mixed\" } | { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".svc"
+              },
+              "rhs": {
+                "str": "db"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_stage_disjoint",
+      "note": "A spanset stage intersects spans, not traces: no level-2 span is an api span.",
+      "query": "{ .lvl = \"2\" } | { .svc = \"api\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "str": "2"
+              }
+            }
+          },
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".svc"
+              },
+              "rhs": {
+                "str": "api"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_empty_selector",
+      "note": "{} after a stage keeps that stage's spans.",
+      "query": "{ .svc = \"db\" } | {}",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".svc"
+              },
+              "rhs": {
+                "str": "db"
+              }
+            }
+          },
+          {
+            "selector": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_child",
+      "note": "Both operands of > come from the stage before: a1's parent a is not among them.",
+      "query": "{ .lvl = \"0\" || .op = \"write\" || .svc = \"db\" } | {} > {}",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "||",
+              "lhs": {
+                "op": "||",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".lvl"
+                  },
+                  "rhs": {
+                    "str": "0"
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".op"
+                  },
+                  "rhs": {
+                    "str": "write"
+                  }
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          },
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": null
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_sibling",
+      "note": "Siblings among the stage's spans: a1 and a2 share a; b1 has no sibling there.",
+      "query": "{ .svc = \"db\" || .svc = \"cache\" } | {} ~ {}",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "||",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "cache"
+                }
+              }
+            }
+          },
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": null
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_pivot",
+      "note": "A pivot filter after a stage reads only its spans: am_str fails the duration filter.",
+      "query": "{ .shape = \"attrs\" && duration < 100ms } | { .v = .w }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "attrs"
+                }
+              },
+              "rhs": {
+                "op": "<",
+                "lhs": {
+                  "attr": "duration"
+                },
+                "rhs": {
+                  "dur": "100ms"
+                }
+              }
+            }
+          },
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".v"
+              },
+              "rhs": {
+                "attr": ".w"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_descendant_through_failed",
+      "note": "An ancestor that failed the stage before still links its descendants: root reaches a1 and b1 through a and b.",
+      "query": "{ .lvl = \"2\" || .lvl = \"0\" } | { .lvl = \"0\" } >> { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "||",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "0"
+                }
+              }
+            }
+          },
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "0"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_ancestor_through_failed",
+      "note": "<< finds the root above db spans through the level-1 spans the stage dropped.",
+      "query": "{ .lvl != \"1\" } | { .svc = \"db\" } << {}",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "!=",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "str": "1"
+              }
+            }
+          },
+          {
+            "spansetOp": "<<",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_chain_failed_link",
+      "note": "c8_3 fails the first stage; the spans below it still descend from c8_0.",
+      "query": "{ .chain = \"8\" && .depth != \"3\" } | { .depth = \"0\" } >> {}",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "8"
+                }
+              },
+              "rhs": {
+                "op": "!=",
+                "lhs": {
+                  "attr": ".depth"
+                },
+                "rhs": {
+                  "str": "3"
+                }
+              }
+            }
+          },
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".depth"
+                },
+                "rhs": {
+                  "str": "0"
+                }
+              }
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_union_descendant",
+      "note": "&>> after a stage returns the narrowed db spans and the root they descend from.",
+      "query": "{ .lvl != \"1\" } | { .lvl = \"0\" } &>> { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "!=",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "str": "1"
+              }
+            }
+          },
+          {
+            "spansetOp": "&>>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "0"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_not_descendant_empty_lhs",
+      "note": "The api spans are not level-2 spans, so the LHS is empty and !>> returns every candidate.",
+      "query": "{ .lvl = \"2\" } | { .svc = \"api\" } !>> {}",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "str": "2"
+              }
+            }
+          },
+          {
+            "spansetOp": "!>>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "api"
+                }
+              }
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_scalar_then_stage",
+      "note": "A spanset stage keeps the attributes of the scalar filter before it.",
+      "query": "{ .shape = \"mixed\" } | count() > 5 | { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 5
+              }
+            }
+          },
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".svc"
+              },
+              "rhs": {
+                "str": "db"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_stage_then_scalar",
+      "note": "Attributes accumulate across a spanset stage; the next aggregate reads its spans.",
+      "query": "{ .shape = \"mixed\" } | count() > 5 | { .lvl = \"2\" } | avg(duration) > 20ms",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 5
+              }
+            }
+          },
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "str": "2"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "avg",
+                "attr": "duration"
+              },
+              "rhs": {
+                "dur": "20ms"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_stage_then_scalar_fails",
+      "note": "A scalar filter after a spanset stage counts only that stage's spans.",
+      "query": "{ .shape = \"mixed\" } | { .lvl = \"2\" } | count() > 3",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "str": "2"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_paren_operand",
+      "note": "A parenthesised pipeline operand draws from the stage before; its attributes are dropped.",
+      "query": "{ .shape = \"mixed\" } | count() > 5 | ({ .lvl = \"1\" } | count() = 2) > { .svc = \"db\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 5
+              }
+            }
+          },
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "paren": {
+                "pipeline": [
+                  {
+                    "selector": {
+                      "op": "=",
+                      "lhs": {
+                        "attr": ".lvl"
+                      },
+                      "rhs": {
+                        "str": "1"
+                      }
+                    }
+                  },
+                  {
+                    "scalarFilter": {
+                      "op": "=",
+                      "lhs": {
+                        "agg": "count"
+                      },
+                      "rhs": {
+                        "num": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_paren_stage",
+      "note": "A parenthesised pipeline as a stage appends its attributes to the kept ones.",
+      "query": "{ .shape = \"mixed\" } | count() > 5 | ({ .lvl = \"2\" } | max(duration) > 40ms)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 5
+              }
+            }
+          },
+          {
+            "paren": {
+              "pipeline": [
+                {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".lvl"
+                    },
+                    "rhs": {
+                      "str": "2"
+                    }
+                  }
+                },
+                {
+                  "scalarFilter": {
+                    "op": ">",
+                    "lhs": {
+                      "agg": "max",
+                      "attr": "duration"
+                    },
+                    "rhs": {
+                      "dur": "40ms"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_bare_count_then_stage",
+      "note": "A spanset stage after a bare scalar filter reads the spans of the traces it keeps.",
+      "query": "count() = 8 | { .depth = \"7\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "scalarFilter": {
+              "op": "=",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 8
+              }
+            }
+          },
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".depth"
+              },
+              "rhs": {
+                "str": "7"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_unresolved_full_tree",
+      "note": "Ancestry reads the whole tree: c9_8 is 8 links from the root although it is the only candidate.",
+      "query": "{ .chain = \"9\" && .depth = \"8\" } | {} >> {}",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".chain"
+                },
+                "rhs": {
+                  "str": "9"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".depth"
+                },
+                "rhs": {
+                  "str": "8"
+                }
+              }
+            }
+          },
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": null
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
     }
   ],
   "metrics": [
@@ -8236,6 +9026,144 @@
           "fn": "count_over_time"
         }
       }
+    },
+    {
+      "id": "m_nr_descendant",
+      "note": "Metrics count the narrowed >> result: a1 and b1 of both trees.",
+      "query": "{ .lvl = \"2\" || .lvl = \"0\" } | { .lvl = \"0\" } >> { .svc = \"db\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "||",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "0"
+                }
+              }
+            }
+          },
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "0"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_nr_sibling",
+      "note": "Metrics count the narrowed ~ result: a1 and a2 of both trees.",
+      "query": "{ .svc = \"db\" || .svc = \"cache\" } | {} ~ {} | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "||",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "cache"
+                }
+              }
+            }
+          },
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": null
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_nr_stage",
+      "note": "Metrics count a span-level stage intersection.",
+      "query": "{ .shape = \"mixed\" } | { .svc = \"db\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".svc"
+              },
+              "rhs": {
+                "str": "db"
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
     }
   ],
   "autocomplete": [
@@ -8841,6 +9769,85 @@
               "rhs": {
                 "attr": ".w"
               }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_narrowed",
+      "note": "Autocomplete suggests from the narrowed >> result.",
+      "query": "{ .lvl = \"2\" || .lvl = \"0\" } | { .lvl = \"0\" } >> {}",
+      "tag": "name",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "||",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "0"
+                }
+              }
+            }
+          },
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "0"
+                }
+              }
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_tags_narrowed",
+      "note": "Autocomplete suggests the tags of the narrowed ~ result: a1 and a2.",
+      "query": "{ .lvl != \"1\" } | {} ~ {}",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "!=",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "str": "1"
+              }
+            }
+          },
+          {
+            "spansetOp": "~",
+            "lhs": {
+              "selector": null
+            },
+            "rhs": {
+              "selector": null
             }
           }
         ]

@@ -450,19 +450,35 @@ const spansetsOf = (spans) => {
   return [...byTrace.values()].map(ss => ({ traceId: ss[0].traceId, spans: ss, attributes: [] }))
 }
 
-// pipelineSpansets evaluates a pipeline over spans, the operand candidates:
-// a spanset expression and then scalar filters, or scalar filters over every
-// span.
+// lonePipeline returns the elements of a parenthesised pipeline, or null.
+const lonePipeline = (expr) => {
+  while (expr.paren !== undefined) expr = expr.paren
+  return expr.pipeline !== undefined ? expr.pipeline : null
+}
+
+// spansetStage evaluates a spanset expression over one input spanset: its
+// spans are the operand candidates, and its attributes are kept, followed by
+// those of a lone parenthesised pipeline.
+const spansetStage = (expr, input, ctx) => {
+  const inner = lonePipeline(expr)
+  if (inner !== null) {
+    return pipelineSpansets(inner, input.spans, ctx).map(ss => ({ ...ss, attributes: [...input.attributes, ...ss.attributes] }))
+  }
+  return spansetsOf(spansetSpans(expr, input.spans, ctx)).map(ss => ({ ...ss, attributes: input.attributes }))
+}
+
+// pipelineSpansets evaluates a pipeline over spans, the operand candidates of
+// its first stage. Each later stage reads the spansets of the stage before:
+// a spanset expression draws its operands from each spanset's spans, while
+// ancestry still reads every span of the trace.
 const pipelineSpansets = (elements, spans, ctx) => {
   let sets = null
-  elements.forEach((e, i) => {
-    if (e.scalarFilter !== undefined) {
-      sets = scalarFilter(e.scalarFilter, sets || spansetsOf(spans))
-      return
-    }
-    if (i > 0) throw new Error('oracle: unsupported spanset filter after a pipeline stage')
-    sets = spansetsOf(spansetSpans(e, spans, ctx))
-  })
+  for (const e of elements) {
+    const input = sets || [{ spans, attributes: [] }]
+    sets = e.scalarFilter !== undefined
+      ? scalarFilter(e.scalarFilter, sets || spansetsOf(spans))
+      : input.flatMap(ss => spansetStage(e, ss, ctx))
+  }
   return sets
 }
 

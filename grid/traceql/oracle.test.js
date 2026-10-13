@@ -489,7 +489,29 @@ const EXPECTED = {
   fe_agg_avg_div: { attrs: [ATTRS_NEWEST, 8, { 'avg(.v / 2)': doubleAttr(33.25) }] },
   fe_agg_duration_expr: { attrs: [ATTRS_NEWEST, 8, { 'max(duration * 2)': durationAttr('1s') }] },
   fe_agg_canonical: { attrs: [ATTRS_NEWEST, 8, { 'min(.w - (.v * 2))': intAttr(-200) }] },
-  fe_agg_all_nil: {}
+  fe_agg_all_nil: {},
+  // Narrowing. The mixed trees' level-0, level-1 and level-2 spans are root;
+  // a and b; a1, a2 and b1. a1 and b1 are db, a2 cache, a and b api.
+  nr_stage_intersection: { mixed: [['mix_b1', 'mix_a1'], 2] },
+  nr_stage_disjoint: {},
+  nr_empty_selector: { mixed: [['mix_b1', 'mix_a1'], 2], mixed2: [['mix2_b1', 'mix2_a1'], 2] },
+  nr_child: { mixed: [['mix_b1', 'mix_b'], 2], mixed2: [['mix2_b1', 'mix2_b'], 2] },
+  nr_sibling: { mixed: [['mix_a2', 'mix_a1'], 2], mixed2: [['mix2_a2', 'mix2_a1'], 2] },
+  nr_pivot: { attrs: [['am_int'], 1] },
+  nr_descendant_through_failed: { mixed: [['mix_b1', 'mix_a1'], 2], mixed2: [['mix2_b1', 'mix2_a1'], 2] },
+  nr_ancestor_through_failed: { mixed: [['mix_root'], 1], mixed2: [['mix2_root'], 1] },
+  nr_chain_failed_link: { chain8: [['c8_7', 'c8_6', 'c8_5'], 6] },
+  nr_union_descendant: { mixed: [['mix_b1', 'mix_a1', 'mix_root'], 3], mixed2: [['mix2_b1', 'mix2_a1', 'mix2_root'], 3] },
+  nr_not_descendant_empty_lhs: { mixed: [MIXED_NEWEST, 3], mixed2: [MIXED2_NEWEST, 3] },
+  nr_scalar_then_stage: { mixed: [['mix_b1', 'mix_a1'], 2, { 'count()': intAttr(6) }] },
+  nr_stage_then_scalar: {
+    mixed: [MIXED_NEWEST, 3, { 'count()': intAttr(6), 'avg(duration)': durationAttr('26.666666ms') }]
+  },
+  nr_stage_then_scalar_fails: {},
+  nr_paren_operand: { mixed: [['mix_b1', 'mix_a1'], 2, { 'count()': intAttr(6) }] },
+  nr_paren_stage: { mixed: [MIXED_NEWEST, 3, { 'count()': intAttr(6), 'max(duration)': durationAttr('45ms') }] },
+  nr_bare_count_then_stage: { chain8: [['c8_7'], 1, { 'count()': intAttr(8) }] },
+  nr_unresolved_full_tree: oracle.UNRESOLVED
 }
 
 describe('traceql oracle on hand-checked results', () => {
@@ -595,9 +617,7 @@ describe('traceql oracle rules', () => {
     expect(m({ op: '>', lhs: { attr: 'duration' }, rhs: { num: 999999 } })).toBe(true)
   })
 
-  it('rejects a spanset filter after a pipeline stage and a literal on the left', () => {
-    const count = { scalarFilter: { op: '>', lhs: { agg: 'count' }, rhs: { num: 1 } } }
-    expect(() => oracle.search({ pipeline: [sel(null).pipeline[0], count, sel(null).pipeline[0]] }, spans, opts)).toThrow(/unsupported/)
+  it('rejects a literal on the left of a scalar filter', () => {
     const flipped = { scalarFilter: { op: '<', lhs: { num: 1 }, rhs: { agg: 'count' } } }
     expect(() => oracle.search({ pipeline: [sel(null).pipeline[0], flipped] }, spans, opts)).toThrow(/aggregate/)
   })
@@ -696,7 +716,10 @@ const EXPECTED_METRICS = {
   m_agg_gate_fails: {},
   m_agg_bare: count({ 0: 22, 1: 40, 2: 9 }),
   m_fe_attr_eq_attr: count({ 2: 2 }),
-  m_fe_not: count({ 2: 7 })
+  m_fe_not: count({ 2: 7 }),
+  m_nr_descendant: count({ 2: 4 }),
+  m_nr_sibling: count({ 2: 4 }),
+  m_nr_stage: count({ 2: 2 })
 }
 
 // compare() over the DESC_SPANS spans with selection `.db.system = "postgres"` (mix_a1 and
@@ -844,7 +867,9 @@ const EXPECTED_AUTOCOMPLETE = {
   ac_values_range: ['eb_from', 'eb_root', 'ec_mid'],
   ac_tags_unresolved: oracle.UNRESOLVED,
   ac_values_agg: ['mix_a1', 'mix_a2', 'mix_b1'],
-  ac_values_field: ['am_int', 'am_str']
+  ac_values_field: ['am_int', 'am_str'],
+  ac_values_narrowed: ['mix2_a1', 'mix2_a2', 'mix2_b1', 'mix_a1', 'mix_a2', 'mix_b1'],
+  ac_tags_narrowed: [...SPAN_KEYS, 'db.system', 'lvl', 'svc']
 }
 
 describe('traceql autocomplete oracle on hand-checked results', () => {
