@@ -7531,6 +7531,96 @@
           }
         ]
       }
+    },
+    {
+      "id": "nr_and",
+      "note": "&& after a stage draws both sides from it: the root is not a level-2 span.",
+      "query": "{ .lvl = \"2\" } | { .svc = \"db\" } && { .lvl = \"0\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "str": "2"
+              }
+            }
+          },
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "0"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "nr_or",
+      "note": "|| after a stage keeps the stage's spans that match either side.",
+      "query": "{ .lvl = \"2\" } | { .svc = \"db\" } || { .lvl = \"0\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "str": "2"
+              }
+            }
+          },
+          {
+            "spansetOp": "||",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "db"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "0"
+                }
+              }
+            }
+          }
+        ]
+      }
     }
   ],
   "metrics": [

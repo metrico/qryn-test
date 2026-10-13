@@ -511,7 +511,9 @@ const EXPECTED = {
   nr_paren_operand: { mixed: [['mix_b1', 'mix_a1'], 2, { 'count()': intAttr(6) }] },
   nr_paren_stage: { mixed: [MIXED_NEWEST, 3, { 'count()': intAttr(6), 'max(duration)': durationAttr('45ms') }] },
   nr_bare_count_then_stage: { chain8: [['c8_7'], 1, { 'count()': intAttr(8) }] },
-  nr_unresolved_full_tree: oracle.UNRESOLVED
+  nr_unresolved_full_tree: oracle.UNRESOLVED,
+  nr_and: {},
+  nr_or: { mixed: [['mix_b1', 'mix_a1'], 2], mixed2: [['mix2_b1', 'mix2_a1'], 2] }
 }
 
 describe('traceql oracle on hand-checked results', () => {

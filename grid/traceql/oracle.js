@@ -469,15 +469,16 @@ const spansetStage = (expr, input, ctx) => {
 
 // pipelineSpansets evaluates a pipeline over spans, the operand candidates of
 // its first stage. Each later stage reads the spansets of the stage before:
-// a spanset expression draws its operands from each spanset's spans, while
-// ancestry still reads every span of the trace.
+// a spanset expression draws its operands from each spanset's spans, and
+// ancestry reads every span of the trace.
 const pipelineSpansets = (elements, spans, ctx) => {
   let sets = null
   for (const e of elements) {
-    const input = sets || [{ spans, attributes: [] }]
-    sets = e.scalarFilter !== undefined
-      ? scalarFilter(e.scalarFilter, sets || spansetsOf(spans))
-      : input.flatMap(ss => spansetStage(e, ss, ctx))
+    if (e.scalarFilter !== undefined) {
+      sets = scalarFilter(e.scalarFilter, sets || spansetsOf(spans))
+      continue
+    }
+    sets = (sets || [{ spans, attributes: [] }]).flatMap(ss => spansetStage(e, ss, ctx))
   }
   return sets
 }
