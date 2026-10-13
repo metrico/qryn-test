@@ -2,6 +2,7 @@
 // the oracle's result spans, which are exactly the spans search returns.
 
 const oracle = require('./oracle')
+const { cityHash64, sampleThreshold } = require('./cityhash')
 
 // INTRINSIC_LABELS maps by-labels gigapipe reads from the spans table.
 const INTRINSIC_LABELS = {
@@ -77,15 +78,64 @@ const groupOf = (m, s) => {
   return Object.fromEntries((m.by || []).map(l => [l, byValue(s, l)]))
 }
 
+// hint returns the value of the first hint named key that parse accepts
+// (returns non-null), or null.
+const hint = (hints, key, parse) => {
+  for (const [k, v] of hints || []) {
+    if (k !== key) continue
+    const x = parse(v)
+    if (x !== null) return x
+  }
+  return null
+}
+
+/**
+ * sampleFraction is the sample hint when it is a number in (0, 1), or null.
+ * @param hints {Array<[string, string]>|undefined}
+ */
+const sampleFraction = (hints) => {
+  const f = hint(hints, 'sample', v => /^\d+(\.\d+)?$/.test(v) ? Number(v) : null)
+  return f !== null && f > 0 && f < 1 ? f : null
+}
+
+/**
+ * exemplarLimit is the exemplars hint: the cap per series, 0 for false, or
+ * null without one.
+ * @param hints {Array<[string, string]>|undefined}
+ */
+const exemplarLimit = (hints) => hint(hints, 'exemplars', v => v === 'false' ? 0 : /^\d+$/.test(v) ? Number(v) : null)
+
+/**
+ * sample keeps the result spans in the hash sample of fraction: by trace id
+ * when the pipeline relates spans across a trace, else by span id. Dropping
+ * whole traces before evaluation leaves the other traces' results as they are.
+ */
+const sample = (pipeline, found, fraction) => {
+  const bound = sampleThreshold(fraction)
+  const id = oracle.needsWholeTrace(pipeline) ? s => s.traceId : s => s.spanId
+  return found.filter(s => cityHash64(id(s)) < bound)
+}
+
+/**
+ * thin keeps limit of the sorted items, spread evenly: item
+ * floor((2i+1)·n / 2·limit) for i < limit; all of them when limit is null or
+ * at least their number.
+ */
+const thin = (items, limit) => limit === null || items.length <= limit
+  ? items
+  : Array.from({ length: limit }, (_, i) => items[Math.floor((2 * i + 1) * items.length / (2 * limit))])
+
 /**
  * range returns the expected series of a range query:
- * [{labels, samples: {ts (ms): value}, buckets: {ts: [span]}}], with zero
- * values left out. Spans fall in the step bucket of their start time.
+ * [{labels, samples: {ts (ms): value}, buckets: {ts: [span]}, exemplarBuckets: [ts]}],
+ * with zero values left out. Spans fall in the step bucket of their start
+ * time; exemplarBuckets are the buckets with an exemplar, in order.
  * @param m {Object} the metrics node of the case AST
  * @param found {Object[]} the result spans
  * @param step {number} ms
+ * @param limit {number|null} the exemplar cap per series
  */
-const range = (m, found, step) => {
+const range = (m, found, step, limit = null) => {
   const series = new Map()
   for (const s of found) {
     const group = groupOf(m, s)
@@ -101,7 +151,8 @@ const range = (m, found, step) => {
       const v = aggregate(m, spans, step / 1000)
       if (v !== 0) samples[ts] = v
     }
-    return { labels, samples, buckets }
+    const exemplarBuckets = thin(Object.keys(buckets).map(Number).sort((a, b) => a - b), limit)
+    return { labels, samples, buckets, exemplarBuckets }
   })
 }
 
@@ -156,18 +207,20 @@ const compare = (m, baseline, from, to) => {
 /**
  * metrics returns the expected result of a metrics case: range series, or
  * instant series, or compare series; or the error result of
- * oracle.resultSpans().
+ * oracle.resultSpans(). The query's sample and exemplars hints apply.
  * @param query {Object} the case AST, with metrics
  * @param all {Object[]} from oracle.dataset()
  * @param opts {{from: number, to: number, step: number, instant?: boolean, rounds?: number, pushes?: number}}
  */
 const metrics = (query, all, opts) => {
   const m = query.metrics
-  const found = oracle.resultSpans(query.pipeline, all, opts)
+  let found = oracle.resultSpans(query.pipeline, all, opts)
   if (found.error) return found
+  const fraction = sampleFraction(query.hints)
+  if (fraction !== null) found = sample(query.pipeline, found, fraction)
   if (m.fn === 'compare') return compare(m, found, opts.from, opts.to)
   if (opts.instant) return m.fn === 'histogram_over_time' ? [] : instant(m, found, opts.from, opts.to)
-  return range(m, found, opts.step)
+  return range(m, found, opts.step, exemplarLimit(query.hints))
 }
 
-module.exports = { metrics, labelKey, histogramBucket }
+module.exports = { metrics, labelKey, histogramBucket, sampleFraction, exemplarLimit, thin }

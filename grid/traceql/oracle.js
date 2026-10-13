@@ -529,6 +529,51 @@ const checkGroupBys = (elements) => {
   }
 }
 
+const SELECT_ERROR = 'syntax error: select() takes attributes and intrinsics only'
+
+// LISTED are the intrinsics every listed span or trace carries, so select()
+// adds nothing for them.
+const LISTED = ['duration', 'span:duration', 'rootName', 'rootServiceName']
+
+// isFieldName reports whether an attribute node names a scoped attribute or
+// an intrinsic.
+const isFieldName = (attr) => attrKey(attr) !== null || INTRINSIC_KEYS[attr] !== undefined || LISTED.includes(attr)
+
+// selects returns the select() stages of a pipeline, nested pipelines included.
+const selects = (elements) => elements.flatMap(e => {
+  if (e.select !== undefined) return [e.select]
+  for (let x = e; x !== undefined; x = x.paren) {
+    if (x.pipeline !== undefined) return selects(x.pipeline)
+    if (x.spansetOp !== undefined) return selects([x.lhs, x.rhs])
+  }
+  return []
+})
+
+// checkSelects throws Invalid for a select() argument other than an
+// attribute or an intrinsic.
+const checkSelects = (elements) => {
+  for (const fields of selects(elements)) {
+    if (fields.some(f => f.attr === undefined || !isFieldName(f.attr))) throw new Invalid(SELECT_ERROR)
+  }
+}
+
+/**
+ * selectedKeys lists the stored keys select() reads for each listed span,
+ * each once; the span name is `#name`.
+ * @param elements {Object[]} a pipeline
+ */
+const selectedKeys = (elements) => {
+  const keys = selects(elements).flat()
+    .filter(f => !LISTED.includes(f.attr))
+    .map(f => (f.attr === 'name' || f.attr === 'span:name') ? '#name' : attrKey(f.attr) || INTRINSIC_KEYS[f.attr])
+  return [...new Set(keys)]
+}
+
+// selectedValues returns a span's selected values by key, {} without any.
+const selectedValues = (span, keys) => Object.fromEntries(keys
+  .map(k => [k, span.attrs[k === '#name' ? 'name' : k]])
+  .filter(([, v]) => v !== undefined))
+
 // grouped reports whether a pipeline ends grouped when its input is grouped
 // as `input`, and throws Grouped for a spanset operator over grouped spansets.
 const grouped = (elements, input) => {
@@ -586,12 +631,25 @@ const pipelineSpansets = (elements, spans, ctx) => {
       sets = groupBy(e.groupBy, sets || spansetsOf(spans))
     } else if (e.coalesce !== undefined) {
       sets = coalesce(sets)
+    } else if (e.select !== undefined) {
+      sets = sets || spansetsOf(spans)
     } else {
       sets = (sets || [{ spans, attributes: [], key: [] }]).flatMap(ss => spansetStage(e, ss, ctx))
     }
   }
   return sets
 }
+
+// needsWholeTrace reports whether a pipeline relates spans across a trace:
+// through a spanset operator, a scalar filter or a by() stage.
+const needsWholeTrace = (elements) => elements.some(e => {
+  if (e.scalarFilter !== undefined || e.groupBy !== undefined) return true
+  for (let x = e; x !== undefined; x = x.paren) {
+    if (x.spansetOp !== undefined) return true
+    if (x.pipeline !== undefined) return needsWholeTrace(x.pipeline)
+  }
+  return false
+})
 
 // newestFirst orders spans by start time, then span id, both descending.
 const newestFirst = (a, b) => b.start - a.start || (a.spanId < b.spanId ? 1 : a.spanId > b.spanId ? -1 : 0)
@@ -600,7 +658,8 @@ const newestFirst = (a, b) => b.start - a.start || (a.spanId < b.spanId ? 1 : a.
  * resultSpansets returns the spansets a pipeline yields, one per trace and
  * group key with its spans, attributes ([name, {type, value, text?}]) and
  * key. It returns GROUPED for a spanset operator over grouped spansets,
- * {error} for a by() that reads no attribute, and UNRESOLVED when ancestry
+ * {error} for a by() that reads no attribute or a select() argument that is
+ * no attribute, and UNRESOLVED when ancestry
  * does not resolve within the round limit. Operand spans start in (from, to];
  * parents, ancestors, siblings and roots count wherever they start.
  * @param pipeline {Object[]} the pipeline of the case AST
@@ -613,6 +672,7 @@ const resultSpansets = (pipeline, all, { from, to, rounds = ROUNDS, pushes }) =>
   const inRange = spans.filter(s => s.start > from && s.start <= to)
   const ctx = { spans, byId: new Map(spans.map(s => [`${s.traceId}/${s.spanId}`, s])), reach: reachable(spans), rounds }
   try {
+    checkSelects(pipeline)
     grouped(pipeline, false)
     checkGroupBys(pipeline)
     return pipelineSpansets(pipeline, inRange, ctx)
@@ -675,11 +735,13 @@ const attributeValue = ({ type, value, text }) => {
 
 /**
  * search returns the expected traces of a search, newest first:
- * [{trace, traceId, spans: [span name, ...], matched, attributes, spanSets}],
+ * [{trace, traceId, spans: [span name, ...], matched, attributes, selected, spanSets}],
  * or the error result of resultSpansets(). The spansets are resultSpansets();
  * a trace lists them in spanSets by group key, each with its spss newest
  * result spans, matched and attributes as {name: OTLP value}, and the first
- * of them at the top level. limit counts traces by their newest result span
+ * of them at the top level. selected maps a listed span's name to its
+ * select() values, {key: text} with the span name at `#name`, for the spans
+ * that have any. limit counts traces by their newest result span
  * (ties by trace id, descending).
  * @param query {Object} the case AST
  * @param all {Object[]} from dataset()
@@ -700,14 +762,19 @@ const search = (query, all, opts) => {
     return { traceId: tss[0].traceId, trace: tss[0].spans[0].trace, newest, sets: tss }
   })
   traces.sort((a, b) => b.newest - a.newest || (a.traceId < b.traceId ? 1 : -1))
+  const keys = selectedKeys(query.pipeline)
   return traces.slice(0, limit).map(t => {
-    const spanSets = t.sets.map(ss => ({
-      spans: ss.spans.slice(0, spss).map(s => s.name),
-      matched: ss.spans.length,
-      attributes: Object.fromEntries(ss.attributes.map(([k, v]) => [k, attributeValue(v)]))
-    }))
+    const spanSets = t.sets.map(ss => {
+      const listed = ss.spans.slice(0, spss)
+      return {
+        spans: listed.map(s => s.name),
+        matched: ss.spans.length,
+        attributes: Object.fromEntries(ss.attributes.map(([k, v]) => [k, attributeValue(v)])),
+        selected: Object.fromEntries(listed.map(s => [s.name, selectedValues(s, keys)]).filter(([, v]) => Object.keys(v).length))
+      }
+    })
     return { trace: t.trace, traceId: t.traceId, ...spanSets[0], spanSets }
   })
 }
 
-module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, dataset, matches, resultSpans, search, durationNs, goDuration }
+module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, dataset, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace }

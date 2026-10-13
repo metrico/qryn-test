@@ -8460,6 +8460,284 @@
           }
         ]
       }
+    },
+    {
+      "id": "sel_attrs",
+      "note": "select() adds the scoped attributes to each listed span.",
+      "query": "{ .shape = \"mixed\" } | select(.svc, span.op, resource.lvl)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": ".svc"
+              },
+              {
+                "attr": "span.op"
+              },
+              {
+                "attr": "resource.lvl"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_intrinsics",
+      "note": "name is the span name; status is an attribute; duration and rootName add nothing.",
+      "query": "{ .svc = \"api\" } | select(name, status, duration, rootName)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".svc"
+              },
+              "rhs": {
+                "str": "api"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "name"
+              },
+              {
+                "attr": "status"
+              },
+              {
+                "attr": "duration"
+              },
+              {
+                "attr": "rootName"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_leading",
+      "note": "A leading select() reads every span and filters nothing.",
+      "query": "select(.idx) | { .role = \"grandchild\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "select": [
+              {
+                "attr": ".idx"
+              }
+            ]
+          },
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".role"
+              },
+              "rhs": {
+                "str": "grandchild"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_missing",
+      "note": "Spans without the attribute get no value.",
+      "query": "{ .shape = \"attrs\" } | select(.v)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "attrs"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": ".v"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_nested",
+      "note": "select() in a nested pipeline adds its values to the result spans too.",
+      "query": "({ .svc = \"gateway\" } | select(.http.method)) &>> { .lvl = \"2\" } | select(.db.system)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&>>",
+            "lhs": {
+              "paren": {
+                "pipeline": [
+                  {
+                    "selector": {
+                      "op": "=",
+                      "lhs": {
+                        "attr": ".svc"
+                      },
+                      "rhs": {
+                        "str": "gateway"
+                      }
+                    }
+                  },
+                  {
+                    "select": [
+                      {
+                        "attr": ".http.method"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": ".db.system"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_by",
+      "note": "Selected values follow each span into its by() spanset.",
+      "query": "{ .shape = \"mixed\" } | by(.lvl) | select(.svc)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".lvl"
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": ".svc"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_field_expression",
+      "note": "select() takes no field expression.",
+      "query": "{ .shape = \"mixed\" } | select(.lvl + 1)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "op": "+",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 1
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "hints_ignored_by_search",
+      "note": "Search ignores sample, exemplars and most_recent.",
+      "query": "{ .shape = \"mixed\" } with(sample=0.01, exemplars=1, most_recent=true)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          }
+        ],
+        "hints": [
+          [
+            "sample",
+            "0.01"
+          ],
+          [
+            "exemplars",
+            "1"
+          ],
+          [
+            "most_recent",
+            "true"
+          ]
+        ]
+      }
     }
   ],
   "metrics": [
@@ -10215,6 +10493,335 @@
         "metrics": {
           "fn": "count_over_time"
         }
+      }
+    },
+    {
+      "id": "m_select",
+      "note": "select() before a metrics function has no effect.",
+      "query": "{ .shape = \"mixed\" } | select(.svc) | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": ".svc"
+              }
+            ]
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_sample_span",
+      "note": "A single selector samples by span id.",
+      "query": "{ .shape = \"fanout\" } | count_over_time() with(sample=0.5)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "fanout"
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        },
+        "hints": [
+          [
+            "sample",
+            "0.5"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "m_sample_one_hop",
+      "note": "A structural query samples by trace id; surviving traces keep their whole tree.",
+      "query": "{} > { .shape != \"chain\" } | count_over_time() with(sample=0.5)",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": null
+            },
+            "rhs": {
+              "selector": {
+                "op": "!=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "chain"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        },
+        "hints": [
+          [
+            "sample",
+            "0.5"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "m_sample_agg",
+      "note": "A scalar filter samples by trace id, so it counts whole traces.",
+      "query": "{ .shape != \"chain\" } | count() > 3 | count_over_time() with(sample=0.5)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "!=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "chain"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 3
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        },
+        "hints": [
+          [
+            "sample",
+            "0.5"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "m_sample_ignored",
+      "note": "sample=true, most_recent and unknown hints are ignored.",
+      "query": "{ .shape = \"mixed\" } | count_over_time() with(sample=true, most_recent=true, foo=1)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        },
+        "hints": [
+          [
+            "sample",
+            "true"
+          ],
+          [
+            "most_recent",
+            "true"
+          ],
+          [
+            "foo",
+            "1"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "m_exemplars_n",
+      "note": "exemplars=N keeps N exemplars per series, spread over the range.",
+      "query": "{ .shape = \"fanout\" } | count_over_time() with(exemplars=3)",
+      "step": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "fanout"
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        },
+        "hints": [
+          [
+            "exemplars",
+            "3"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "m_exemplars_false",
+      "note": "exemplars=false returns no exemplars.",
+      "query": "{ .shape = \"fanout\" } | count_over_time() with(exemplars=false)",
+      "step": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "fanout"
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        },
+        "hints": [
+          [
+            "exemplars",
+            "false"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "m_exemplars_by",
+      "note": "The exemplar cap applies per series.",
+      "query": "{ .shape = \"fanout\" } | count_over_time() by (span.role) with(exemplars=2)",
+      "step": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "fanout"
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time",
+          "by": [
+            "span.role"
+          ]
+        },
+        "hints": [
+          [
+            "exemplars",
+            "2"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "m_exemplars_histogram",
+      "note": "histogram_over_time() caps exemplars per bucket series.",
+      "query": "{ .shape = \"fanout\" } | histogram_over_time(duration) with(exemplars=2)",
+      "step": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "fanout"
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "histogram_over_time",
+          "attr": "duration"
+        },
+        "hints": [
+          [
+            "exemplars",
+            "2"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "m_exemplars_sampled",
+      "note": "Exemplars come from the sampled result spans.",
+      "query": "{ .shape = \"fanout\" } | count_over_time() with(sample=0.5, exemplars=2)",
+      "step": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "fanout"
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        },
+        "hints": [
+          [
+            "sample",
+            "0.5"
+          ],
+          [
+            "exemplars",
+            "2"
+          ]
+        ]
       }
     }
   ],

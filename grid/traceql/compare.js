@@ -1,15 +1,24 @@
 // Normalises TraceQL search, metrics and autocomplete responses and diffs
 // them against the oracle. A search result is
-// [{trace, spans: [span name, ...], matched, attributes, spanSets}], or
-// {status, error} for a failed search; spanSets lists every spanset of the
-// trace as {spans, matched, attributes} and the first is also at the top
-// level; attributes maps a spanset attribute's name to its OTLP value.
+// [{trace, spans: [span name, ...], matched, attributes, selected, spanSets}],
+// or {status, error} for a failed search; spanSets lists every spanset of the
+// trace as {spans, matched, attributes, selected} and the first is also at
+// the top level; attributes maps a spanset attribute's name to its OTLP
+// value, and selected a listed span's name to its select() values.
 
 const { labelKey } = require('./metrics')
 
 // UNRESOLVED_ERROR is the error of a search whose ancestry does not resolve
 // within the round limit.
 const UNRESOLVED_ERROR = /deeper than the round limit .*GIGAPIPE_TRACEQL_ANCESTRY_ROUNDS/
+
+// selectedOf returns a listed span's select() values: its attributes by key
+// and its name at `#name`.
+const selectedOf = (span) => {
+  const out = Object.fromEntries((span.attributes || []).map(a => [a.key, a.value.stringValue]))
+  if (span.name !== undefined) out['#name'] = span.name
+  return out
+}
 
 /**
  * fromApi maps a search response's ids back to seed names.
@@ -21,7 +30,8 @@ const fromApi = (body, names) => body.traces.map(t => {
   const spanSets = (t.spanSets || []).map(set => ({
     spans: set.spans.map(s => name(s.spanID, 'span')),
     matched: set.matched,
-    attributes: Object.fromEntries((set.attributes || []).map(a => [a.key, a.value]))
+    attributes: Object.fromEntries((set.attributes || []).map(a => [a.key, a.value])),
+    selected: Object.fromEntries(set.spans.map(s => [name(s.spanID, 'span'), selectedOf(s)]).filter(([, v]) => Object.keys(v).length))
   }))
   return {
     trace: name(t.traceID, 'trace'),
@@ -61,7 +71,15 @@ const spansetDiff = (name, gt, wt) => {
   if (gs !== ws) out.push(`${name} spans ${gs}, want ${ws}`)
   if (gt.matched !== wt.matched) out.push(`${name} matched ${gt.matched}, want ${wt.matched}`)
   if (wt.attributes !== undefined) out.push(...attributesDiff(name, gt.attributes || {}, wt.attributes))
+  if (wt.selected !== undefined) out.push(...selectedDiff(name, gt.selected || {}, wt.selected))
   return out
+}
+
+// selectedDiff compares the select() values of the listed spans.
+const selectedDiff = (name, got, want) => {
+  const show = (sel) => JSON.stringify(Object.keys(sel).sort().map(span =>
+    [span, Object.keys(sel[span]).sort().map(k => [k, sel[span][k]])]))
+  return show(got) === show(want) ? [] : [`${name} selected ${show(got)}, want ${show(want)}`]
 }
 
 /**
@@ -142,15 +160,21 @@ const fromMetricsResponse = (resp, kind) => {
 
 const close = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b))
 
-// exemplarDiff checks a range series' exemplars: one per bucket with result
-// spans, each naming the trace and start time of one result span of its bucket.
+// exemplarDiff checks a range series' exemplars: one per bucket of
+// want.exemplarBuckets (every bucket with result spans when unset), each
+// naming the trace and start time of one result span of its bucket.
 const exemplarDiff = (name, exemplars, want, step, traceNames) => {
   const out = []
-  const buckets = Object.keys(want.buckets).length
-  if (exemplars.length !== buckets) out.push(`${name} has ${exemplars.length} exemplars, want ${buckets}`)
+  const buckets = want.exemplarBuckets || Object.keys(want.buckets).map(Number)
+  if (exemplars.length !== buckets.length) out.push(`${name} has ${exemplars.length} exemplars, want ${buckets.length}`)
   for (const ex of exemplars) {
     const ts = Number(ex.timestampMs)
-    const spans = want.buckets[Math.floor(ts / step) * step] || []
+    const bucket = Math.floor(ts / step) * step
+    if (!buckets.includes(bucket)) {
+      out.push(`${name} exemplar at ${ts} is in bucket ${bucket}, want one of ${buckets.join(',')}`)
+      continue
+    }
+    const spans = want.buckets[bucket] || []
     const trace = labelsOf(ex.labels)['trace:id']
     if (!spans.some(s => s.traceId === trace && s.start === ts)) {
       out.push(`${name} exemplar ${traceNames[trace] || trace} at ${ts} is not a result span of its bucket`)

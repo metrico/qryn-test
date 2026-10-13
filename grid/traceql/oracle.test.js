@@ -5,11 +5,12 @@
 
 const seed = require('./seed')
 const oracle = require('./oracle')
-const { metrics, labelKey, histogramBucket } = require('./metrics')
+const { metrics, labelKey, histogramBucket, sampleFraction, exemplarLimit, thin } = require('./metrics')
+const { cityHash64, sampleThreshold } = require('./cityhash')
 const { autocomplete, selectsEverySpan } = require('./autocomplete')
 const { print } = require('./ast')
 const { runs, metricsRuns, autocompleteRuns } = require('./cases')
-const { diff, metricsDiff, fromMetricsResponse, fromAutocompleteResponse, autocompleteDiff } = require('./compare')
+const { diff, fromApi, metricsDiff, fromMetricsResponse, fromAutocompleteResponse, autocompleteDiff } = require('./compare')
 
 const FROM = Date.UTC(2026, 9, 1, 12)
 const PREFIX = '7ace00000000000000000000'
@@ -199,7 +200,7 @@ const strAttr = (v) => ({ stringValue: v })
 const boolAttr = (b) => ({ boolValue: b })
 const NIL = strAttr('nil')
 
-// sets lists a trace's spansets in order, each as [listed spans, matched, attributes?].
+// sets lists a trace's spansets in order, each as [listed spans, matched, attributes?, selected?].
 const sets = (...ss) => ({ sets: ss })
 
 // The three newest spans of the mixed trees and of the attribute matrix.
@@ -208,11 +209,12 @@ const MIXED2_NEWEST = ['mix2_b1', 'mix2_a2', 'mix2_a1']
 const ATTRS_NEWEST = ['am_dur', 'am_bool', 'am_str']
 
 // Hand-checked results per case: trace -> [listed spans, matched,
-// attributes?], or just matched when the listed spans are the trace's spss
-// newest, or sets(...) for a trace with several spansets; UNRESOLVED when
-// ancestry does not resolve within the round limit, GROUPED for a spanset
-// operator over grouped spansets. Attributes map a name to its OTLP value and
-// default to none.
+// attributes?, selected?], or just matched when the listed spans are the
+// trace's spss newest, or sets(...) for a trace with several spansets;
+// UNRESOLVED when ancestry does not resolve within the round limit, GROUPED
+// for a spanset operator over grouped spansets. Attributes map a name to its
+// OTLP value, selected a listed span to its select() values (the span name
+// at `#name`); both default to none.
 const EXPECTED = {
   all: NEWEST,
   all_limit_3: { edge_bound: NEWEST.edge_bound, edge_late: NEWEST.edge_late, edge_chain: NEWEST.edge_chain },
@@ -638,7 +640,34 @@ const EXPECTED = {
       [['mix2_b', 'mix2_a'], 2, { 'by(.svc)': strAttr('api') }],
       [['mix2_a2'], 1, { 'by(.svc)': strAttr('cache') }],
       [['mix2_b1', 'mix2_a1'], 2, { 'by(.svc)': strAttr('db') }])
-  }
+  },
+  sel_attrs: {
+    mixed: [MIXED_NEWEST, 6, {}, { mix_b1: { svc: 'db', lvl: '2' }, mix_a2: { svc: 'cache', lvl: '2' }, mix_a1: { svc: 'db', lvl: '2' } }]
+  },
+  sel_intrinsics: {
+    mixed: [['mix_b', 'mix_a'], 2, {}, { mix_b: { '#name': 'mix_b', status: 'error' }, mix_a: { '#name': 'mix_a' } }],
+    mixed2: [['mix2_b', 'mix2_a'], 2, {}, { mix2_b: { '#name': 'mix2_b', status: 'error' }, mix2_a: { '#name': 'mix2_a' } }]
+  },
+  sel_leading: {
+    fanout: [['fan_c45_g1', 'fan_c45_g0', 'fan_c40_g1'], 20, {}, { fan_c45_g1: { idx: '45' }, fan_c45_g0: { idx: '45' }, fan_c40_g1: { idx: '40' } }]
+  },
+  sel_missing: {
+    attrs: [['am_dur', 'am_bool', 'am_str', 'am_float', 'am_int_neg', 'am_int', 'am_missing', 'am_root'], 8, {}, {
+      am_dur: { v: '5ms' }, am_bool: { v: 'true' }, am_str: { v: 'abc' }, am_float: { v: '1.5' }, am_int_neg: { v: '-3' }, am_int: { v: '200' }
+    }]
+  },
+  sel_nested: {
+    mixed: [[...MIXED_NEWEST, 'mix_root'], 4, {}, { mix_b1: { 'db.system': 'mysql' }, mix_a1: { 'db.system': 'postgres' }, mix_root: { 'http.method': 'GET' } }],
+    mixed2: [[...MIXED2_NEWEST, 'mix2_root'], 4, {}, { mix2_b1: { 'db.system': 'mysql' }, mix2_a1: { 'db.system': 'postgres' }, mix2_root: { 'http.method': 'GET' } }]
+  },
+  sel_by: {
+    mixed: sets(
+      [['mix_root'], 1, { 'by(.lvl)': strAttr('0') }, { mix_root: { svc: 'gateway' } }],
+      [['mix_b', 'mix_a'], 2, { 'by(.lvl)': strAttr('1') }, { mix_b: { svc: 'api' }, mix_a: { svc: 'api' } }],
+      [MIXED_NEWEST, 3, { 'by(.lvl)': strAttr('2') }, { mix_b1: { svc: 'db' }, mix_a2: { svc: 'cache' }, mix_a1: { svc: 'db' } }])
+  },
+  sel_field_expression: { error: oracle.SELECT_ERROR },
+  hints_ignored_by_search: { mixed: [MIXED_NEWEST, 6] }
 }
 
 describe('traceql oracle on hand-checked results', () => {
@@ -651,10 +680,10 @@ describe('traceql oracle on hand-checked results', () => {
       const got = oracle.search(run.ast, spans, run)
       if (EXPECTED[run.id] && EXPECTED[run.id].error) return expect(got).toEqual(EXPECTED[run.id])
       const spss = run.spss || oracle.DEFAULT_SPSS
-      const spanset = (e) => ({ spans: e[0], matched: e[1], attributes: e[2] || {} })
+      const spanset = (e) => ({ spans: e[0], matched: e[1], attributes: e[2] || {}, selected: e[3] || {} })
       const want = Object.entries(EXPECTED[run.id] || {}).map(([trace, e]) => {
         if (typeof e === 'number') {
-          return { trace, spans: got.find(t => t.trace === trace)?.spans || [], matched: e, attributes: {}, spssCheck: Math.min(spss, e) }
+          return { trace, spans: got.find(t => t.trace === trace)?.spans || [], matched: e, attributes: {}, selected: {}, spssCheck: Math.min(spss, e) }
         }
         if (e.sets) return { trace, ...spanset(e.sets[0]), spanSets: e.sets.map(spanset) }
         return { trace, ...spanset(e) }
@@ -757,6 +786,22 @@ describe('traceql oracle rules', () => {
 
 describe('traceql result diff', () => {
   const t = (trace, spans, matched) => ({ trace, spans, matched })
+  it('reads select() values from the listed spans and compares them', () => {
+    const set = {
+      matched: 2,
+      spans: [
+        { spanID: 's1', name: 'root', attributes: [{ key: 'a', value: { stringValue: '1' } }] },
+        { spanID: 's2', attributes: [] }
+      ]
+    }
+    const body = { traces: [{ traceID: 't1', spanSet: set, spanSets: [set] }] }
+    const [got] = fromApi(body, { trace: { t1: 'tr' }, span: { s1: 'x', s2: 'y' } })
+    expect(got.selected).toEqual({ x: { a: '1', '#name': 'root' } })
+    const want = { trace: 'tr', spans: ['x', 'y'], matched: 2, selected: { x: { '#name': 'root', a: '1' } } }
+    expect(diff([{ ...got, spanSets: undefined }], [want])).toEqual([])
+    expect(diff([{ ...got, spanSets: undefined }], [{ ...want, selected: { x: { a: '2' } } }]))
+      .toEqual(['tr selected [["x",[["#name","root"],["a","1"]]]], want [["x",[["a","2"]]]]'])
+  })
   it('matches regardless of trace and span order', () => {
     expect(diff([t('b', ['y', 'x'], 2), t('a', ['z'], 1)], [t('a', ['z'], 1), t('b', ['x', 'y'], 2)])).toEqual([])
   })
@@ -806,10 +851,13 @@ describe('traceql result diff', () => {
 })
 
 // Hand-checked metrics results: range series by label key -> {minute after
-// FROM: value}; instant and compare() series by label key -> value; or an
-// error result. The mixed and mixed2 trees start in minute 2.
+// FROM: value}, or {second after FROM: value} for a step under a minute;
+// instant and compare() series by label key -> value; or an error result. The
+// mixed and mixed2 trees start in minute 2.
 const COUNT = 'count_over_time'
-const count = (byMinute) => ({ [`__name__=${COUNT}`]: byMinute })
+const count = (byTime) => ({ [`__name__=${COUNT}`]: byTime })
+// FANOUT_BY_10S counts the fanout spans per 10s bucket, by seconds after FROM.
+const FANOUT_BY_10S = count({ 20: 2, 30: 7, 40: 7, 50: 6, 60: 7, 70: 7, 80: 6, 90: 7, 100: 7, 110: 6, 120: 7, 130: 2 })
 // DESC_SPANS counts the result spans of `{ .svc = "gateway" } >> { .lvl > 0 }`:
 // a, b, a1, a2 and b1 of both trees.
 const DESC_SPANS = 10
@@ -869,7 +917,40 @@ const EXPECTED_METRICS = {
   // a, b, a1 and b1 of both trees; groups are no series dimension.
   m_by_flatten: count({ 2: 8 }),
   m_by_labels: { 'span.lvl=1': { 2: 4 }, 'span.lvl=2': { 2: 6 } },
-  m_by_grouped_error: oracle.GROUPED
+  m_by_grouped_error: oracle.GROUPED,
+  m_select: count({ 2: 6 }),
+  // The fanout spans whose span id hashes below 2^63: 31 of 71.
+  m_sample_span: count({ 0: 11, 1: 17, 2: 3 }),
+  // Traces whose id hashes below 2^63: chain8, mixed, rootless, mixed2,
+  // attrs and edge_late. Children of mixed (5), mixed2 (5) and attrs (7);
+  // rootless reaches no root and el_b starts out of range.
+  m_sample_one_hop: count({ 2: 17 }),
+  // mixed (6), mixed2 (6) and attrs (8); rootless (3) and edge_late (1) fail.
+  m_sample_agg: count({ 2: 20 }),
+  m_sample_ignored: count({ 2: 6 }),
+  m_exemplars_n: FANOUT_BY_10S,
+  m_exemplars_false: FANOUT_BY_10S,
+  m_exemplars_by: {
+    'span.role=root': { 20: 1 },
+    'span.role=child': { 20: 1, 30: 5, 40: 5, 50: 4, 60: 5, 70: 5, 80: 4, 90: 5, 100: 5, 110: 4, 120: 5, 130: 2 },
+    'span.role=grandchild': { 30: 2, 40: 2, 50: 2, 60: 2, 70: 2, 80: 2, 90: 2, 100: 2, 110: 2, 120: 2 }
+  },
+  // Root and children last 26 and 19ms, grandchildren 40ms.
+  m_exemplars_histogram: {
+    '__bucket=0.033554432': { 20: 2, 30: 5, 40: 5, 50: 4, 60: 5, 70: 5, 80: 4, 90: 5, 100: 5, 110: 4, 120: 5, 130: 2 },
+    '__bucket=0.067108864': { 30: 2, 40: 2, 50: 2, 60: 2, 70: 2, 80: 2, 90: 2, 100: 2, 110: 2, 120: 2 }
+  },
+  m_exemplars_sampled: count({ 20: 2, 30: 5, 40: 2, 50: 2, 60: 2, 70: 4, 80: 3, 90: 3, 100: 2, 110: 3, 120: 3 })
+}
+
+// Hand-checked exemplar buckets, in seconds after FROM, of the cases with an
+// exemplars hint: N buckets of a series' K, bucket floor((2i+1)K / 2N).
+const EXPECTED_EXEMPLARS = {
+  m_exemplars_n: { [`__name__=${COUNT}`]: [40, 80, 120] },
+  m_exemplars_false: { [`__name__=${COUNT}`]: [] },
+  m_exemplars_by: { 'span.role=root': [20], 'span.role=child': [50, 110], 'span.role=grandchild': [50, 100] },
+  m_exemplars_histogram: { '__bucket=0.033554432': [50, 110], '__bucket=0.067108864': [50, 100] },
+  m_exemplars_sampled: { [`__name__=${COUNT}`]: [40, 100] }
 }
 
 // compare() over the DESC_SPANS spans with selection `.db.system = "postgres"` (mix_a1 and
@@ -912,9 +993,13 @@ describe('traceql metrics oracle on hand-checked results', () => {
           expect(byKey[key].value).toBeCloseTo(w, 12)
           continue
         }
-        const minutes = Object.fromEntries(Object.entries(byKey[key].samples).map(([ts, v]) => [(ts - FROM) / 60000, v]))
-        expect(Object.keys(minutes).sort()).toEqual(Object.keys(w).sort())
-        for (const [m, v] of Object.entries(w)) expect(minutes[m]).toBeCloseTo(v, 12)
+        const unit = run.step < 60000 ? 1000 : 60000
+        const times = Object.fromEntries(Object.entries(byKey[key].samples).map(([ts, v]) => [(ts - FROM) / unit, v]))
+        expect(Object.keys(times).sort()).toEqual(Object.keys(w).sort())
+        for (const [m, v] of Object.entries(w)) expect(times[m]).toBeCloseTo(v, 12)
+        if (EXPECTED_EXEMPLARS[run.id]) {
+          expect(byKey[key].exemplarBuckets.map(ts => (ts - FROM) / unit)).toEqual(EXPECTED_EXEMPLARS[run.id][key])
+        }
       }
     })
   }
@@ -947,6 +1032,37 @@ describe('traceql metrics oracle rules', () => {
   })
 })
 
+describe('traceql sample and exemplars hints', () => {
+  it('hashes ids like ClickHouse cityHash64', () => {
+    // SELECT cityHash64(unhex(id)::FixedString(n)) on ClickHouse 25.3.
+    expect(cityHash64('7ace0000000000000000000000000001')).toEqual(15543003041861567031n)
+    expect(cityHash64('7ace0000000000000000000000000004')).toEqual(1037906786352058612n)
+    expect(cityHash64('0000000100000001')).toEqual(3971008439912734883n)
+    expect(cityHash64('0000000100000003')).toEqual(14264788950805794301n)
+  })
+  it('bounds a sample at fraction·2^64', () => {
+    expect(sampleThreshold(0.5)).toEqual(1n << 63n)
+    expect(sampleThreshold(0.25)).toEqual(1n << 62n)
+  })
+  it('reads the first usable sample and exemplars hints', () => {
+    expect(sampleFraction([['sample', 'true'], ['sample', '0.5']])).toEqual(0.5)
+    expect(sampleFraction([['sample', '1']])).toBeNull()
+    expect(sampleFraction([['sample', '0']])).toBeNull()
+    expect(sampleFraction(undefined)).toBeNull()
+    expect(exemplarLimit([['exemplars', 'true'], ['exemplars', '3']])).toEqual(3)
+    expect(exemplarLimit([['exemplars', 'false']])).toEqual(0)
+    expect(exemplarLimit([['exemplars', '1.5']])).toBeNull()
+  })
+  it('thins exemplars evenly', () => {
+    const ten = [...Array(10).keys()]
+    expect(thin(ten, null)).toEqual(ten)
+    expect(thin(ten, 0)).toEqual([])
+    expect(thin(ten, 1)).toEqual([5])
+    expect(thin(ten, 3)).toEqual([1, 5, 8])
+    expect(thin(ten, 12)).toEqual(ten)
+  })
+})
+
 describe('traceql metrics diff', () => {
   const STEP = 60000
   const want = [{ labels: { __name__: COUNT }, samples: { 120000: 2 }, buckets: { 120000: [{ traceId: 't1', start: 121000 }, { traceId: 't2', start: 122000 }] } }]
@@ -971,6 +1087,13 @@ describe('traceql metrics diff', () => {
       `{__name__=${COUNT}} exemplar t1 at 125000 is not a result span of its bucket`
     ])
     expect(metricsDiff([], want, { kind: 'range', step: STEP })).toEqual([`{__name__=${COUNT}} missing`])
+  })
+  it('wants exemplars only in the thinned buckets', () => {
+    const thinned = [{ ...want[0], samples: { 120000: 2, 180000: 1 }, buckets: { ...want[0].buckets, 180000: [{ traceId: 't3', start: 181000 }] }, exemplarBuckets: [180000] }]
+    const got = fromMetricsResponse(resp([ex('t1', 121000)], [{ timestampMs: '120000', value: 2 }, { timestampMs: '180000', value: 1 }]), 'range')
+    expect(metricsDiff(got, thinned, { kind: 'range', step: STEP })).toEqual([
+      `{__name__=${COUNT}} exemplar at 121000 is in bucket 120000, want one of 180000`
+    ])
   })
   it('compares instant and compare() values', () => {
     const inst = fromMetricsResponse({ status: 200, data: { series: [{ labels: [], value: 0.5 }] } }, 'instant')

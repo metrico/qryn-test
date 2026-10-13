@@ -1,8 +1,8 @@
 // JSON AST of the TraceQL grid cases and its canonical printer; the
 // self-check holds each case's query equal to print(ast).
 //
-// query {pipeline: [element], metrics?}; element spanset | {scalarFilter: {op, lhs: scalar, rhs: scalar}}
-//   | {groupBy: field} | {coalesce: true}
+// query {pipeline: [element], metrics?, hints?: [[key, value]]}; element spanset
+//   | {scalarFilter: {op, lhs: scalar, rhs: scalar}} | {groupBy: field} | {coalesce: true} | {select: [field]}
 // spanset {selector: field|null} | {spansetOp, lhs, rhs} | {paren: spanset} | {pipeline: [element]}
 // scalar {agg, attr?, arg?: field} | {num} | {dur}
 // field {attr} | {str} | {num} | {dur} | {enum} | {bool} | {nil: true} | {op, lhs, rhs} | {unary, expr} | {paren}
@@ -61,6 +61,7 @@ const printSpanset = (s) => {
 const printElement = (e) => {
   if (e.groupBy !== undefined) return `by(${printField(e.groupBy)})`
   if (e.coalesce !== undefined) return 'coalesce()'
+  if (e.select !== undefined) return `select(${e.select.map(printField).join(', ')})`
   if (e.scalarFilter === undefined) return printSpanset(e)
   const f = e.scalarFilter
   return `${printScalar(f.lhs)} ${f.op} ${printScalar(f.rhs)}`
@@ -79,8 +80,11 @@ const printMetrics = (m) => {
   return `${m.fn}(${args})${by}`
 }
 
+const printHints = (hints) => ` with(${hints.map(([k, v]) => `${k}=${v}`).join(', ')})`
+
 const print = (query) => printPipeline(query.pipeline) +
-  (query.metrics ? ` | ${printMetrics(query.metrics)}` : '')
+  (query.metrics ? ` | ${printMetrics(query.metrics)}` : '') +
+  (query.hints ? printHints(query.hints) : '')
 
 // canonicalScalar is an aggregate's canonical form, which names its value.
 const canonicalScalar = (x) => x.arg ? `${x.agg}(${canonicalField(x.arg)})` : printScalar(x)
