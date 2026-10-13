@@ -2,6 +2,7 @@
 // self-check holds each case's query equal to print(ast).
 //
 // query {pipeline: [element], metrics?}; element spanset | {scalarFilter: {op, lhs: scalar, rhs: scalar}}
+//   | {groupBy: field} | {coalesce: true}
 // spanset {selector: field|null} | {spansetOp, lhs, rhs} | {paren: spanset} | {pipeline: [element]}
 // scalar {agg, attr?, arg?: field} | {num} | {dur}
 // field {attr} | {str} | {num} | {dur} | {enum} | {bool} | {nil: true} | {op, lhs, rhs} | {unary, expr} | {paren}
@@ -25,7 +26,7 @@ const printField = (f) => {
 const isLeaf = (f) => f.op === undefined && f.unary === undefined && f.paren === undefined
 
 // canonicalField prints a field expression the way gigapipe names an
-// aggregate: parentheses as written are dropped, and operands other than
+// aggregate or a by() stage: parentheses as written are dropped, and operands other than
 // attributes and literals are parenthesised.
 const canonicalField = (f) => {
   if (f.paren !== undefined) return canonicalField(f.paren)
@@ -58,6 +59,8 @@ const printSpanset = (s) => {
 }
 
 const printElement = (e) => {
+  if (e.groupBy !== undefined) return `by(${printField(e.groupBy)})`
+  if (e.coalesce !== undefined) return 'coalesce()'
   if (e.scalarFilter === undefined) return printSpanset(e)
   const f = e.scalarFilter
   return `${printScalar(f.lhs)} ${f.op} ${printScalar(f.rhs)}`

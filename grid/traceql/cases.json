@@ -7621,6 +7621,786 @@
           }
         ]
       }
+    },
+    {
+      "id": "by_svc",
+      "note": "by() splits each trace's spans by value; spansets come by key ascending.",
+      "query": "{ .shape = \"mixed\" } | by(.svc)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".svc"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_nil_last",
+      "note": "Spans without the attribute form the nil group, listed last.",
+      "query": "{ .shape = \"mixed\" } | by(.db.system)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".db.system"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_attr_order",
+      "note": "Stored values that read as numbers order numerically before other text, then nil.",
+      "query": "{ .shape = \"attrs\" } | by(.v)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "attrs"
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".v"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_typed_number",
+      "note": "Arithmetic keys are numbers of their own type; a value that does not cast is nil.",
+      "query": "{ .shape = \"attrs\" } | by(.w * 2)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "attrs"
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "op": "*",
+              "lhs": {
+                "attr": ".w"
+              },
+              "rhs": {
+                "num": 2
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_duration",
+      "note": "A duration key is a duration.",
+      "query": "{ .shape = \"mixed\" } | by(duration)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": "duration"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_bool",
+      "note": "A comparison key is a bool: false before true.",
+      "query": "{ .shape = \"mixed\" } | by(.lvl = \"2\")",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "op": "=",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "str": "2"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_status",
+      "note": "status reads the stored status: spans without one are nil.",
+      "query": "{ .shape = \"mixed\" } | by(status)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": "status"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_nested",
+      "note": "Consecutive by() stages key on the tuple of values.",
+      "query": "{ .shape = \"mixed\" } | by(.lvl) | by(.svc)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".lvl"
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".svc"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_count",
+      "note": "A scalar filter after by() counts and keeps each group.",
+      "query": "{ .lvl > 0 } | by(.svc) | count() > 1",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".svc"
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_mid_chain",
+      "note": "A group that fails a mid-chain scalar filter is dropped.",
+      "query": "{ .lvl > 0 } | by(.svc) | count() > 1 | avg(duration) > 50ms",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".svc"
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 1
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "avg",
+                "attr": "duration"
+              },
+              "rhs": {
+                "dur": "50ms"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_filter",
+      "note": "A spanset filter after by() applies per group; emptied groups go.",
+      "query": "{ .shape = \"mixed\" } | by(.svc) | { .lvl = \"2\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".svc"
+            }
+          },
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "str": "2"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_paren_stage",
+      "note": "A parenthesised pipeline after by() aggregates per group.",
+      "query": "{ .lvl > 0 } | by(.svc) | ({ .lvl = \"2\" } | count() > 1)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".svc"
+            }
+          },
+          {
+            "paren": {
+              "pipeline": [
+                {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".lvl"
+                    },
+                    "rhs": {
+                      "str": "2"
+                    }
+                  }
+                },
+                {
+                  "scalarFilter": {
+                    "op": ">",
+                    "lhs": {
+                      "agg": "count"
+                    },
+                    "rhs": {
+                      "num": 1
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_inside_paren_stage",
+      "note": "by() inside a parenthesised pipeline stage groups its result.",
+      "query": "{ .lvl > 0 } | ({ .lvl = \"2\" } | by(.svc))",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          },
+          {
+            "paren": {
+              "pipeline": [
+                {
+                  "selector": {
+                    "op": "=",
+                    "lhs": {
+                      "attr": ".lvl"
+                    },
+                    "rhs": {
+                      "str": "2"
+                    }
+                  }
+                },
+                {
+                  "groupBy": {
+                    "attr": ".svc"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_after_structural",
+      "note": "by() after a structural operator groups its result spans.",
+      "query": "{ .svc = \"gateway\" } >> { .lvl > 0 } | by(.op)",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": ">",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".op"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_leading",
+      "note": "A leading by() groups every span in range.",
+      "query": "by(.lvl) | count() > 2",
+      "ast": {
+        "pipeline": [
+          {
+            "groupBy": {
+              "attr": ".lvl"
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 2
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_coalesce",
+      "note": "coalesce() merges a trace's groups into one spanset without attributes.",
+      "query": "{ .lvl > 0 } | by(.svc) | count() > 1 | coalesce()",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".svc"
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 1
+              }
+            }
+          },
+          {
+            "coalesce": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_coalesce_count",
+      "note": "A scalar filter after coalesce() counts the merged spanset; earlier attributes are gone.",
+      "query": "{ .lvl > 0 } | by(.svc) | count() > 1 | coalesce() | count() > 3",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".svc"
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 1
+              }
+            }
+          },
+          {
+            "coalesce": true
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_coalesce_operand",
+      "note": "A coalesced pipeline is a valid operand of &&.",
+      "query": "({ .lvl > 0 } | by(.svc) | coalesce()) && { .lvl = \"0\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "paren": {
+                "pipeline": [
+                  {
+                    "selector": {
+                      "op": ">",
+                      "lhs": {
+                        "attr": ".lvl"
+                      },
+                      "rhs": {
+                        "num": 0
+                      }
+                    }
+                  },
+                  {
+                    "groupBy": {
+                      "attr": ".svc"
+                    }
+                  },
+                  {
+                    "coalesce": true
+                  }
+                ]
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "0"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_grouped_structural",
+      "note": "A structural operator over grouped spansets is a plan-time error.",
+      "query": "{ .lvl > 0 } | by(.svc) | { .lvl = \"1\" } > { .lvl = \"2\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".svc"
+            }
+          },
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "1"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_grouped_operand",
+      "note": "A grouped pipeline is no operand of &&.",
+      "query": "({ .lvl > 0 } | by(.svc)) && { .lvl = \"0\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "paren": {
+                "pipeline": [
+                  {
+                    "selector": {
+                      "op": ">",
+                      "lhs": {
+                        "attr": ".lvl"
+                      },
+                      "rhs": {
+                        "num": 0
+                      }
+                    }
+                  },
+                  {
+                    "groupBy": {
+                      "attr": ".svc"
+                    }
+                  }
+                ]
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "0"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_spss",
+      "note": "spss caps each spanset; matched counts the whole group.",
+      "query": "{ .shape = \"fanout\" } | by(.role)",
+      "spss": 2,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "fanout"
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".role"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "by_limit",
+      "note": "limit counts traces, not spansets.",
+      "query": "{ .lvl > 0 } | by(.svc)",
+      "limit": 1,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".svc"
+            }
+          }
+        ]
+      }
     }
   ],
   "metrics": [
@@ -9254,6 +10034,129 @@
           "fn": "count_over_time"
         }
       }
+    },
+    {
+      "id": "m_by_flatten",
+      "note": "Groups that pass feed the metric as one series: a, b, a1 and b1 of both trees.",
+      "query": "{ .lvl > 0 } | by(.svc) | count() > 1 | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".svc"
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 1
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
+    },
+    {
+      "id": "m_by_labels",
+      "note": "Only the metrics by() splits series; pipeline groups do not.",
+      "query": "{ .lvl > 0 } | by(.op) | count_over_time() by (span.lvl)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".op"
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time",
+          "by": [
+            "span.lvl"
+          ]
+        }
+      }
+    },
+    {
+      "id": "m_by_grouped_error",
+      "note": "A spanset operator over grouped spansets fails metrics too.",
+      "query": "{ .lvl > 0 } | by(.svc) | { .lvl = \"1\" } && { .lvl = \"2\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".svc"
+            }
+          },
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "1"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".lvl"
+                },
+                "rhs": {
+                  "str": "2"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
     }
   ],
   "autocomplete": [
@@ -9938,6 +10841,43 @@
             },
             "rhs": {
               "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_by",
+      "note": "Autocomplete suggests from the spans of the groups that pass.",
+      "query": "{ .lvl > 0 } | by(.svc) | count() > 1",
+      "tag": "name",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": ">",
+              "lhs": {
+                "attr": ".lvl"
+              },
+              "rhs": {
+                "num": 0
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": ".svc"
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 1
+              }
             }
           }
         ]

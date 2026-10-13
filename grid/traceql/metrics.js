@@ -155,8 +155,8 @@ const compare = (m, baseline, from, to) => {
 
 /**
  * metrics returns the expected result of a metrics case: range series, or
- * instant series, or compare series; UNRESOLVED when ancestry does not resolve
- * within the round limit.
+ * instant series, or compare series; or the error result of the oracle's
+ * result spans (UNRESOLVED, GROUPED).
  * @param query {Object} the case AST, with metrics
  * @param all {Object[]} from oracle.dataset()
  * @param opts {{from: number, to: number, step: number, instant?: boolean, rounds?: number, pushes?: number}}
@@ -164,7 +164,7 @@ const compare = (m, baseline, from, to) => {
 const metrics = (query, all, opts) => {
   const m = query.metrics
   const found = oracle.resultSpans(query.pipeline, all, opts)
-  if (found === oracle.UNRESOLVED) return oracle.UNRESOLVED
+  if (found.error) return found
   if (m.fn === 'compare') return compare(m, found, opts.from, opts.to)
   if (opts.instant) return m.fn === 'histogram_over_time' ? [] : instant(m, found, opts.from, opts.to)
   return range(m, found, opts.step)

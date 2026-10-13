@@ -1,8 +1,9 @@
 // Normalises TraceQL search, metrics and autocomplete responses and diffs
 // them against the oracle. A search result is
-// [{trace, spans: [span name, ...], matched, attributes}], or {status, error}
-// for a failed search; attributes maps a spanset attribute's name to its OTLP
-// value.
+// [{trace, spans: [span name, ...], matched, attributes, spanSets}], or
+// {status, error} for a failed search; spanSets lists every spanset of the
+// trace as {spans, matched, attributes} and the first is also at the top
+// level; attributes maps a spanset attribute's name to its OTLP value.
 
 const { labelKey } = require('./metrics')
 
@@ -16,14 +17,16 @@ const UNRESOLVED_ERROR = /deeper than the round limit .*GIGAPIPE_TRACEQL_ANCESTR
  * @param names {{trace: Object<string, string>, span: Object<string, string>}} id -> name
  */
 const fromApi = (body, names) => body.traces.map(t => {
-  const set = t.spanSets && t.spanSets.length ? t.spanSets[0] : { spans: [], matched: 0 }
   const name = (id, kind) => names[kind][id] || `${kind}:${id}`
-  return {
-    trace: name(t.traceID, 'trace'),
+  const spanSets = (t.spanSets || []).map(set => ({
     spans: set.spans.map(s => name(s.spanID, 'span')),
     matched: set.matched,
-    attributes: Object.fromEntries((set.attributes || []).map(a => [a.key, a.value])),
-    spanSets: t.spanSets ? t.spanSets.length : 0,
+    attributes: Object.fromEntries((set.attributes || []).map(a => [a.key, a.value]))
+  }))
+  return {
+    trace: name(t.traceID, 'trace'),
+    ...(spanSets[0] || { spans: [], matched: 0, attributes: {} }),
+    spanSets,
     spanSetMatchesFirst: JSON.stringify(t.spanSet) === JSON.stringify(t.spanSets && t.spanSets[0])
   }
 })
@@ -50,14 +53,26 @@ const attributesDiff = (name, got, want) => {
   return same ? [] : [`${name} attributes ${show(got)}, want ${show(want)}`]
 }
 
+// spansetDiff compares one spanset of a trace.
+const spansetDiff = (name, gt, wt) => {
+  const out = []
+  const gs = [...gt.spans].sort().join(',')
+  const ws = [...wt.spans].sort().join(',')
+  if (gs !== ws) out.push(`${name} spans ${gs}, want ${ws}`)
+  if (gt.matched !== wt.matched) out.push(`${name} matched ${gt.matched}, want ${wt.matched}`)
+  if (wt.attributes !== undefined) out.push(...attributesDiff(name, gt.attributes || {}, wt.attributes))
+  return out
+}
+
 /**
  * diff returns [] when got and want hold the same traces, spans and matched
  * counts, and the same attributes where want lists them, or one line per
- * mismatch. Trace and span order are not compared. A want of {error} expects
- * the unresolved-ancestry error.
+ * mismatch. Trace and span order are not compared; a trace's spansets are
+ * compared in order when want lists them, else the trace must have one. A
+ * want of {error} expects that error.
  */
 const diff = (got, want) => {
-  const err = unresolvedDiff(got, want, (g) => `${g.length} traces`)
+  const err = errorDiff(got, want, (g) => `${g.length} traces`)
   if (err) return err
   const out = []
   const index = (rs) => new Map(rs.map(r => [r.trace, r]))
@@ -69,24 +84,30 @@ const diff = (got, want) => {
     const wt = w.get(name)
     if (!wt) { out.push(`${name} extra: ${gt.spans.join(',')} matched ${gt.matched}`); continue }
     if (!gt) { out.push(`${name} missing: want ${wt.spans.join(',')} matched ${wt.matched}`); continue }
-    const gs = [...gt.spans].sort().join(',')
-    const ws = [...wt.spans].sort().join(',')
-    if (gs !== ws) out.push(`${name} spans ${gs}, want ${ws}`)
-    if (gt.matched !== wt.matched) out.push(`${name} matched ${gt.matched}, want ${wt.matched}`)
-    if (wt.attributes !== undefined) out.push(...attributesDiff(name, gt.attributes || {}, wt.attributes))
-    if (gt.spanSets !== undefined && gt.spanSets !== 1) out.push(`${name} has ${gt.spanSets} spanSets, want 1`)
+    out.push(...spansetDiff(name, gt, wt))
+    if (gt.spanSets !== undefined) {
+      const ws = wt.spanSets || [wt]
+      if (gt.spanSets.length !== ws.length) out.push(`${name} has ${gt.spanSets.length} spanSets, want ${ws.length}`)
+      for (let i = 1; i < Math.min(gt.spanSets.length, ws.length); i++) {
+        out.push(...spansetDiff(`${name} spanSets[${i}]`, gt.spanSets[i], ws[i]))
+      }
+    }
     if (gt.spanSetMatchesFirst === false) out.push(`${name} spanSet differs from spanSets[0]`)
   }
   return out
 }
 
-// unresolvedDiff diffs a result against an expected unresolved-ancestry
-// error, or returns null when neither is an error.
-const unresolvedDiff = (got, want, size) => {
+// errorDiff diffs a result against an expected error, or returns null when
+// neither is an error. The unresolved-ancestry error matches by pattern, any
+// other by its text.
+const errorDiff = (got, want, size) => {
   if (!want.error && !got.error) return null
   if (!want.error) return [`unexpected error ${got.status}: ${got.error}`]
-  if (!got.error) return [`want an unresolved-ancestry error, got ${size(got)}`]
-  return UNRESOLVED_ERROR.test(got.error) ? [] : [`error ${got.status}: ${got.error}, want an unresolved-ancestry error`]
+  const unresolved = want.error === 'unresolved ancestry'
+  const what = unresolved ? 'an unresolved-ancestry error' : `the error "${want.error}"`
+  if (!got.error) return [`want ${what}, got ${size(got)}`]
+  const ok = unresolved ? UNRESOLVED_ERROR.test(got.error) : got.error.includes(want.error)
+  return ok ? [] : [`error ${got.status}: ${got.error}, want ${what}`]
 }
 
 // labelsOf flattens a metrics label list to {key: value}.
@@ -141,11 +162,11 @@ const exemplarDiff = (name, exemplars, want, step, traceNames) => {
 /**
  * metricsDiff returns [] when got and want hold the same series and values,
  * or one line per mismatch. Range series also check their exemplars against
- * the result spans. A want of {error} expects the unresolved-ancestry error.
+ * the result spans. A want of {error} expects that error.
  * @param opts {{kind: string, step?: number, from?: number, names?: Object}}
  */
 const metricsDiff = (got, want, { kind, step, from = 0, names: n = { trace: {} } }) => {
-  const err = unresolvedDiff(got, want, (g) => `${g.length} series`)
+  const err = errorDiff(got, want, (g) => `${g.length} series`)
   if (err) return err
   const out = []
   const rel = (ts) => `+${(Number(ts) - from) / 1000}s`
@@ -189,12 +210,12 @@ const fromAutocompleteResponse = (resp, tags) => {
 /**
  * autocompleteDiff returns [] when got holds the expected suggestions, or one
  * line per mismatch. A superset want only needs its values present. A want of
- * {error} expects the unresolved-ancestry error.
+ * {error} expects that error.
  * @param got {string[]|{status: number, error: string}}
  * @param want {{values: string[], superset: boolean}|{error: string}}
  */
 const autocompleteDiff = (got, want) => {
-  const err = unresolvedDiff(got, want, (g) => `${g.length} suggestions`)
+  const err = errorDiff(got, want, (g) => `${g.length} suggestions`)
   if (err) return err
   const out = []
   if (new Set(got).size !== got.length) out.push(`duplicate suggestions: ${got.join(',')}`)

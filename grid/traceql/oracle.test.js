@@ -195,6 +195,12 @@ const TR_UNION = {
 const intAttr = (n) => ({ intValue: String(n) })
 const doubleAttr = (x) => ({ doubleValue: x })
 const durationAttr = (d) => ({ stringValue: d })
+const strAttr = (v) => ({ stringValue: v })
+const boolAttr = (b) => ({ boolValue: b })
+const NIL = strAttr('nil')
+
+// sets lists a trace's spansets in order, each as [listed spans, matched, attributes?].
+const sets = (...ss) => ({ sets: ss })
 
 // The three newest spans of the mixed trees and of the attribute matrix.
 const MIXED_NEWEST = ['mix_b1', 'mix_a2', 'mix_a1']
@@ -203,8 +209,10 @@ const ATTRS_NEWEST = ['am_dur', 'am_bool', 'am_str']
 
 // Hand-checked results per case: trace -> [listed spans, matched,
 // attributes?], or just matched when the listed spans are the trace's spss
-// newest; UNRESOLVED when ancestry does not resolve within the round limit.
-// Attributes map a name to its OTLP value and default to none.
+// newest, or sets(...) for a trace with several spansets; UNRESOLVED when
+// ancestry does not resolve within the round limit, GROUPED for a spanset
+// operator over grouped spansets. Attributes map a name to its OTLP value and
+// default to none.
 const EXPECTED = {
   all: NEWEST,
   all_limit_3: { edge_bound: NEWEST.edge_bound, edge_late: NEWEST.edge_late, edge_chain: NEWEST.edge_chain },
@@ -513,7 +521,122 @@ const EXPECTED = {
   nr_bare_count_then_stage: { chain8: [['c8_7'], 1, { 'count()': intAttr(8) }] },
   nr_unresolved_full_tree: oracle.UNRESOLVED,
   nr_and: {},
-  nr_or: { mixed: [['mix_b1', 'mix_a1'], 2], mixed2: [['mix2_b1', 'mix2_a1'], 2] }
+  nr_or: { mixed: [['mix_b1', 'mix_a1'], 2], mixed2: [['mix2_b1', 'mix2_a1'], 2] },
+  // by() and coalesce(). The mixed trees' svc is gateway on root, api on a
+  // and b, db on a1 and b1, cache on a2; op is read on a, write on b.
+  by_svc: {
+    mixed: sets(
+      [['mix_b', 'mix_a'], 2, { 'by(.svc)': strAttr('api') }],
+      [['mix_a2'], 1, { 'by(.svc)': strAttr('cache') }],
+      [['mix_b1', 'mix_a1'], 2, { 'by(.svc)': strAttr('db') }],
+      [['mix_root'], 1, { 'by(.svc)': strAttr('gateway') }])
+  },
+  by_nil_last: {
+    mixed: sets(
+      [['mix_b1'], 1, { 'by(.db.system)': strAttr('mysql') }],
+      [['mix_a1'], 1, { 'by(.db.system)': strAttr('postgres') }],
+      [['mix_a2', 'mix_b', 'mix_a'], 4, { 'by(.db.system)': NIL }])
+  },
+  by_attr_order: {
+    attrs: sets(
+      [['am_int_neg'], 1, { 'by(.v)': strAttr('-3') }],
+      [['am_float'], 1, { 'by(.v)': strAttr('1.5') }],
+      [['am_int'], 1, { 'by(.v)': strAttr('200') }],
+      [['am_dur'], 1, { 'by(.v)': strAttr('5ms') }],
+      [['am_str'], 1, { 'by(.v)': strAttr('abc') }],
+      [['am_bool'], 1, { 'by(.v)': strAttr('true') }],
+      [['am_missing', 'am_root'], 2, { 'by(.v)': NIL }])
+  },
+  by_typed_number: {
+    attrs: sets(
+      [['am_missing'], 1, { 'by(.w * 2)': intAttr(2) }],
+      [['am_int_neg'], 1, { 'by(.w * 2)': intAttr(14) }],
+      [['am_int'], 1, { 'by(.w * 2)': intAttr(400) }],
+      [['am_dur', 'am_bool', 'am_str'], 5, { 'by(.w * 2)': NIL }])
+  },
+  by_duration: {
+    mixed: sets(
+      [['mix_a2'], 1, { 'by(duration)': durationAttr('5ms') }],
+      [['mix_a1'], 1, { 'by(duration)': durationAttr('30ms') }],
+      [['mix_b1'], 1, { 'by(duration)': durationAttr('45ms') }],
+      [['mix_b'], 1, { 'by(duration)': durationAttr('60ms') }],
+      [['mix_a'], 1, { 'by(duration)': durationAttr('80ms') }],
+      [['mix_root'], 1, { 'by(duration)': durationAttr('120ms') }])
+  },
+  by_bool: {
+    mixed: sets(
+      [['mix_b', 'mix_a', 'mix_root'], 3, { 'by(.lvl = "2")': boolAttr(false) }],
+      [MIXED_NEWEST, 3, { 'by(.lvl = "2")': boolAttr(true) }])
+  },
+  by_status: {
+    mixed: sets([['mix_b'], 1, { 'by(status)': strAttr('error') }], [MIXED_NEWEST, 5, { 'by(status)': NIL }])
+  },
+  by_nested: {
+    mixed: sets(
+      [['mix_root'], 1, { 'by(.lvl)': strAttr('0'), 'by(.svc)': strAttr('gateway') }],
+      [['mix_b', 'mix_a'], 2, { 'by(.lvl)': strAttr('1'), 'by(.svc)': strAttr('api') }],
+      [['mix_a2'], 1, { 'by(.lvl)': strAttr('2'), 'by(.svc)': strAttr('cache') }],
+      [['mix_b1', 'mix_a1'], 2, { 'by(.lvl)': strAttr('2'), 'by(.svc)': strAttr('db') }])
+  },
+  by_count: {
+    mixed: sets(
+      [['mix_b', 'mix_a'], 2, { 'by(.svc)': strAttr('api'), 'count()': intAttr(2) }],
+      [['mix_b1', 'mix_a1'], 2, { 'by(.svc)': strAttr('db'), 'count()': intAttr(2) }]),
+    mixed2: sets(
+      [['mix2_b', 'mix2_a'], 2, { 'by(.svc)': strAttr('api'), 'count()': intAttr(2) }],
+      [['mix2_b1', 'mix2_a1'], 2, { 'by(.svc)': strAttr('db'), 'count()': intAttr(2) }])
+  },
+  by_mid_chain: {
+    mixed: [['mix_b', 'mix_a'], 2, { 'by(.svc)': strAttr('api'), 'count()': intAttr(2), 'avg(duration)': durationAttr('70ms') }],
+    mixed2: [['mix2_b', 'mix2_a'], 2, { 'by(.svc)': strAttr('api'), 'count()': intAttr(2), 'avg(duration)': durationAttr('70ms') }]
+  },
+  by_filter: {
+    mixed: sets([['mix_a2'], 1, { 'by(.svc)': strAttr('cache') }], [['mix_b1', 'mix_a1'], 2, { 'by(.svc)': strAttr('db') }])
+  },
+  by_paren_stage: {
+    mixed: [['mix_b1', 'mix_a1'], 2, { 'by(.svc)': strAttr('db'), 'count()': intAttr(2) }],
+    mixed2: [['mix2_b1', 'mix2_a1'], 2, { 'by(.svc)': strAttr('db'), 'count()': intAttr(2) }]
+  },
+  by_inside_paren_stage: {
+    mixed: sets([['mix_a2'], 1, { 'by(.svc)': strAttr('cache') }], [['mix_b1', 'mix_a1'], 2, { 'by(.svc)': strAttr('db') }]),
+    mixed2: sets([['mix2_a2'], 1, { 'by(.svc)': strAttr('cache') }], [['mix2_b1', 'mix2_a1'], 2, { 'by(.svc)': strAttr('db') }])
+  },
+  by_after_structural: {
+    mixed: sets(
+      [['mix_a'], 1, { 'by(.op)': strAttr('read') }],
+      [['mix_b'], 1, { 'by(.op)': strAttr('write') }],
+      [MIXED_NEWEST, 3, { 'by(.op)': NIL }]),
+    mixed2: sets(
+      [['mix2_a'], 1, { 'by(.op)': strAttr('read') }],
+      [['mix2_b'], 1, { 'by(.op)': strAttr('write') }],
+      [MIXED2_NEWEST, 3, { 'by(.op)': NIL }])
+  },
+  // Every trace with more than two in-range spans is one nil group, except
+  // the mixed trees, where only level 2 has three spans.
+  by_leading: Object.fromEntries(Object.entries(NEWEST).filter(([, [, n]]) => n > 2).map(([trace, [listed, n]]) =>
+    [trace, trace.startsWith('mixed')
+      ? [trace === 'mixed' ? MIXED_NEWEST : MIXED2_NEWEST, 3, { 'by(.lvl)': strAttr('2'), 'count()': intAttr(3) }]
+      : [listed, n, { 'by(.lvl)': NIL, 'count()': intAttr(n) }]])),
+  by_coalesce: { mixed: [['mix_b1', 'mix_a1', 'mix_b'], 4], mixed2: [['mix2_b1', 'mix2_a1', 'mix2_b'], 4] },
+  by_coalesce_count: {
+    mixed: [['mix_b1', 'mix_a1', 'mix_b'], 4, { 'count()': intAttr(4) }],
+    mixed2: [['mix2_b1', 'mix2_a1', 'mix2_b'], 4, { 'count()': intAttr(4) }]
+  },
+  by_coalesce_operand: { mixed: [MIXED_NEWEST, 6], mixed2: [MIXED2_NEWEST, 6] },
+  by_grouped_structural: oracle.GROUPED,
+  by_grouped_operand: oracle.GROUPED,
+  by_spss: {
+    fanout: sets(
+      [['fan_c49', 'fan_c48'], 50, { 'by(.role)': strAttr('child') }],
+      [['fan_c45_g1', 'fan_c45_g0'], 20, { 'by(.role)': strAttr('grandchild') }],
+      [['fan_root'], 1, { 'by(.role)': strAttr('root') }])
+  },
+  by_limit: {
+    mixed2: sets(
+      [['mix2_b', 'mix2_a'], 2, { 'by(.svc)': strAttr('api') }],
+      [['mix2_a2'], 1, { 'by(.svc)': strAttr('cache') }],
+      [['mix2_b1', 'mix2_a1'], 2, { 'by(.svc)': strAttr('db') }])
+  }
 }
 
 describe('traceql oracle on hand-checked results', () => {
@@ -524,15 +647,20 @@ describe('traceql oracle on hand-checked results', () => {
   for (const run of all) {
     it(run.name, () => {
       const got = oracle.search(run.ast, spans, run)
-      if (EXPECTED[run.id] === oracle.UNRESOLVED) return expect(got).toEqual(oracle.UNRESOLVED)
+      if (EXPECTED[run.id] && EXPECTED[run.id].error) return expect(got).toEqual(EXPECTED[run.id])
       const spss = run.spss || oracle.DEFAULT_SPSS
-      const want = Object.entries(EXPECTED[run.id] || {}).map(([trace, e]) => typeof e === 'number'
-        ? { trace, spans: got.find(t => t.trace === trace)?.spans || [], matched: e, attributes: {}, spssCheck: Math.min(spss, e) }
-        : { trace, spans: e[0], matched: e[1], attributes: e[2] || {} })
+      const spanset = (e) => ({ spans: e[0], matched: e[1], attributes: e[2] || {} })
+      const want = Object.entries(EXPECTED[run.id] || {}).map(([trace, e]) => {
+        if (typeof e === 'number') {
+          return { trace, spans: got.find(t => t.trace === trace)?.spans || [], matched: e, attributes: {}, spssCheck: Math.min(spss, e) }
+        }
+        if (e.sets) return { trace, ...spanset(e.sets[0]), spanSets: e.sets.map(spanset) }
+        return { trace, ...spanset(e) }
+      })
       for (const w of want.filter(w => w.spssCheck !== undefined)) expect(w.spans).toHaveLength(w.spssCheck)
       expect(diff(got, want)).toEqual([])
-      for (const t of got) {
-        const order = t.spans.map(n => spans.find(s => s.name === n).start)
+      for (const set of got.flatMap(t => t.spanSets)) {
+        const order = set.spans.map(n => spans.find(s => s.name === n).start)
         expect(order).toEqual([...order].sort((a, b) => b - a))
       }
     })
@@ -656,14 +784,28 @@ describe('traceql result diff', () => {
       .toEqual(['a attributes {"count()":{"intValue":"3"}}, want {}'])
   })
   it('reports a spanSet that differs from spanSets[0] and extra spansets', () => {
-    const got = [{ ...t('a', ['x'], 1), spanSets: 2, spanSetMatchesFirst: false }]
+    const got = [{ ...t('a', ['x'], 1), spanSets: [t(undefined, ['x'], 1), t(undefined, ['y'], 1)], spanSetMatchesFirst: false }]
     expect(diff(got, [t('a', ['x'], 1)])).toEqual(['a has 2 spanSets, want 1', 'a spanSet differs from spanSets[0]'])
+  })
+  it('compares every spanset in order', () => {
+    const set = (spans, matched) => ({ spans, matched, attributes: {} })
+    const want = [{ ...t('a', ['x'], 1), spanSets: [set(['x'], 1), set(['y'], 2)] }]
+    expect(diff([{ ...t('a', ['x'], 1), spanSets: [set(['x'], 1), set(['y'], 2)] }], want)).toEqual([])
+    expect(diff([{ ...t('a', ['x'], 1), spanSets: [set(['x'], 1), set(['z'], 2)] }], want)).toEqual(['a spanSets[1] spans z, want y'])
+    expect(diff([{ ...t('a', ['x'], 1), spanSets: [set(['x'], 1)] }], want)).toEqual(['a has 1 spanSets, want 2'])
+  })
+  it('expects an error by its text', () => {
+    const err = { status: 400, error: `bad query: ${oracle.GROUPED.error}` }
+    expect(diff(err, oracle.GROUPED)).toEqual([])
+    expect(diff({ status: 400, error: 'boom' }, oracle.GROUPED))
+      .toEqual([`error 400: boom, want the error "${oracle.GROUPED.error}"`])
+    expect(diff(err, oracle.UNRESOLVED)).toEqual([`error 400: ${err.error}, want an unresolved-ancestry error`])
   })
 })
 
 // Hand-checked metrics results: range series by label key -> {minute after
-// FROM: value}; instant and compare() series by label key -> value; or
-// UNRESOLVED. The mixed and mixed2 trees start in minute 2.
+// FROM: value}; instant and compare() series by label key -> value; or an
+// error result. The mixed and mixed2 trees start in minute 2.
 const COUNT = 'count_over_time'
 const count = (byMinute) => ({ [`__name__=${COUNT}`]: byMinute })
 // DESC_SPANS counts the result spans of `{ .svc = "gateway" } >> { .lvl > 0 }`:
@@ -721,7 +863,11 @@ const EXPECTED_METRICS = {
   m_fe_not: count({ 2: 7 }),
   m_nr_descendant: count({ 2: 4 }),
   m_nr_sibling: count({ 2: 4 }),
-  m_nr_stage: count({ 2: 2 })
+  m_nr_stage: count({ 2: 2 }),
+  // a, b, a1 and b1 of both trees; groups are no series dimension.
+  m_by_flatten: count({ 2: 8 }),
+  m_by_labels: { 'span.lvl=1': { 2: 4 }, 'span.lvl=2': { 2: 6 } },
+  m_by_grouped_error: oracle.GROUPED
 }
 
 // compare() over the DESC_SPANS spans with selection `.db.system = "postgres"` (mix_a1 and
@@ -751,7 +897,7 @@ describe('traceql metrics oracle on hand-checked results', () => {
     it(run.name, () => {
       const got = metrics(run.ast, spans, run)
       const want = EXPECTED_METRICS[run.id]
-      if (want === oracle.UNRESOLVED) return expect(got).toEqual(oracle.UNRESOLVED)
+      if (want.error) return expect(got).toEqual(want)
       const byKey = Object.fromEntries(got.map(s => [labelKey(s.labels), s]))
       if (run.kind === 'compare') {
         expect(got).toHaveLength(want.total)
@@ -842,7 +988,7 @@ describe('traceql metrics diff', () => {
 })
 
 // Hand-checked autocomplete results: the exact suggestions, or {superset} for
-// a query that selects every span, or UNRESOLVED.
+// a query that selects every span, or an error result.
 const SEED_KEYS = ['chain', 'db.system', 'depth', 'http.method', 'idx', 'local_endpoint_service_name', 'lvl', 'name', 'op',
   'otel.status_code', 'role', 'service.name', 'shape', 'status', 'suite', 'svc', 'test_id', 'v', 'w']
 const SPAN_KEYS = ['local_endpoint_service_name', 'name', 'service.name', 'shape', 'suite', 'test_id']
@@ -871,7 +1017,8 @@ const EXPECTED_AUTOCOMPLETE = {
   ac_values_agg: ['mix_a1', 'mix_a2', 'mix_b1'],
   ac_values_field: ['am_int', 'am_str'],
   ac_values_narrowed: ['mix2_a1', 'mix2_a2', 'mix2_b1', 'mix_a1', 'mix_a2', 'mix_b1'],
-  ac_tags_narrowed: [...SPAN_KEYS, 'db.system', 'lvl', 'svc']
+  ac_tags_narrowed: [...SPAN_KEYS, 'db.system', 'lvl', 'svc'],
+  ac_values_by: ['mix2_a', 'mix2_a1', 'mix2_b', 'mix2_b1', 'mix_a', 'mix_a1', 'mix_b', 'mix_b1']
 }
 
 describe('traceql autocomplete oracle on hand-checked results', () => {
@@ -883,7 +1030,7 @@ describe('traceql autocomplete oracle on hand-checked results', () => {
     it(run.name, () => {
       const got = autocomplete(run.ast, spans, run)
       const want = EXPECTED_AUTOCOMPLETE[run.id]
-      if (want === oracle.UNRESOLVED) return expect(got).toEqual(oracle.UNRESOLVED)
+      if (want.error) return expect(got).toEqual(want)
       if (want.superset) return expect(got).toEqual({ values: [...want.superset].sort(), superset: true })
       expect(got).toEqual({ values: [...want].sort(), superset: false })
     })

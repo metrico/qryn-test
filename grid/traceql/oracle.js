@@ -2,7 +2,7 @@
 // result of a case's AST from the seed. It encodes gigapipe's contract.
 
 const seed = require('./seed')
-const { canonicalScalar } = require('./ast')
+const { canonicalScalar, canonicalField } = require('./ast')
 
 const DEFAULT_SPSS = 3
 
@@ -12,6 +12,10 @@ const ROUNDS = 3
 
 // UNRESOLVED is the result of a search that hits the ancestry round limit.
 const UNRESOLVED = { error: 'unresolved ancestry' }
+
+// GROUPED is the result of a query with a spanset operator over grouped
+// spansets: gigapipe rejects it before evaluation.
+const GROUPED = { error: 'spanset operators are not supported for multiple spansets per trace. consider using coalesce()' }
 
 class Unresolved extends Error {}
 
@@ -440,14 +444,96 @@ const scalarFilter = ({ op, lhs, rhs }, sets) => {
   return out
 }
 
-// spansetsOf groups spans into one spanset per trace, without attributes.
+// spansetsOf groups spans into one spanset per trace, without attributes or
+// group key.
 const spansetsOf = (spans) => {
   const byTrace = new Map()
   for (const s of spans) {
     if (!byTrace.has(s.traceId)) byTrace.set(s.traceId, [])
     byTrace.get(s.traceId).push(s)
   }
-  return [...byTrace.values()].map(ss => ({ traceId: ss[0].traceId, spans: ss, attributes: [] }))
+  return [...byTrace.values()].map(ss => ({ traceId: ss[0].traceId, spans: ss, attributes: [], key: [] }))
+}
+
+const NIL_KEY = { rank: 3, value: 0, text: '', type: 'nil' }
+
+/**
+ * groupValue is a span's value of a by() expression as a group key element:
+ * {rank, value, text, type}. Keys order by rank, value, then text: numbers,
+ * bools, strings, then nil. A number keeps its type (a duration in ns); an
+ * attribute is its stored text, which orders as a number when it is one.
+ */
+const groupValue = (span, f) => {
+  switch (domain(f)) {
+    case 'num': {
+      const n = num(span, f)
+      if (n === null) return NIL_KEY
+      const type = staticType(f) === 'duration' ? 'duration' : n.int ? 'int' : 'float'
+      return { rank: 0, value: n.v, text: '', type }
+    }
+    case 'bool': return { rank: 1, value: bool(span, f) ? 1 : 0, text: '', type: 'bool' }
+    case 'str': {
+      const t = str(span, f)
+      return t === null ? NIL_KEY : { rank: 2, value: 0, text: t, type: 'string' }
+    }
+  }
+  const t = str(span, f)
+  if (t === null) return NIL_KEY
+  return NUMBER.test(t) && isFinite(parseFloat(t))
+    ? { rank: 0, value: parseFloat(t), text: t, type: 'string' }
+    : { rank: 2, value: 0, text: t, type: 'string' }
+}
+
+const compareKeys = (a, b) => {
+  for (let i = 0; i < Math.min(a.length, b.length); i++) {
+    for (const f of ['rank', 'value', 'text', 'type']) {
+      if (a[i][f] !== b[i][f]) return a[i][f] < b[i][f] ? -1 : 1
+    }
+  }
+  return a.length - b.length
+}
+
+// groupBy splits each spanset by the value of expr per span, appending it to
+// the group key and, named by the stage, to the attributes.
+const groupBy = (expr, sets) => {
+  const name = `by(${canonicalField(expr)})`
+  return sets.flatMap(ss => {
+    const groups = new Map()
+    for (const s of ss.spans) {
+      const v = groupValue(s, expr)
+      const id = JSON.stringify(v)
+      if (!groups.has(id)) groups.set(id, { traceId: ss.traceId, spans: [], key: [...ss.key, v], attributes: [...ss.attributes, [name, v]] })
+      groups.get(id).spans.push(s)
+    }
+    return [...groups.values()]
+  })
+}
+
+// coalesce merges the spansets of each trace into one without attributes.
+const coalesce = (sets) => spansetsOf(sets.flatMap(ss => ss.spans))
+
+// grouped reports whether a pipeline ends grouped when its input is grouped
+// as `input`, and throws Grouped for a spanset operator over grouped spansets.
+const grouped = (elements, input) => {
+  let res = input
+  for (const e of elements) {
+    if (e.groupBy !== undefined) res = true
+    else if (e.coalesce !== undefined) res = false
+    else if (e.scalarFilter === undefined) res = spansetGrouped(e, res)
+  }
+  return res
+}
+
+class Grouped extends Error {}
+
+const spansetGrouped = (expr, input) => {
+  if (expr.paren !== undefined) return spansetGrouped(expr.paren, input)
+  if (expr.pipeline !== undefined) return grouped(expr.pipeline, input)
+  if (expr.spansetOp !== undefined) {
+    if (input || spansetGrouped(expr.lhs, false) || spansetGrouped(expr.rhs, false)) throw new Grouped()
+    return false
+  }
+  return input
 }
 
 // lonePipeline returns the elements of a parenthesised pipeline, or null.
@@ -462,9 +548,10 @@ const lonePipeline = (expr) => {
 const spansetStage = (expr, input, ctx) => {
   const inner = lonePipeline(expr)
   if (inner !== null) {
-    return pipelineSpansets(inner, input.spans, ctx).map(ss => ({ ...ss, attributes: [...input.attributes, ...ss.attributes] }))
+    return pipelineSpansets(inner, input.spans, ctx)
+      .map(ss => ({ ...ss, attributes: [...input.attributes, ...ss.attributes], key: [...input.key, ...ss.key] }))
   }
-  return spansetsOf(spansetSpans(expr, input.spans, ctx)).map(ss => ({ ...ss, attributes: input.attributes }))
+  return spansetsOf(spansetSpans(expr, input.spans, ctx)).map(ss => ({ ...ss, attributes: input.attributes, key: input.key }))
 }
 
 // pipelineSpansets evaluates a pipeline over spans, the operand candidates of
@@ -476,9 +563,13 @@ const pipelineSpansets = (elements, spans, ctx) => {
   for (const e of elements) {
     if (e.scalarFilter !== undefined) {
       sets = scalarFilter(e.scalarFilter, sets || spansetsOf(spans))
-      continue
+    } else if (e.groupBy !== undefined) {
+      sets = groupBy(e.groupBy, sets || spansetsOf(spans))
+    } else if (e.coalesce !== undefined) {
+      sets = coalesce(sets)
+    } else {
+      sets = (sets || [{ spans, attributes: [], key: [] }]).flatMap(ss => spansetStage(e, ss, ctx))
     }
-    sets = (sets || [{ spans, attributes: [] }]).flatMap(ss => spansetStage(e, ss, ctx))
   }
   return sets
 }
@@ -487,10 +578,12 @@ const pipelineSpansets = (elements, spans, ctx) => {
 const newestFirst = (a, b) => b.start - a.start || (a.spanId < b.spanId ? 1 : a.spanId > b.spanId ? -1 : 0)
 
 /**
- * resultSpansets returns the spansets a pipeline yields, one per trace with
- * its spans and attributes ([name, {type, value}]), or UNRESOLVED when
- * ancestry does not resolve within the round limit. Operand spans start in
- * (from, to]; parents, ancestors, siblings and roots count wherever they start.
+ * resultSpansets returns the spansets a pipeline yields, one per trace and
+ * group key with its spans, attributes ([name, {type, value, text?}]) and
+ * key; GROUPED for a spanset operator over grouped spansets; or UNRESOLVED
+ * when ancestry does not resolve within the round limit. Operand spans start
+ * in (from, to]; parents, ancestors, siblings and roots count wherever they
+ * start.
  * @param pipeline {Object[]} the pipeline of the case AST
  * @param all {Object[]} from dataset(); with opts.pushes only the spans of
  *   the first `pushes` ingest batches count
@@ -501,19 +594,21 @@ const resultSpansets = (pipeline, all, { from, to, rounds = ROUNDS, pushes }) =>
   const inRange = spans.filter(s => s.start > from && s.start <= to)
   const ctx = { spans, byId: new Map(spans.map(s => [`${s.traceId}/${s.spanId}`, s])), reach: reachable(spans), rounds }
   try {
+    grouped(pipeline, false)
     return pipelineSpansets(pipeline, inRange, ctx)
   } catch (e) {
     if (e instanceof Unresolved) return UNRESOLVED
+    if (e instanceof Grouped) return GROUPED
     throw e
   }
 }
 
 /**
- * resultSpans returns the spans of resultSpansets(), or UNRESOLVED.
+ * resultSpans returns the spans of resultSpansets(), or its error result.
  */
 const resultSpans = (pipeline, all, opts) => {
   const sets = resultSpansets(pipeline, all, opts)
-  return sets === UNRESOLVED ? UNRESOLVED : sets.flatMap(ss => ss.spans)
+  return sets.error ? sets : sets.flatMap(ss => ss.spans)
 }
 
 // MICRO is Go's microsecond sign.
@@ -542,22 +637,29 @@ const goDuration = (ns) => {
 }
 
 /**
- * attributeValue is an aggregate as the OTLP value search returns: an int as
- * a decimal string, a float as a double, a duration as a Go duration string.
+ * attributeValue is an aggregate or a group key as the OTLP value search
+ * returns: an int as a decimal string, a float as a double, a duration as a
+ * Go duration string, a bool as a bool, a string as its text and nil as "nil".
  */
-const attributeValue = ({ type, value }) => {
-  if (type === 'int') return { intValue: String(value) }
-  if (type === 'duration') return { stringValue: goDuration(value) }
+const attributeValue = ({ type, value, text }) => {
+  switch (type) {
+    case 'int': return { intValue: String(value) }
+    case 'duration': return { stringValue: goDuration(value) }
+    case 'bool': return { boolValue: value === 1 }
+    case 'string': return { stringValue: text }
+    case 'nil': return { stringValue: 'nil' }
+  }
   return { doubleValue: value }
 }
 
 /**
  * search returns the expected traces of a search, newest first:
- * [{trace, traceId, spans: [span name, ...], matched, attributes}], or
- * UNRESOLVED when ancestry does not resolve within the round limit. The
- * spansets are resultSpansets(); a trace lists its spss newest result spans
- * and its attributes as {name: OTLP value}; limit counts traces by their
- * newest result span (ties by trace id, descending).
+ * [{trace, traceId, spans: [span name, ...], matched, attributes, spanSets}],
+ * or the error result of resultSpansets(). The spansets are resultSpansets();
+ * a trace lists them in spanSets by group key, each with its spss newest
+ * result spans, matched and attributes as {name: OTLP value}, and the first
+ * of them at the top level. limit counts traces by their newest result span
+ * (ties by trace id, descending).
  * @param query {Object} the case AST
  * @param all {Object[]} from dataset()
  * @param opts {{from: number, to: number, limit: number, spss?: number, rounds?: number, pushes?: number}}
@@ -565,16 +667,26 @@ const attributeValue = ({ type, value }) => {
 const search = (query, all, opts) => {
   const { limit, spss = DEFAULT_SPSS } = opts
   const sets = resultSpansets(query.pipeline, all, opts)
-  if (sets === UNRESOLVED) return UNRESOLVED
-  const traces = sets.map(ss => ({ ...ss, spans: [...ss.spans].sort(newestFirst) }))
-  traces.sort((a, b) => b.spans[0].start - a.spans[0].start || (a.traceId < b.traceId ? 1 : -1))
-  return traces.slice(0, limit).map(ss => ({
-    trace: ss.spans[0].trace,
-    traceId: ss.traceId,
-    spans: ss.spans.slice(0, spss).map(s => s.name),
-    matched: ss.spans.length,
-    attributes: Object.fromEntries(ss.attributes.map(([k, v]) => [k, attributeValue(v)]))
-  }))
+  if (sets.error) return sets
+  const byTrace = new Map()
+  for (const ss of sets) {
+    if (!byTrace.has(ss.traceId)) byTrace.set(ss.traceId, [])
+    byTrace.get(ss.traceId).push({ ...ss, spans: [...ss.spans].sort(newestFirst) })
+  }
+  const traces = [...byTrace.values()].map(tss => {
+    tss.sort((a, b) => compareKeys(a.key, b.key))
+    const newest = Math.max(...tss.map(ss => ss.spans[0].start))
+    return { traceId: tss[0].traceId, trace: tss[0].spans[0].trace, newest, sets: tss }
+  })
+  traces.sort((a, b) => b.newest - a.newest || (a.traceId < b.traceId ? 1 : -1))
+  return traces.slice(0, limit).map(t => {
+    const spanSets = t.sets.map(ss => ({
+      spans: ss.spans.slice(0, spss).map(s => s.name),
+      matched: ss.spans.length,
+      attributes: Object.fromEntries(ss.attributes.map(([k, v]) => [k, attributeValue(v)]))
+    }))
+    return { trace: t.trace, traceId: t.traceId, ...spanSets[0], spanSets }
+  })
 }
 
-module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, dataset, matches, resultSpans, search, durationNs, goDuration }
+module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, dataset, matches, resultSpans, search, durationNs, goDuration }

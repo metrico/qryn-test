@@ -37,8 +37,8 @@ const suggestions = (spans, tag) => {
 
 /**
  * autocomplete returns the expected tags v2 or values v2 result:
- * {values: [string], superset: boolean}, or UNRESOLVED when ancestry does not
- * resolve within the round limit. values are sorted and cut to limit.
+ * {values: [string], superset: boolean}, or the error result of the oracle's
+ * result spans (UNRESOLVED, GROUPED). values are sorted and cut to limit.
  * @param query {Object} the case AST
  * @param all {Object[]} from oracle.dataset()
  * @param opts {{from: number, to: number, tag?: string, limit?: number, rounds?: number, pushes?: number}}
@@ -50,7 +50,7 @@ const autocomplete = (query, all, opts) => {
     return { values: suggestions(spans, tag), superset: true }
   }
   const found = oracle.resultSpans(query.pipeline, all, opts)
-  if (found === oracle.UNRESOLVED) return oracle.UNRESOLVED
+  if (found.error) return found
   const values = suggestions(found, tag)
   return { values: limit ? values.slice(0, limit) : values, superset: false }
 }
