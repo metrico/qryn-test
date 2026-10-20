@@ -753,8 +753,10 @@ describe('traceql oracle rules', () => {
   })
 
   it('evaluates scalar filters per spanset, skipping values that are not numbers', () => {
-    const avg = (op, rhs) => ({ pipeline: [sel({ op: '=', lhs: { attr: '.shape' }, rhs: { str: 'attrs' } }).pipeline[0],
-      { scalarFilter: { op, lhs: { agg: 'avg', attr: '.v' }, rhs } }] })
+    const avg = (op, rhs) => ({
+      pipeline: [sel({ op: '=', lhs: { attr: '.shape' }, rhs: { str: 'attrs' } }).pipeline[0],
+        { scalarFilter: { op, lhs: { agg: 'avg', attr: '.v' }, rhs } }]
+    })
     expect(oracle.search(avg('>', { num: 66 }), spans, opts).map(t => t.trace)).toEqual(['attrs'])
     expect(oracle.search(avg('>', { num: 67 }), spans, opts)).toEqual([])
     const zero = { pipeline: [sel(null).pipeline[0], { scalarFilter: { op: '<', lhs: { agg: 'count' }, rhs: { num: 1 } } }] }
