@@ -88,9 +88,9 @@ const selectedDiff = (name, got, want) => {
 /**
  * diff returns [] when got and want hold the same traces, spans and matched
  * counts, and the same attributes where want lists them, or one line per
- * mismatch. Trace order is not compared, listed spans are; a trace's spansets are
- * compared in order when want lists them, else the trace must have one. A
- * want of {error} expects that error.
+ * mismatch. Listed spans are compared in order, traces in any; a trace's
+ * spansets are compared in order when want lists them, else the trace must
+ * have one. A want of {error} expects that error.
  */
 const diff = (got, want) => {
   const err = errorDiff(got, want, (g) => `${g.length} traces`)

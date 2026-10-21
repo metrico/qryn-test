@@ -613,9 +613,9 @@ const selectKeys = (elements) => fieldKeys(selects(elements).flat())
  */
 const filterKeys = (elements) => fieldKeys(filtered(elements))
 
-// selectedKeys lists the keys search reads for each listed span: those of
+// spanValueKeys lists the keys search reads for each listed span: those of
 // select() and the echoed filter keys.
-const selectedKeys = (elements) => [...new Set([...selectKeys(elements), ...filterKeys(elements)])]
+const spanValueKeys = (elements) => [...new Set([...selectKeys(elements), ...filterKeys(elements)])]
 
 /**
  * selectedValues returns a span's selected values by key, {} without any:
@@ -861,7 +861,7 @@ const search = (query, all, opts) => {
     return { traceId: tss[0].traceId, trace: tss[0].spans[0].trace, newest, sets: tss }
   })
   traces.sort((a, b) => b.newest - a.newest || (a.traceId < b.traceId ? 1 : -1))
-  const keys = selectedKeys(query.pipeline)
+  const keys = spanValueKeys(query.pipeline)
   const numbers = nestedSet(opts.pushes === undefined ? all : all.filter(s => s.push < opts.pushes))
   return traces.slice(0, limit).map(t => {
     const spanSets = t.sets.map(ss => {
@@ -877,4 +877,4 @@ const search = (query, all, opts) => {
   })
 }
 
-module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, SPAN_NAME, NESTED_SET, dataset, selectKeys, filterKeys, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace, nestedSet }
+module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, SPAN_NAME, NESTED_SET, dataset, selectKeys, filterKeys, earliestFirst, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace, nestedSet }

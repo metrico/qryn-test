@@ -807,12 +807,8 @@ const stripEcho = (run, got) => {
   return got.map(t => ({ ...strip(t), spanSets: t.spanSets.map(strip) }))
 }
 
-// earliestFirst orders seed span names by start time, then span id.
-const earliestFirst = (names) => [...names].sort((a, b) => {
-  const x = spans.find(s => s.name === a)
-  const y = spans.find(s => s.name === b)
-  return x.start - y.start || (x.spanId < y.spanId ? -1 : x.spanId > y.spanId ? 1 : 0)
-})
+// namesEarliestFirst orders seed span names by start time, then span id.
+const namesEarliestFirst = (names) => names.map(n => spans.find(s => s.name === n)).sort(oracle.earliestFirst).map(s => s.name)
 
 describe('traceql oracle on hand-checked results', () => {
   const all = runs(FROM)
@@ -824,7 +820,7 @@ describe('traceql oracle on hand-checked results', () => {
       const got = stripEcho(run, oracle.search(run.ast, spans, run))
       if (EXPECTED[run.id] && EXPECTED[run.id].error) return expect(got).toEqual(EXPECTED[run.id])
       const spss = run.spss || oracle.DEFAULT_SPSS
-      const spanset = (e) => ({ spans: earliestFirst(e[0]), matched: e[1], attributes: e[2] || {}, selected: e[3] || {} })
+      const spanset = (e) => ({ spans: namesEarliestFirst(e[0]), matched: e[1], attributes: e[2] || {}, selected: e[3] || {} })
       const want = Object.entries(EXPECTED[run.id] || {}).map(([trace, e]) => {
         if (typeof e === 'number') {
           return { trace, spans: got.find(t => t.trace === trace)?.spans || [], matched: e, attributes: {}, selected: {}, spssCheck: Math.min(spss, e) }
