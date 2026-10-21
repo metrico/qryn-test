@@ -678,20 +678,19 @@ const nestedSet = (spans) => {
     if (!children.has(key)) children.set(key, [])
     children.get(key).push(n)
   }
-  const order = (a, b) => newestFirst(b, a)
   const counters = new Map()
   const visit = (n, parent) => {
     const key = `${n.traceId}/${n.spanId}`
     const left = counters.get(n.traceId) + 1
     counters.set(n.traceId, left)
-    for (const c of (children.get(key) || []).sort(order)) visit(c, left)
+    for (const c of (children.get(key) || []).sort(earliestFirst)) visit(c, left)
     const right = counters.get(n.traceId) + 1
     counters.set(n.traceId, right)
     out.set(key, { left, right, parent })
   }
   for (const traceId of new Set([...nodes.values()].map(n => n.traceId))) {
     counters.set(traceId, 0)
-    for (const root of (children.get(traceId) || []).sort(order)) visit(root, -1)
+    for (const root of (children.get(traceId) || []).sort(earliestFirst)) visit(root, -1)
   }
   for (const key of nodes.keys()) {
     if (!out.has(key)) out.set(key, { left: 0, right: 0, parent: 0 })
