@@ -235,13 +235,8 @@ const MIXED_EARLIEST = ['mix_root', 'mix_a', 'mix_b']
 const MIXED2_EARLIEST = ['mix2_root', 'mix2_a', 'mix2_b']
 const ATTRS_EARLIEST = ['am_root', 'am_missing', 'am_int']
 
-// Hand-checked results per case: trace -> [listed spans in any order, matched,
-// attributes?, selected?], or just matched when the listed spans are the
-// trace's spss earliest-starting spans, or sets(...) for a trace with several
-// spansets; UNRESOLVED when ancestry does not resolve within the round limit,
-// GROUPED for a spanset operator over grouped spansets. Attributes map a name
-// to its OTLP value, selected a listed span to its select() values (the span
-// name at `#name`); both default to none.
+// Hand-checked results: trace -> [listed spans, matched, attributes?,
+// selected?], just matched for the spss earliest spans, or sets(...).
 const EXPECTED = {
   all: EARLIEST,
   all_limit_3: { edge_bound: EARLIEST.edge_bound, edge_late: EARLIEST.edge_late, edge_chain: EARLIEST.edge_chain },

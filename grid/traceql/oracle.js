@@ -750,13 +750,8 @@ const nestedSet = (spans) => {
 
 /**
  * resultSpansets returns the spansets a pipeline yields, one per trace and
- * group key with its spans, attributes ([name, {type, value, text?}]) and
- * key. It returns GROUPED for a spanset operator over grouped spansets,
- * {error} for a by() that reads no attribute or a select() argument that is
- * neither an attribute nor an intrinsic, and UNRESOLVED when ancestry
- * does not resolve within the round limit. Operand spans start in (from, to];
- * parents, ancestors, siblings and roots count wherever they start. Each
- * result span carries the nestedSet() numbering of the landed spans as ns.
+ * group key, or GROUPED, UNRESOLVED or {error}. Operand spans start in
+ * (from, to]; related spans count wherever they start.
  * @param pipeline {Object[]} the pipeline of the case AST
  * @param all {Object[]} from dataset(); with opts.pushes only the spans of
  *   the first `pushes` ingest batches count
@@ -832,16 +827,8 @@ const attributeValue = ({ type, value, text }) => {
 
 /**
  * search returns the expected traces of a search, newest first:
- * [{trace, traceId, spans: [span name, ...], matched, attributes, selected, spanSets}],
- * or the error result of resultSpansets(). The spansets are resultSpansets();
- * a trace lists them in spanSets by group key, each with its spss
- * earliest-starting result spans (ties by span id), matched and attributes
- * as {name: OTLP value}, and the first of them at the top level. selected
- * maps a listed span's name to its select() and echoed filter values, {key:
- * text or {intValue}} with the span name at SPAN_NAME, for the spans that
- * have any.
- * limit counts traces by their newest result span (ties by trace id,
- * descending).
+ * [{trace, traceId, spans, matched, attributes, selected, spanSets}], or the
+ * error result of resultSpansets(). Each spanset lists its spss earliest spans.
  * @param query {Object} the case AST
  * @param all {Object[]} from dataset()
  * @param opts {{from: number, to: number, limit: number, spss?: number, rounds?: number, pushes?: number}}
