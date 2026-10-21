@@ -79,7 +79,7 @@ const nestedSetRows = async (traceIds) => {
   const query = `SELECT lower(hex(trace_id)) AS traceId, lower(hex(span_id)) AS spanId,
       argMax(left, version) AS left, argMax(right, version) AS right, argMax(parent, version) AS parent
     FROM ${clickhouseDb}.tempo_traces_nested_set
-    WHERE trace_id IN (${ids.join(', ')})
+    WHERE oid = '0' AND trace_id IN (${ids.join(', ')})
     GROUP BY trace_id, span_id
     FORMAT JSONEachRow`
   const res = await axios.post(`${url.protocol}//${url.host}/`, query, {

@@ -1228,24 +1228,24 @@ describe('traceql nested-set oracle', () => {
 
   it('numbers depth-first with one counter across roots, ties by span id, a duplicate id by its earliest copy', () => {
     expect(numbers('nested')).toEqual({
-      ns_r1: [1, 12, -1],
-      ns_r2: [13, 16, -1],
-      ns_a: [8, 9, 1],
-      ns_b: [10, 11, 1],
-      ns_dup: [4, 7, 1],
-      ns_dup_early: [4, 7, 1],
-      ns_dup_c: [5, 6, 4],
-      ns_r2c: [14, 15, 13],
+      ns_r1: [1, 8, -1],
+      ns_late: [2, 3, 1],
+      ns_a: [4, 5, 1],
+      ns_b: [6, 7, 1],
+      ns_r2: [9, 16, -1],
+      ns_dup: [10, 13, 9],
+      ns_dup_early: [10, 13, 9],
+      ns_dup_c: [11, 12, 10],
+      ns_r2c: [14, 15, 9],
       ns_self: [0, 0, 0],
       ns_cyc1: [0, 0, 0],
       ns_cyc2: [0, 0, 0],
-      ns_cyc_c: [0, 0, 0],
-      ns_late: [2, 3, 1]
+      ns_cyc_c: [0, 0, 0]
     })
   })
 
   it('renumbers the trace when the late span lands', () => {
-    expect(numbers('nested', 2)).toMatchObject({ ns_r1: [1, 10, -1], ns_dup: [2, 5, 1], ns_a: [6, 7, 1], ns_r2: [11, 14, -1] })
+    expect(numbers('nested', 2)).toMatchObject({ ns_r1: [1, 6, -1], ns_a: [2, 3, 1], ns_r2: [7, 14, -1], ns_dup: [8, 11, 7] })
     expect(numbers('nested', 2).ns_late).toBeUndefined()
   })
 

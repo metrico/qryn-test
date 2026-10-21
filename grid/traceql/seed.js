@@ -160,10 +160,8 @@ const traces = () => {
     ]
   })
 
-  // 10. Nested-set numbering, after every case's range: tied roots and
-  // siblings, a duplicate span id whose later copy starts first, a
-  // self-parent, a cycle with a child, and a late span that starts first
-  // under its root.
+  // 10. Nested-set numbering, after every case's range: ties, a duplicate id,
+  // a self-parent, a cycle and a late span.
   {
     const at = (ms) => ({ start: WINDOW + 15 * MINUTE + ms })
     const ns = { shape: 'nested' }
@@ -176,7 +174,7 @@ const traces = () => {
         span('ns_a', 'ns_r1', ns, at(1000)),
         span('ns_b', 'ns_r1', ns, at(1000)),
         span('ns_dup', 'ns_r1', ns, at(3000)),
-        span('ns_dup_early', 'ns_r1', ns, { ...at(500), sameId: 'ns_dup' }),
+        span('ns_dup_early', 'ns_r2', ns, { ...at(500), sameId: 'ns_dup' }),
         span('ns_dup_c', 'ns_dup', ns, at(4000)),
         span('ns_r2c', 'ns_r2', ns, at(2000)),
         span('ns_self', 'ns_self', ns, at(5000)),

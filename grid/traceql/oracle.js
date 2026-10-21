@@ -659,12 +659,8 @@ const needsWholeTrace = (elements) => elements.some(e => {
 const newestFirst = (a, b) => b.start - a.start || (a.spanId < b.spanId ? 1 : a.spanId > b.spanId ? -1 : 0)
 
 /**
- * nestedSet numbers each trace's spans depth-first, with one counter from 1
- * shared across roots: left on the way down, right on the way up, parent the
- * parent's left and -1 for a root. Siblings and roots go by start, then span
- * id. Copies of a span id form one node placed by the earliest copy, and
- * spans that no root reaches read 0/0/0. Returns `traceId/spanId` ->
- * {left, right, parent}.
+ * nestedSet numbers each trace's spans depth-first under gigapipe's rules:
+ * `traceId/spanId` -> {left, right, parent}, 0/0/0 when no root reaches it.
  * @param spans {Object[]} from dataset()
  */
 const nestedSet = (spans) => {
@@ -672,9 +668,9 @@ const nestedSet = (spans) => {
   const nodes = new Map()
   for (const s of spans) {
     const key = `${s.traceId}/${s.spanId}`
+    // Copies of a span id form one node, placed by the earliest copy.
     const node = nodes.get(key)
-    if (!node) nodes.set(key, { traceId: s.traceId, spanId: s.spanId, parentId: s.parentId, start: s.start })
-    else node.start = Math.min(node.start, s.start)
+    if (!node || s.start < node.start) nodes.set(key, { traceId: s.traceId, spanId: s.spanId, parentId: s.parentId, start: s.start })
   }
   const children = new Map()
   for (const n of nodes.values()) {
@@ -682,7 +678,7 @@ const nestedSet = (spans) => {
     if (!children.has(key)) children.set(key, [])
     children.get(key).push(n)
   }
-  const order = (a, b) => a.start - b.start || (a.spanId < b.spanId ? -1 : a.spanId > b.spanId ? 1 : 0)
+  const order = (a, b) => newestFirst(b, a)
   const counters = new Map()
   const visit = (n, parent) => {
     const key = `${n.traceId}/${n.spanId}`
@@ -826,4 +822,4 @@ const search = (query, all, opts) => {
   })
 }
 
-module.exports = { nestedSet, DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, SPAN_NAME, dataset, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace }
+module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, SPAN_NAME, dataset, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace, nestedSet }

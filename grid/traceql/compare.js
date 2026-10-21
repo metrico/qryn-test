@@ -264,17 +264,17 @@ const names = (ids) => {
  * @param spans {Object[]} the landed spans, from oracle.dataset()
  */
 const nestedSetDiff = (rows, spans) => {
-  const got = new Map(rows.map(r => [`${r.traceId}/${r.spanId}`, [r.left, r.right, r.parent].join('/')]))
+  const text = (n) => [n.left, n.right, n.parent].join('/')
+  const got = new Map(rows.map(r => [`${r.traceId}/${r.spanId}`, text(r)]))
   const want = nestedSet(spans)
   const out = []
   for (const s of spans) {
     const key = `${s.traceId}/${s.spanId}`
-    const w = want.get(key)
-    const text = [w.left, w.right, w.parent].join('/')
-    if (!got.has(key)) out.push(`${s.name}: missing, want ${text}`)
-    else if (got.get(key) !== text) out.push(`${s.name}: got ${got.get(key)}, want ${text}`)
+    const w = text(want.get(key))
+    if (!got.has(key)) out.push(`${s.name}: missing, want ${w}`)
+    else if (got.get(key) !== w) out.push(`${s.name}: got ${got.get(key)}, want ${w}`)
   }
   return out
 }
 
-module.exports = { nestedSetDiff, fromApi, fromResponse, diff, names, fromMetricsResponse, metricsDiff, fromAutocompleteResponse, autocompleteDiff }
+module.exports = { fromApi, fromResponse, diff, names, fromMetricsResponse, metricsDiff, fromAutocompleteResponse, autocompleteDiff, nestedSetDiff }
