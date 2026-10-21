@@ -7,7 +7,7 @@
 // value, and selected a listed span's name to its select() values.
 
 const { labelKey } = require('./metrics')
-const { SPAN_NAME } = require('./oracle')
+const { SPAN_NAME, nestedSet } = require('./oracle')
 
 // UNRESOLVED_ERROR is the error of a search whose ancestry does not resolve
 // within the round limit.
@@ -257,4 +257,24 @@ const names = (ids) => {
   return { trace: invert(ids.trace), span: invert(ids.span) }
 }
 
-module.exports = { fromApi, fromResponse, diff, names, fromMetricsResponse, metricsDiff, fromAutocompleteResponse, autocompleteDiff }
+/**
+ * nestedSetDiff lists the spans whose stored nested-set values are missing or
+ * differ from the oracle's numbering of the given spans.
+ * @param rows {{traceId: string, spanId: string, left: number, right: number, parent: number}[]}
+ * @param spans {Object[]} the landed spans, from oracle.dataset()
+ */
+const nestedSetDiff = (rows, spans) => {
+  const got = new Map(rows.map(r => [`${r.traceId}/${r.spanId}`, [r.left, r.right, r.parent].join('/')]))
+  const want = nestedSet(spans)
+  const out = []
+  for (const s of spans) {
+    const key = `${s.traceId}/${s.spanId}`
+    const w = want.get(key)
+    const text = [w.left, w.right, w.parent].join('/')
+    if (!got.has(key)) out.push(`${s.name}: missing, want ${text}`)
+    else if (got.get(key) !== text) out.push(`${s.name}: got ${got.get(key)}, want ${text}`)
+  }
+  return out
+}
+
+module.exports = { nestedSetDiff, fromApi, fromResponse, diff, names, fromMetricsResponse, metricsDiff, fromAutocompleteResponse, autocompleteDiff }

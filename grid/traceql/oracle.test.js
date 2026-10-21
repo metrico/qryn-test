@@ -1,5 +1,5 @@
 // TraceQL oracle self-check, run without a gigapipe stack: the seed holds the
-// nine fixture shapes, every case's query prints from its AST, and the oracle
+// fixture shapes, every case's query prints from its AST, and the oracle
 // reproduces hand-checked results for every search, metrics and autocomplete
 // case.
 
@@ -10,7 +10,7 @@ const { cityHash64, sampleThreshold } = require('./cityhash')
 const { autocomplete, selectsEverySpan } = require('./autocomplete')
 const { print } = require('./ast')
 const { runs, metricsRuns, autocompleteRuns } = require('./cases')
-const { diff, fromApi, metricsDiff, fromMetricsResponse, fromAutocompleteResponse, autocompleteDiff } = require('./compare')
+const { nestedSetDiff, diff, fromApi, metricsDiff, fromMetricsResponse, fromAutocompleteResponse, autocompleteDiff } = require('./compare')
 
 const FROM = Date.UTC(2026, 9, 1, 12)
 const PREFIX = '7ace00000000000000000000'
@@ -49,31 +49,49 @@ describe('traceql grid seed', () => {
     expect([start('eb_from'), start('eb_to'), start('el_b')]).toEqual([0, seed.WINDOW, seed.WINDOW + 5 * seed.MINUTE])
   })
 
-  it('names every span once, links parents within the trace and gives distinct start times', () => {
+  it('names every span once, links parents within the trace and gives distinct start times outside the nested-set trace', () => {
     const all = seed.traces().flatMap(t => t.spans.map(s => ({ ...s, trace: t.name })))
     expect(new Set(all.map(s => s.name)).size).toEqual(all.length)
     const traceOf = Object.fromEntries(all.map(s => [s.name, s.trace]))
     for (const s of all) {
       if (s.parent && !s.parent.startsWith('missing:')) expect(traceOf[s.parent]).toEqual(s.trace)
     }
-    expect(new Set(all.map(s => s.start)).size).toEqual(all.length)
+    const timed = all.filter(s => s.trace !== 'nested')
+    expect(new Set(timed.map(s => s.start)).size).toEqual(timed.length)
   })
 
-  it('assigns distinct ids', () => {
+  it('holds the nested-set fixtures after every case range', () => {
+    const t = ts.nested
+    const by = Object.fromEntries(t.spans.map(s => [s.name, s]))
+    expect(by.ns_r1.start).toEqual(by.ns_r2.start)
+    expect(by.ns_a.start).toEqual(by.ns_b.start)
+    expect(by.ns_self.parent).toEqual('ns_self')
+    expect([by.ns_cyc1.parent, by.ns_cyc2.parent]).toEqual(['ns_cyc2', 'ns_cyc1'])
+    expect(by.ns_dup_early.sameId).toEqual('ns_dup')
+    expect(by.ns_dup_early.start).toBeLessThan(by.ns_dup.start)
+    expect(by.ns_late.push).toEqual(2)
+    const latest = Math.max(...runs(FROM).map(r => r.to), ...metricsRuns(FROM).map(r => r.to), ...autocompleteRuns(FROM).map(r => r.to))
+    expect(Math.min(...t.spans.map(s => FROM + s.start))).toBeGreaterThan(latest)
+  })
+
+  it('assigns distinct ids, except a span that reuses one', () => {
     const id = seed.ids(PREFIX)
     expect(new Set(Object.values(id.trace)).size).toEqual(Object.keys(id.trace).length)
-    expect(new Set(Object.values(id.span)).size).toEqual(Object.keys(id.span).length)
+    const reused = seed.traces().flatMap(t => t.spans).filter(s => s.sameId)
+    expect(reused.map(s => id.span[s.name])).toEqual(reused.map(s => id.span[s.sameId]))
+    expect(new Set(Object.values(id.span)).size).toEqual(Object.keys(id.span).length - reused.length)
     expect(Object.values(id.trace).every(t => /^[0-9a-f]{32}$/.test(t))).toBe(true)
     expect(Object.values(id.span).every(s => /^[0-9a-f]{16}$/.test(s))).toBe(true)
   })
 
   it('pushes the Zipkin batches with parent ids and whole-microsecond times', () => {
     const batches = seed.zipkinBatches(FROM, PREFIX, 'selfcheck')
-    expect(batches).toHaveLength(2)
+    expect(batches).toHaveLength(3)
     const all = batches.flat()
     expect(all.filter(z => z.parentId === undefined).map(z => z.name).sort())
-      .toEqual(['am_root', 'c8_0', 'c9_0', 'eb_root', 'ec_root', 'el_a', 'fan_root', 'mix2_root', 'mix_root', 'orph_root', 'two_r1', 'two_r2'])
+      .toEqual(['am_root', 'c8_0', 'c9_0', 'eb_root', 'ec_root', 'el_a', 'fan_root', 'mix2_root', 'mix_root', 'ns_r1', 'ns_r2', 'orph_root', 'two_r1', 'two_r2'])
     expect(batches[1].map(z => z.name)).toEqual(['mix2_root'])
+    expect(batches[2].map(z => z.name)).toEqual(['ns_late'])
     expect(all.find(z => z.name === 'eb_from').timestamp).toEqual(FROM * 1000)
   })
 
@@ -1196,5 +1214,61 @@ describe('traceql autocomplete diff', () => {
     const err = fromAutocompleteResponse({ status: 500, data: { error: 'TraceQL structural query: a trace is deeper than the round limit of 3 rounds (8 spans) or its parent links form a cycle; raise GIGAPIPE_TRACEQL_ANCESTRY_ROUNDS' } }, true)
     expect(autocompleteDiff(err, oracle.UNRESOLVED)).toEqual([])
     expect(autocompleteDiff([], oracle.UNRESOLVED)).toEqual(['want an unresolved-ancestry error, got 0 suggestions'])
+  })
+})
+
+describe('traceql nested-set oracle', () => {
+  // numbers maps span name -> [left, right, parent] for the given pushes.
+  const numbers = (trace, pushes) => {
+    const landed = pushes === undefined ? spans : spans.filter(s => s.push < pushes)
+    const got = oracle.nestedSet(landed)
+    return Object.fromEntries(landed.filter(s => s.trace === trace)
+      .map(s => { const n = got.get(`${s.traceId}/${s.spanId}`); return [s.name, [n.left, n.right, n.parent]] }))
+  }
+
+  it('numbers depth-first with one counter across roots, ties by span id, a duplicate id by its earliest copy', () => {
+    expect(numbers('nested')).toEqual({
+      ns_r1: [1, 12, -1],
+      ns_r2: [13, 16, -1],
+      ns_a: [8, 9, 1],
+      ns_b: [10, 11, 1],
+      ns_dup: [4, 7, 1],
+      ns_dup_early: [4, 7, 1],
+      ns_dup_c: [5, 6, 4],
+      ns_r2c: [14, 15, 13],
+      ns_self: [0, 0, 0],
+      ns_cyc1: [0, 0, 0],
+      ns_cyc2: [0, 0, 0],
+      ns_cyc_c: [0, 0, 0],
+      ns_late: [2, 3, 1]
+    })
+  })
+
+  it('renumbers the trace when the late span lands', () => {
+    expect(numbers('nested', 2)).toMatchObject({ ns_r1: [1, 10, -1], ns_dup: [2, 5, 1], ns_a: [6, 7, 1], ns_r2: [11, 14, -1] })
+    expect(numbers('nested', 2).ns_late).toBeUndefined()
+  })
+
+  it('reads 0/0/0 for orphans, root-less traces and a trace whose root has not landed', () => {
+    expect(numbers('orphan')).toEqual({ orph_root: [1, 4, -1], orph_child: [2, 3, 1], orph_o1: [0, 0, 0], orph_o2: [0, 0, 0] })
+    expect(Object.values(numbers('rootless'))).toEqual([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
+    expect(new Set(Object.values(numbers('mixed2', 1)).map(String))).toEqual(new Set(['0,0,0']))
+    expect(numbers('mixed2').mix2_root).toEqual([1, 12, -1])
+  })
+
+  it('numbers two roots with one counter', () => {
+    expect(numbers('tworoots')).toEqual({ two_r1: [1, 4, -1], two_r1c: [2, 3, 1], two_r2: [5, 8, -1], two_r2c: [6, 7, 5] })
+  })
+
+  it('diffs stored values against the oracle', () => {
+    const two = spans.filter(s => s.trace === 'tworoots')
+    const row = (name, left, right, parent) => {
+      const { traceId, spanId } = two.find(s => s.name === name)
+      return { traceId, spanId, left, right, parent }
+    }
+    const rows = [row('two_r1', 1, 4, -1), row('two_r1c', 2, 3, 1), row('two_r2', 5, 8, -1), row('two_r2c', 6, 7, 5)]
+    expect(nestedSetDiff(rows, two)).toEqual([])
+    expect(nestedSetDiff([rows[0], row('two_r1c', 0, 0, 0), rows[2]], two))
+      .toEqual(['two_r1c: got 0/0/0, want 2/3/1', 'two_r2c: missing, want 6/7/5'])
   })
 })
