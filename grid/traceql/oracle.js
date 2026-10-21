@@ -659,6 +659,47 @@ const needsWholeTrace = (elements) => elements.some(e => {
 const earliestFirst = (a, b) => a.start - b.start || (a.spanId < b.spanId ? -1 : a.spanId > b.spanId ? 1 : 0)
 
 /**
+ * nestedSet numbers each trace's spans depth-first under gigapipe's rules:
+ * `traceId/spanId` -> {left, right, parent}, 0/0/0 when no root reaches it.
+ * @param spans {Object[]} from dataset()
+ */
+const nestedSet = (spans) => {
+  const out = new Map()
+  const nodes = new Map()
+  for (const s of spans) {
+    const key = `${s.traceId}/${s.spanId}`
+    // Copies of a span id form one node, placed by the earliest copy.
+    const node = nodes.get(key)
+    if (!node || s.start < node.start) nodes.set(key, { traceId: s.traceId, spanId: s.spanId, parentId: s.parentId, start: s.start })
+  }
+  const children = new Map()
+  for (const n of nodes.values()) {
+    const key = n.parentId === null ? n.traceId : `${n.traceId}/${n.parentId}`
+    if (!children.has(key)) children.set(key, [])
+    children.get(key).push(n)
+  }
+  const order = (a, b) => newestFirst(b, a)
+  const counters = new Map()
+  const visit = (n, parent) => {
+    const key = `${n.traceId}/${n.spanId}`
+    const left = counters.get(n.traceId) + 1
+    counters.set(n.traceId, left)
+    for (const c of (children.get(key) || []).sort(order)) visit(c, left)
+    const right = counters.get(n.traceId) + 1
+    counters.set(n.traceId, right)
+    out.set(key, { left, right, parent })
+  }
+  for (const traceId of new Set([...nodes.values()].map(n => n.traceId))) {
+    counters.set(traceId, 0)
+    for (const root of (children.get(traceId) || []).sort(order)) visit(root, -1)
+  }
+  for (const key of nodes.keys()) {
+    if (!out.has(key)) out.set(key, { left: 0, right: 0, parent: 0 })
+  }
+  return out
+}
+
+/**
  * resultSpansets returns the spansets a pipeline yields, one per trace and
  * group key with its spans, attributes ([name, {type, value, text?}]) and
  * key. It returns GROUPED for a spanset operator over grouped spansets,
@@ -781,4 +822,4 @@ const search = (query, all, opts) => {
   })
 }
 
-module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, SPAN_NAME, dataset, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace }
+module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, SPAN_NAME, dataset, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace, nestedSet }

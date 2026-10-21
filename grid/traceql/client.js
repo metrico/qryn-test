@@ -1,7 +1,12 @@
-// gigapipe I/O for the TraceQL grid suite: Zipkin ingest and the Tempo
-// search, metrics and autocomplete APIs.
+// gigapipe I/O for the TraceQL grid suite: Zipkin ingest, the Tempo
+// search, metrics and autocomplete APIs, and the nested-set side table.
 
+const axios = require('axios')
 const { clokiExtUrl, clokiWriteUrl, axiosGet, axiosPost } = require('../../common')
+
+// The ClickHouse HTTP endpoint (with credentials) and database of the stack.
+const clickhouseUrl = process.env.GRID_CLICKHOUSE_URL || 'http://qryn:q1w2e3r4@e2e.clickhouse:8123'
+const clickhouseDb = process.env.GRID_CLICKHOUSE_DB || 'cloki'
 
 const secs = (ms) => {
   if (ms % 1000 !== 0) throw new Error(`${ms}ms is not a whole second`)
@@ -60,6 +65,31 @@ const autocomplete = async (run) => {
   return axiosGet(`http://${clokiExtUrl}/api/v2/search/${path}?${qs}`, { validateStatus: () => true })
 }
 
+/**
+ * nestedSetRows reads the newest stored nested-set values of the given
+ * traces: [{traceId, spanId, left, right, parent}], ids in lowercase hex.
+ * @param traceIds {string[]} hex trace ids
+ */
+const nestedSetRows = async (traceIds) => {
+  const url = new URL(clickhouseUrl)
+  const ids = traceIds.map(id => {
+    if (!/^[0-9a-f]{32}$/.test(id)) throw new Error(`bad trace id ${id}`)
+    return `unhex('${id}')`
+  })
+  const query = `SELECT lower(hex(trace_id)) AS traceId, lower(hex(span_id)) AS spanId,
+      argMax(left, version) AS left, argMax(right, version) AS right, argMax(parent, version) AS parent
+    FROM ${clickhouseDb}.tempo_traces_nested_set
+    WHERE oid = '0' AND trace_id IN (${ids.join(', ')})
+    GROUP BY trace_id, span_id
+    FORMAT JSONEachRow`
+  const res = await axios.post(`${url.protocol}//${url.host}/`, query, {
+    auth: { username: decodeURIComponent(url.username) || 'default', password: decodeURIComponent(url.password) },
+    responseType: 'text',
+    transformResponse: [(data) => data]
+  })
+  return res.data.split('\n').filter(Boolean).map(line => JSON.parse(line))
+}
+
 // waitFor polls fn until it returns true or the timeout passes.
 const waitFor = async (fn, timeoutMs = 60000) => {
   const deadline = Date.now() + timeoutMs
@@ -70,4 +100,4 @@ const waitFor = async (fn, timeoutMs = 60000) => {
   return false
 }
 
-module.exports = { push, search, metrics, autocomplete, waitFor }
+module.exports = { push, search, metrics, autocomplete, nestedSetRows, waitFor }
