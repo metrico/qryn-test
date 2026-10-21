@@ -236,7 +236,8 @@ const MIXED2_EARLIEST = ['mix2_root', 'mix2_a', 'mix2_b']
 const ATTRS_EARLIEST = ['am_root', 'am_missing', 'am_int']
 
 // Hand-checked results: trace -> [listed spans, matched, attributes?,
-// selected?], just matched for the spss earliest spans, or sets(...).
+// selected? (span name at `#name`)], just matched for the spss earliest spans,
+// or sets(...).
 const EXPECTED = {
   all: EARLIEST,
   all_limit_3: { edge_bound: EARLIEST.edge_bound, edge_late: EARLIEST.edge_late, edge_chain: EARLIEST.edge_chain },

@@ -751,7 +751,7 @@ const nestedSet = (spans) => {
 /**
  * resultSpansets returns the spansets a pipeline yields, one per trace and
  * group key, or GROUPED, UNRESOLVED or {error}. Operand spans start in
- * (from, to]; related spans count wherever they start.
+ * (from, to]; related spans count wherever they start. Spans carry ns.
  * @param pipeline {Object[]} the pipeline of the case AST
  * @param all {Object[]} from dataset(); with opts.pushes only the spans of
  *   the first `pushes` ingest batches count
@@ -828,7 +828,8 @@ const attributeValue = ({ type, value, text }) => {
 /**
  * search returns the expected traces of a search, newest first:
  * [{trace, traceId, spans, matched, attributes, selected, spanSets}], or the
- * error result of resultSpansets(). Each spanset lists its spss earliest spans.
+ * error result of resultSpansets(). Each spanset lists its spss earliest spans
+ * (ties by span id); limit keeps the traces with the newest result spans.
  * @param query {Object} the case AST
  * @param all {Object[]} from dataset()
  * @param opts {{from: number, to: number, limit: number, spss?: number, rounds?: number, pushes?: number}}
