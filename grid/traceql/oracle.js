@@ -847,4 +847,4 @@ const search = (query, all, opts) => {
   })
 }
 
-module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, SPAN_NAME, dataset, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace, nestedSet }
+module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, SPAN_NAME, NESTED_SET, dataset, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace, nestedSet }
