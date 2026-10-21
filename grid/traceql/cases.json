@@ -138,7 +138,7 @@
     },
     {
       "id": "fanout_spss_1",
-      "note": "spss=1 lists only the newest span.",
+      "note": "spss=1 lists only the earliest-starting span.",
       "query": "{ .shape = \"fanout\" }",
       "spss": 1,
       "ast": {
@@ -2526,7 +2526,7 @@
     },
     {
       "id": "hop_fanout_union_spss",
-      "note": "&> over the fan-out lists the newest three of 30.",
+      "note": "&> over the fan-out lists the earliest-starting three of 30.",
       "query": "{ .role = \"child\" } &> { .role = \"grandchild\" }",
       "ast": {
         "pipeline": [

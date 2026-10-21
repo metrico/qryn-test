@@ -116,17 +116,17 @@ describe('traceql grid cases', () => {
   }
 })
 
-// Every trace's three newest in-range spans and in-range span count.
-const NEWEST = {
-  chain9: [['c9_8', 'c9_7', 'c9_6'], 9],
-  chain8: [['c8_7', 'c8_6', 'c8_5'], 8],
-  fanout: [['fan_c49', 'fan_c48', 'fan_c47'], 71],
-  mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 6],
-  orphan: [['orph_o2', 'orph_o1', 'orph_child'], 4],
-  tworoots: [['two_r2c', 'two_r1c', 'two_r2'], 4],
-  rootless: [['rl_c', 'rl_b', 'rl_a'], 3],
-  mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 6],
-  attrs: [['am_dur', 'am_bool', 'am_str'], 8],
+// Every trace's three earliest-starting in-range spans and in-range span count.
+const EARLIEST = {
+  chain9: [['c9_0', 'c9_1', 'c9_2'], 9],
+  chain8: [['c8_0', 'c8_1', 'c8_2'], 8],
+  fanout: [['fan_root', 'fan_c00', 'fan_c00_g0'], 71],
+  mixed: [['mix_root', 'mix_a', 'mix_b'], 6],
+  orphan: [['orph_root', 'orph_child', 'orph_o1'], 4],
+  tworoots: [['two_r1', 'two_r2', 'two_r1c'], 4],
+  rootless: [['rl_a', 'rl_b', 'rl_c'], 3],
+  mixed2: [['mix2_root', 'mix2_a', 'mix2_b'], 6],
+  attrs: [['am_root', 'am_missing', 'am_int'], 8],
   edge_chain: [['ec_leaf'], 1],
   edge_bound: [['eb_to', 'eb_mid'], 2],
   edge_late: [['el_a'], 1]
@@ -227,27 +227,30 @@ const TWO_NEWEST = ['two_r2c', 'two_r1c', 'two_r2', 'two_r1']
 // sets lists a trace's spansets in order, each as [listed spans, matched, attributes?, selected?].
 const sets = (...ss) => ({ sets: ss })
 
-// The three newest spans of the mixed trees and of the attribute matrix.
-const MIXED_NEWEST = ['mix_b1', 'mix_a2', 'mix_a1']
-const MIXED2_NEWEST = ['mix2_b1', 'mix2_a2', 'mix2_a1']
-const ATTRS_NEWEST = ['am_dur', 'am_bool', 'am_str']
+// The level-2 spans of the mixed trees, and the three earliest-starting spans
+// of the mixed trees and of the attribute matrix.
+const MIXED_LEAVES = ['mix_a1', 'mix_a2', 'mix_b1']
+const MIXED2_LEAVES = ['mix2_a1', 'mix2_a2', 'mix2_b1']
+const MIXED_EARLIEST = ['mix_root', 'mix_a', 'mix_b']
+const MIXED2_EARLIEST = ['mix2_root', 'mix2_a', 'mix2_b']
+const ATTRS_EARLIEST = ['am_root', 'am_missing', 'am_int']
 
-// Hand-checked results per case: trace -> [listed spans, matched,
+// Hand-checked results per case: trace -> [listed spans in any order, matched,
 // attributes?, selected?], or just matched when the listed spans are the
-// trace's spss newest, or sets(...) for a trace with several spansets;
-// UNRESOLVED when ancestry does not resolve within the round limit, GROUPED
-// for a spanset operator over grouped spansets. Attributes map a name to its
-// OTLP value, selected a listed span to its select() values (the span name
-// at `#name`); both default to none.
+// trace's spss earliest-starting spans, or sets(...) for a trace with several
+// spansets; UNRESOLVED when ancestry does not resolve within the round limit,
+// GROUPED for a spanset operator over grouped spansets. Attributes map a name
+// to its OTLP value, selected a listed span to its select() values (the span
+// name at `#name`); both default to none.
 const EXPECTED = {
-  all: NEWEST,
-  all_limit_3: { edge_bound: NEWEST.edge_bound, edge_late: NEWEST.edge_late, edge_chain: NEWEST.edge_chain },
+  all: EARLIEST,
+  all_limit_3: { edge_bound: EARLIEST.edge_bound, edge_late: EARLIEST.edge_late, edge_chain: EARLIEST.edge_chain },
   all_spss_100: IN_RANGE,
-  suite: NEWEST,
+  suite: EARLIEST,
   suite_limit_2: { edge_bound: [['eb_to', 'eb_mid'], 2], edge_late: [['el_a'], 1] },
-  fanout: { fanout: [['fan_c49', 'fan_c48', 'fan_c47'], 71] },
-  fanout_children_spss_5: { fanout: [['fan_c49', 'fan_c48', 'fan_c47', 'fan_c46', 'fan_c45'], 50] },
-  fanout_spss_1: { fanout: [['fan_c49'], 71] },
+  fanout: { fanout: EARLIEST.fanout },
+  fanout_children_spss_5: { fanout: [['fan_c00', 'fan_c01', 'fan_c02', 'fan_c03', 'fan_c04'], 50] },
+  fanout_spss_1: { fanout: [['fan_root'], 71] },
   name: { mixed: [['mix_a'], 1] },
   lvl_numeric: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 3], mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 3] },
   depth_ge_7: { chain9: [['c9_8', 'c9_7'], 2], chain8: [['c8_7'], 1] },
@@ -255,29 +258,29 @@ const EXPECTED = {
   svc_db_or_gateway: { mixed: [['mix_b1', 'mix_a1', 'mix_root'], 3], mixed2: [['mix2_b1', 'mix2_a1', 'mix2_root'], 3] },
   svc_regex: { mixed: [['mix_a2'], 1], mixed2: [['mix2_a2'], 1] },
   span_scope: { mixed: [['mix_a1'], 1], mixed2: [['mix2_a1'], 1] },
-  resource_scope: { tworoots: [['two_r2c', 'two_r1c', 'two_r2'], 4] },
+  resource_scope: { tworoots: [['two_r1', 'two_r2', 'two_r1c'], 4] },
   status_error: { mixed: [['mix_b'], 1], mixed2: [['mix2_b'], 1] },
   duration_gt_100ms: { mixed: [['mix_root'], 1], mixed2: [['mix2_root'], 1], attrs: [['am_float', 'am_root'], 2] },
   v_gt_1: { attrs: [['am_float', 'am_int'], 2] },
-  v_ne_abc: { attrs: [['am_dur', 'am_bool', 'am_float'], 5] },
+  v_ne_abc: { attrs: [['am_int', 'am_int_neg', 'am_float'], 5] },
   edge: { edge_chain: [['ec_leaf'], 1], edge_bound: [['eb_to', 'eb_mid'], 2], edge_late: [['el_a'], 1] },
   edge_at_from: {},
   edge_at_to: { edge_bound: [['eb_to'], 1] },
   edge_out_of_range_root: {},
   edge_late: {},
   edge_late_wider: { edge_late: [['el_b'], 1] },
-  edge_wider_start: { edge_chain: [['ec_leaf', 'ec_mid'], 2], edge_bound: [['eb_to', 'eb_mid', 'eb_from'], 4], edge_late: [['el_a'], 1] },
+  edge_wider_start: { edge_chain: [['ec_leaf', 'ec_mid'], 2], edge_bound: [['eb_root', 'eb_from', 'eb_mid'], 4], edge_late: [['el_a'], 1] },
   and_parent_child: { mixed: [['mix_a1', 'mix_a'], 2] },
   and_svc_db_gateway: { mixed: [['mix_b1', 'mix_a1', 'mix_root'], 3], mixed2: [['mix2_b1', 'mix2_a1', 'mix2_root'], 3] },
   and_no_shared_trace: {},
   and_dedup: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 3], mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 3] },
-  and_fanout_spss: { fanout: [['fan_c45_g1', 'fan_c45_g0', 'fan_c40_g1'], 21] },
+  and_fanout_spss: { fanout: [['fan_root', 'fan_c00_g0', 'fan_c00_g1'], 21] },
   and_three: { mixed: [['mix_b', 'mix_a', 'mix_root'], 3] },
   and_out_of_range_operand: {},
   and_orphan: { orphan: [['orph_o2', 'orph_o1', 'orph_root'], 3] },
   and_rootless: { rootless: [['rl_c', 'rl_b', 'rl_a'], 3] },
   and_across_pushes: { mixed2: [['mix2_b1', 'mix2_root'], 2] },
-  and_chain_attrs: { chain9: [['c9_8', 'c9_7', 'c9_6'], 9] },
+  and_chain_attrs: { chain9: [['c9_0', 'c9_1', 'c9_2'], 9] },
   or_union: {
     mixed: [['mix_b1', 'mix_a1'], 2],
     mixed2: [['mix2_b1', 'mix2_a1'], 2],
@@ -290,8 +293,8 @@ const EXPECTED = {
   or_dedup: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 3], mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 3] },
   or_boundary: { edge_bound: [['eb_to', 'eb_mid'], 2] },
   or_attrs: { attrs: [['am_str', 'am_float', 'am_int'], 3] },
-  and_or_left_assoc: { tworoots: [['two_r2c', 'two_r1c', 'two_r2'], 4] },
-  or_paren_and: { mixed: [['mix_b1', 'mix_a1'], 2], mixed2: [['mix2_b1', 'mix2_a1'], 2], tworoots: [['two_r2c', 'two_r1c', 'two_r2'], 4] },
+  and_or_left_assoc: { tworoots: [['two_r1', 'two_r2', 'two_r1c'], 4] },
+  or_paren_and: { mixed: [['mix_b1', 'mix_a1'], 2], mixed2: [['mix2_b1', 'mix2_a1'], 2], tworoots: [['two_r1', 'two_r2', 'two_r1c'], 4] },
   and_paren_or: { mixed: [['mix_b1', 'mix_a1', 'mix_a'], 3], mixed2: [['mix2_b1', 'mix2_a1', 'mix2_a'], 3] },
   hop_child_all: HOP_CHILD,
   hop_parent_all: {
@@ -361,7 +364,7 @@ const EXPECTED = {
   hop_orphan_sibling: {},
   hop_rootless_child: {},
   hop_rootless_not_child: {
-    fanout: [['fan_c49', 'fan_c48', 'fan_c47'], 50],
+    fanout: [['fan_c00', 'fan_c01', 'fan_c02'], 50],
     orphan: [['orph_child'], 1],
     tworoots: [['two_r2c', 'two_r1c'], 2],
     rootless: [['rl_c', 'rl_b'], 2]
@@ -369,13 +372,13 @@ const EXPECTED = {
   hop_rootless_sibling: {},
   hop_roots_siblings: { tworoots: [['two_r2', 'two_r1'], 2] },
   hop_root_children: {
-    fanout: [['fan_c49', 'fan_c48', 'fan_c47'], 50],
+    fanout: [['fan_c00', 'fan_c01', 'fan_c02'], 50],
     orphan: [['orph_child'], 1],
     tworoots: [['two_r2c', 'two_r1c'], 2]
   },
-  hop_fanout_union_spss: { fanout: [['fan_c45_g1', 'fan_c45_g0', 'fan_c45'], 30] },
-  hop_fanout_grandchild_siblings: { fanout: [['fan_c45_g1', 'fan_c45_g0', 'fan_c40_g1'], 20] },
-  hop_fanout_siblings_spss_5: { fanout: [['fan_c49', 'fan_c48', 'fan_c47', 'fan_c46', 'fan_c45'], 50] },
+  hop_fanout_union_spss: { fanout: [['fan_c00', 'fan_c00_g0', 'fan_c00_g1'], 30] },
+  hop_fanout_grandchild_siblings: { fanout: [['fan_c00_g0', 'fan_c00_g1', 'fan_c05_g0'], 20] },
+  hop_fanout_siblings_spss_5: { fanout: [['fan_c00', 'fan_c01', 'fan_c02', 'fan_c03', 'fan_c04'], 50] },
   hop_db_parent_any: { mixed: [['mix_b1', 'mix_a1'], 2], mixed2: [['mix2_b1', 'mix2_a1'], 2] },
   hop_attrs_sibling: { attrs: [['am_str'], 1] },
   hop_attrs_union_parent: { attrs: [['am_str', 'am_root'], 2] },
@@ -383,7 +386,7 @@ const EXPECTED = {
   hop_edge_out_of_range_parent: {},
   hop_edge_wider_parent: { edge_chain: [['ec_leaf'], 1] },
   hop_edge_late_child: {},
-  and_empty_operand: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 6], mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 6] },
+  and_empty_operand: { mixed: [MIXED_EARLIEST, 6], mixed2: [MIXED2_EARLIEST, 6] },
   hop_edge_empty_lhs: { edge_chain: [['ec_leaf'], 1], edge_bound: [['eb_to', 'eb_mid'], 2], edge_late: [['el_a'], 1] },
   tr_descendant_all: TR_DESCENDANT,
   tr_ancestor_all: TR_ANCESTOR,
@@ -440,48 +443,48 @@ const EXPECTED = {
   tr_rootless_descendant: {},
   tr_rootless_not_ancestor: { rootless: [['rl_c', 'rl_b', 'rl_a'], 3] },
   tr_tworoots_descendant: { tworoots: [['two_r2c', 'two_r1c'], 2] },
-  tr_fanout_descendant_spss: { fanout: [['fan_c45_g1', 'fan_c45_g0', 'fan_c40_g1'], 20] },
+  tr_fanout_descendant_spss: { fanout: [['fan_c00_g0', 'fan_c00_g1', 'fan_c05_g0'], 20] },
   tr_fanout_ancestor: {
     fanout: [['fan_root', 'fan_c00', 'fan_c05', 'fan_c10', 'fan_c15', 'fan_c20', 'fan_c25', 'fan_c30', 'fan_c35', 'fan_c40', 'fan_c45'], 11]
   },
-  tr_fanout_union_descendant: { fanout: [['fan_c45_g1', 'fan_c45_g0', 'fan_c40_g1'], 21] },
+  tr_fanout_union_descendant: { fanout: [['fan_root', 'fan_c00_g0', 'fan_c00_g1'], 21] },
   tr_attrs_ancestor: { attrs: [['am_root'], 1] },
-  tr_empty_lhs_not_ancestor: { mixed: [['mix_b1', 'mix_a2', 'mix_a1'], 6] },
+  tr_empty_lhs_not_ancestor: { mixed: [MIXED_EARLIEST, 6] },
   tr_edge_out_of_range_ancestors: {},
   tr_edge_wider: { edge_chain: [['ec_leaf', 'ec_mid'], 2], edge_bound: [['eb_to', 'eb_mid', 'eb_from'], 3] },
   tr_edge_not_descendant: { edge_chain: [['ec_leaf'], 1] },
   tr_late_parent_before: {},
-  tr_late_parent_before_not: { mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 5] },
+  tr_late_parent_before_not: { mixed2: [['mix2_a', 'mix2_b', 'mix2_a1'], 5] },
   tr_late_parent_after: { mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1'], 3] },
   // Scalar filters. The api spans' descendants below level 0 are a1, a2 and
   // b1; the mixed tree's durations are 120, 80, 60, 30, 5 and 45ms; the
   // attribute matrix's numeric v are 200, -3 and 1.5.
   agg_desc_count: {
-    mixed: [MIXED_NEWEST, 3, { 'count()': intAttr(3) }],
-    mixed2: [MIXED2_NEWEST, 3, { 'count()': intAttr(3) }]
+    mixed: [MIXED_LEAVES, 3, { 'count()': intAttr(3) }],
+    mixed2: [MIXED2_LEAVES, 3, { 'count()': intAttr(3) }]
   },
   agg_desc_count_fails: {},
-  agg_bare_count: { fanout: [['fan_c49', 'fan_c48', 'fan_c47'], 71, { 'count()': intAttr(71) }] },
+  agg_bare_count: { fanout: [['fan_root', 'fan_c00', 'fan_c00_g0'], 71, { 'count()': intAttr(71) }] },
   agg_bare_count_eq: {
-    chain8: [['c8_7', 'c8_6', 'c8_5'], 8, { 'count()': intAttr(8) }],
-    attrs: [ATTRS_NEWEST, 8, { 'count()': intAttr(8) }]
+    chain8: [['c8_0', 'c8_1', 'c8_2'], 8, { 'count()': intAttr(8) }],
+    attrs: [ATTRS_EARLIEST, 8, { 'count()': intAttr(8) }]
   },
-  agg_chained: { mixed: [MIXED_NEWEST, 6, { 'count()': intAttr(6), 'avg(duration)': durationAttr('56.666666ms') }] },
+  agg_chained: { mixed: [MIXED_EARLIEST, 6, { 'count()': intAttr(6), 'avg(duration)': durationAttr('56.666666ms') }] },
   agg_chained_fails: {},
-  agg_nil_skipped: { attrs: [ATTRS_NEWEST, 8, { 'avg(.v)': doubleAttr(198.5 / 3) }] },
+  agg_nil_skipped: { attrs: [ATTRS_EARLIEST, 8, { 'avg(.v)': doubleAttr(198.5 / 3) }] },
   agg_all_nil_dropped: {},
   agg_count_zero: {},
-  agg_number_vs_duration: { attrs: [ATTRS_NEWEST, 8, { 'max(duration)': durationAttr('500ms') }] },
-  agg_int_vs_float: { mixed: [MIXED_NEWEST, 6, { 'count()': intAttr(6) }] },
-  agg_sum_float: { attrs: [ATTRS_NEWEST, 8, { 'sum(.v)': doubleAttr(198.5) }] },
-  agg_min_int: { attrs: [ATTRS_NEWEST, 8, { 'min(.v)': intAttr(-3) }] },
-  agg_max_float: { attrs: [ATTRS_NEWEST, 5, { 'max(.v)': doubleAttr(1.5) }] },
+  agg_number_vs_duration: { attrs: [ATTRS_EARLIEST, 8, { 'max(duration)': durationAttr('500ms') }] },
+  agg_int_vs_float: { mixed: [MIXED_EARLIEST, 6, { 'count()': intAttr(6) }] },
+  agg_sum_float: { attrs: [ATTRS_EARLIEST, 8, { 'sum(.v)': doubleAttr(198.5) }] },
+  agg_min_int: { attrs: [ATTRS_EARLIEST, 8, { 'min(.v)': intAttr(-3) }] },
+  agg_max_float: { attrs: [['am_int_neg', 'am_float', 'am_str'], 5, { 'max(.v)': doubleAttr(1.5) }] },
   agg_union_descendant_sum: {
-    mixed: [['mix_b1', 'mix_a1', 'mix_b'], 4, { 'sum(duration)': durationAttr('215ms') }],
-    mixed2: [['mix2_b1', 'mix2_a1', 'mix2_b'], 4, { 'sum(duration)': durationAttr('215ms') }]
+    mixed: [['mix_a', 'mix_b', 'mix_a1'], 4, { 'sum(duration)': durationAttr('215ms') }],
+    mixed2: [['mix2_a', 'mix2_b', 'mix2_a1'], 4, { 'sum(duration)': durationAttr('215ms') }]
   },
-  agg_chain8_depth: { chain8: [['c8_7', 'c8_6', 'c8_5'], 7, { 'max(.depth)': intAttr(7), 'min(.depth)': intAttr(1) }] },
-  agg_paren_operand: { mixed: [MIXED_NEWEST, 6] },
+  agg_chain8_depth: { chain8: [['c8_1', 'c8_2', 'c8_3'], 7, { 'max(.depth)': intAttr(7), 'min(.depth)': intAttr(1) }] },
+  agg_paren_operand: { mixed: [MIXED_EARLIEST, 6] },
   agg_paren_operand_fails: {},
   agg_unresolved: oracle.UNRESOLVED,
   fe_attr_eq_attr: { attrs: [['am_str', 'am_int'], 2] },
@@ -519,10 +522,10 @@ const EXPECTED = {
   fe_string_order: { attrs: [['am_bool', 'am_str'], 2] },
   fe_literal_left: { attrs: [['am_int'], 1] },
   fe_child: { attrs: [['am_str', 'am_int'], 2] },
-  fe_agg_sum_expr: { attrs: [ATTRS_NEWEST, 8, { 'sum(.v + .w)': intAttr(404) }] },
-  fe_agg_avg_div: { attrs: [ATTRS_NEWEST, 8, { 'avg(.v / 2)': doubleAttr(33.25) }] },
-  fe_agg_duration_expr: { attrs: [ATTRS_NEWEST, 8, { 'max(duration * 2)': durationAttr('1s') }] },
-  fe_agg_canonical: { attrs: [ATTRS_NEWEST, 8, { 'min(.w - (.v * 2))': intAttr(-200) }] },
+  fe_agg_sum_expr: { attrs: [ATTRS_EARLIEST, 8, { 'sum(.v + .w)': intAttr(404) }] },
+  fe_agg_avg_div: { attrs: [ATTRS_EARLIEST, 8, { 'avg(.v / 2)': doubleAttr(33.25) }] },
+  fe_agg_duration_expr: { attrs: [ATTRS_EARLIEST, 8, { 'max(duration * 2)': durationAttr('1s') }] },
+  fe_agg_canonical: { attrs: [ATTRS_EARLIEST, 8, { 'min(.w - (.v * 2))': intAttr(-200) }] },
   fe_agg_all_nil: {},
   // Narrowing. The mixed trees' level-0, level-1 and level-2 spans are root;
   // a and b; a1, a2 and b1. a1 and b1 are db, a2 cache, a and b api.
@@ -534,16 +537,16 @@ const EXPECTED = {
   nr_pivot: { attrs: [['am_int'], 1] },
   nr_descendant_through_failed: { mixed: [['mix_b1', 'mix_a1'], 2], mixed2: [['mix2_b1', 'mix2_a1'], 2] },
   nr_ancestor_through_failed: { mixed: [['mix_root'], 1], mixed2: [['mix2_root'], 1] },
-  nr_chain_failed_link: { chain8: [['c8_7', 'c8_6', 'c8_5'], 6] },
+  nr_chain_failed_link: { chain8: [['c8_1', 'c8_2', 'c8_4'], 6] },
   nr_union_descendant: { mixed: [['mix_b1', 'mix_a1', 'mix_root'], 3], mixed2: [['mix2_b1', 'mix2_a1', 'mix2_root'], 3] },
-  nr_not_descendant_empty_lhs: { mixed: [MIXED_NEWEST, 3], mixed2: [MIXED2_NEWEST, 3] },
+  nr_not_descendant_empty_lhs: { mixed: [MIXED_LEAVES, 3], mixed2: [MIXED2_LEAVES, 3] },
   nr_scalar_then_stage: { mixed: [['mix_b1', 'mix_a1'], 2, { 'count()': intAttr(6) }] },
   nr_stage_then_scalar: {
-    mixed: [MIXED_NEWEST, 3, { 'count()': intAttr(6), 'avg(duration)': durationAttr('26.666666ms') }]
+    mixed: [MIXED_LEAVES, 3, { 'count()': intAttr(6), 'avg(duration)': durationAttr('26.666666ms') }]
   },
   nr_stage_then_scalar_fails: {},
   nr_paren_operand: { mixed: [['mix_b1', 'mix_a1'], 2, { 'count()': intAttr(6) }] },
-  nr_paren_stage: { mixed: [MIXED_NEWEST, 3, { 'count()': intAttr(6), 'max(duration)': durationAttr('45ms') }] },
+  nr_paren_stage: { mixed: [MIXED_LEAVES, 3, { 'count()': intAttr(6), 'max(duration)': durationAttr('45ms') }] },
   nr_bare_count_then_stage: { chain8: [['c8_7'], 1, { 'count()': intAttr(8) }] },
   nr_unresolved_full_tree: oracle.UNRESOLVED,
   nr_and: {},
@@ -561,7 +564,7 @@ const EXPECTED = {
     mixed: sets(
       [['mix_b1'], 1, { 'by(.db.system)': strAttr('mysql') }],
       [['mix_a1'], 1, { 'by(.db.system)': strAttr('postgres') }],
-      [['mix_a2', 'mix_b', 'mix_a'], 4, { 'by(.db.system)': NIL }])
+      [['mix_root', 'mix_a', 'mix_b'], 4, { 'by(.db.system)': NIL }])
   },
   by_attr_order: {
     attrs: sets(
@@ -578,7 +581,7 @@ const EXPECTED = {
       [['am_missing'], 1, { 'by(.w * 2)': intAttr(2) }],
       [['am_int_neg'], 1, { 'by(.w * 2)': intAttr(14) }],
       [['am_int'], 1, { 'by(.w * 2)': intAttr(400) }],
-      [['am_dur', 'am_bool', 'am_str'], 5, { 'by(.w * 2)': NIL }])
+      [['am_root', 'am_float', 'am_str'], 5, { 'by(.w * 2)': NIL }])
   },
   by_duration: {
     mixed: sets(
@@ -592,10 +595,10 @@ const EXPECTED = {
   by_bool: {
     mixed: sets(
       [['mix_b', 'mix_a', 'mix_root'], 3, { 'by(.lvl = "2")': boolAttr(false) }],
-      [MIXED_NEWEST, 3, { 'by(.lvl = "2")': boolAttr(true) }])
+      [MIXED_LEAVES, 3, { 'by(.lvl = "2")': boolAttr(true) }])
   },
   by_status: {
-    mixed: sets([['mix_b'], 1, { 'by(status)': strAttr('error') }], [MIXED_NEWEST, 5, { 'by(status)': NIL }])
+    mixed: sets([['mix_b'], 1, { 'by(status)': strAttr('error') }], [['mix_root', 'mix_a', 'mix_a1'], 5, { 'by(status)': NIL }])
   },
   by_nested: {
     mixed: sets(
@@ -631,32 +634,32 @@ const EXPECTED = {
     mixed: sets(
       [['mix_a'], 1, { 'by(.op)': strAttr('read') }],
       [['mix_b'], 1, { 'by(.op)': strAttr('write') }],
-      [MIXED_NEWEST, 3, { 'by(.op)': NIL }]),
+      [MIXED_LEAVES, 3, { 'by(.op)': NIL }]),
     mixed2: sets(
       [['mix2_a'], 1, { 'by(.op)': strAttr('read') }],
       [['mix2_b'], 1, { 'by(.op)': strAttr('write') }],
-      [MIXED2_NEWEST, 3, { 'by(.op)': NIL }])
+      [MIXED2_LEAVES, 3, { 'by(.op)': NIL }])
   },
   // Every trace with more than two in-range spans is one nil group, except
   // the mixed trees, where only level 2 has three spans.
-  by_leading: Object.fromEntries(Object.entries(NEWEST).filter(([, [, n]]) => n > 2).map(([trace, [listed, n]]) =>
+  by_leading: Object.fromEntries(Object.entries(EARLIEST).filter(([, [, n]]) => n > 2).map(([trace, [listed, n]]) =>
     [trace, trace.startsWith('mixed')
-      ? [trace === 'mixed' ? MIXED_NEWEST : MIXED2_NEWEST, 3, { 'by(.lvl)': strAttr('2'), 'count()': intAttr(3) }]
+      ? [trace === 'mixed' ? MIXED_LEAVES : MIXED2_LEAVES, 3, { 'by(.lvl)': strAttr('2'), 'count()': intAttr(3) }]
       : [listed, n, { 'by(.lvl)': NIL, 'count()': intAttr(n) }]])),
-  by_coalesce: { mixed: [['mix_b1', 'mix_a1', 'mix_b'], 4], mixed2: [['mix2_b1', 'mix2_a1', 'mix2_b'], 4] },
+  by_coalesce: { mixed: [['mix_a', 'mix_b', 'mix_a1'], 4], mixed2: [['mix2_a', 'mix2_b', 'mix2_a1'], 4] },
   by_coalesce_count: {
-    mixed: [['mix_b1', 'mix_a1', 'mix_b'], 4, { 'count()': intAttr(4) }],
-    mixed2: [['mix2_b1', 'mix2_a1', 'mix2_b'], 4, { 'count()': intAttr(4) }]
+    mixed: [['mix_a', 'mix_b', 'mix_a1'], 4, { 'count()': intAttr(4) }],
+    mixed2: [['mix2_a', 'mix2_b', 'mix2_a1'], 4, { 'count()': intAttr(4) }]
   },
-  by_coalesce_operand: { mixed: [MIXED_NEWEST, 6], mixed2: [MIXED2_NEWEST, 6] },
+  by_coalesce_operand: { mixed: [MIXED_EARLIEST, 6], mixed2: [MIXED2_EARLIEST, 6] },
   by_grouped_structural: oracle.GROUPED,
   by_grouped_operand: oracle.GROUPED,
-  by_coalesce_ungrouped: { mixed: [MIXED_NEWEST, 6] },
+  by_coalesce_ungrouped: { mixed: [MIXED_EARLIEST, 6] },
   by_no_span_reference: { error: 'grouping field expressions must reference the span: by(1)' },
   by_spss: {
     fanout: sets(
-      [['fan_c49', 'fan_c48'], 50, { 'by(.role)': strAttr('child') }],
-      [['fan_c45_g1', 'fan_c45_g0'], 20, { 'by(.role)': strAttr('grandchild') }],
+      [['fan_c00', 'fan_c01'], 50, { 'by(.role)': strAttr('child') }],
+      [['fan_c00_g0', 'fan_c00_g1'], 20, { 'by(.role)': strAttr('grandchild') }],
       [['fan_root'], 1, { 'by(.role)': strAttr('root') }])
   },
   by_limit: {
@@ -666,14 +669,14 @@ const EXPECTED = {
       [['mix2_b1', 'mix2_a1'], 2, { 'by(.svc)': strAttr('db') }])
   },
   sel_attrs: {
-    mixed: [MIXED_NEWEST, 6, {}, { mix_b1: { svc: 'db', lvl: '2' }, mix_a2: { svc: 'cache', lvl: '2' }, mix_a1: { svc: 'db', lvl: '2' } }]
+    mixed: [MIXED_EARLIEST, 6, {}, { mix_root: { svc: 'gateway', lvl: '0' }, mix_a: { svc: 'api', op: 'read', lvl: '1' }, mix_b: { svc: 'api', op: 'write', lvl: '1' } }]
   },
   sel_intrinsics: {
     mixed: [['mix_b', 'mix_a'], 2, {}, { mix_b: { '#name': 'mix_b', status: 'error' }, mix_a: { '#name': 'mix_a' } }],
     mixed2: [['mix2_b', 'mix2_a'], 2, {}, { mix2_b: { '#name': 'mix2_b', status: 'error' }, mix2_a: { '#name': 'mix2_a' } }]
   },
   sel_leading: {
-    fanout: [['fan_c45_g1', 'fan_c45_g0', 'fan_c40_g1'], 20, {}, { fan_c45_g1: { idx: '45' }, fan_c45_g0: { idx: '45' }, fan_c40_g1: { idx: '40' } }]
+    fanout: [['fan_c00_g0', 'fan_c00_g1', 'fan_c05_g0'], 20, {}, { fan_c00_g0: { idx: '0' }, fan_c00_g1: { idx: '0' }, fan_c05_g0: { idx: '5' } }]
   },
   sel_missing: {
     attrs: [['am_dur', 'am_bool', 'am_str', 'am_float', 'am_int_neg', 'am_int', 'am_missing', 'am_root'], 8, {}, {
@@ -681,14 +684,14 @@ const EXPECTED = {
     }]
   },
   sel_nested: {
-    mixed: [[...MIXED_NEWEST, 'mix_root'], 4, {}, { mix_b1: { 'db.system': 'mysql' }, mix_a1: { 'db.system': 'postgres' }, mix_root: { 'http.method': 'GET' } }],
-    mixed2: [[...MIXED2_NEWEST, 'mix2_root'], 4, {}, { mix2_b1: { 'db.system': 'mysql' }, mix2_a1: { 'db.system': 'postgres' }, mix2_root: { 'http.method': 'GET' } }]
+    mixed: [[...MIXED_LEAVES, 'mix_root'], 4, {}, { mix_b1: { 'db.system': 'mysql' }, mix_a1: { 'db.system': 'postgres' }, mix_root: { 'http.method': 'GET' } }],
+    mixed2: [[...MIXED2_LEAVES, 'mix2_root'], 4, {}, { mix2_b1: { 'db.system': 'mysql' }, mix2_a1: { 'db.system': 'postgres' }, mix2_root: { 'http.method': 'GET' } }]
   },
   sel_by: {
     mixed: sets(
       [['mix_root'], 1, { 'by(.lvl)': strAttr('0') }, { mix_root: { svc: 'gateway' } }],
       [['mix_b', 'mix_a'], 2, { 'by(.lvl)': strAttr('1') }, { mix_b: { svc: 'api' }, mix_a: { svc: 'api' } }],
-      [MIXED_NEWEST, 3, { 'by(.lvl)': strAttr('2') }, { mix_b1: { svc: 'db' }, mix_a2: { svc: 'cache' }, mix_a1: { svc: 'db' } }])
+      [MIXED_LEAVES, 3, { 'by(.lvl)': strAttr('2') }, { mix_b1: { svc: 'db' }, mix_a2: { svc: 'cache' }, mix_a1: { svc: 'db' } }])
   },
   sel_ns_left: {
     tworoots: [TWO_NEWEST, 4, {}, { two_r2c: { nestedSetLeft: intAttr(6) }, two_r1c: { nestedSetLeft: intAttr(2) }, two_r2: { nestedSetLeft: intAttr(5) }, two_r1: { nestedSetLeft: intAttr(1) } }]
@@ -728,7 +731,7 @@ const EXPECTED = {
     }]
   },
   sel_field_expression: { error: oracle.SELECT_ERROR },
-  hints_ignored_by_search: { mixed: [MIXED_NEWEST, 6] }
+  hints_ignored_by_search: { mixed: [MIXED_EARLIEST, 6] }
 }
 
 describe('traceql oracle on hand-checked results', () => {
@@ -753,7 +756,7 @@ describe('traceql oracle on hand-checked results', () => {
       expect(diff(got, want)).toEqual([])
       for (const set of got.flatMap(t => t.spanSets)) {
         const order = set.spans.map(n => spans.find(s => s.name === n).start)
-        expect(order).toEqual([...order].sort((a, b) => b - a))
+        expect(order).toEqual([...order].sort((a, b) => a - b))
       }
     })
   }
@@ -764,12 +767,12 @@ describe('traceql oracle rules', () => {
   const named = (name) => ({ op: '=', lhs: { attr: 'name' }, rhs: { str: name } })
   const opts = { from: FROM, to: FROM + seed.WINDOW, limit: 100 }
 
-  it('breaks start-time ties by span id and trace id, descending', () => {
+  it('breaks start-time ties by span id ascending and trace id descending', () => {
     const tied = spans.map(s => ({ ...s, start: FROM + 1000 }))
     const got = oracle.search(sel(null), tied, { ...opts, limit: 1, spss: 2 })
     const lastTrace = [...new Set(spans.map(s => s.traceId))].sort().pop()
     expect(got[0].traceId).toEqual(lastTrace)
-    const ids = tied.filter(s => s.traceId === lastTrace).map(s => s.spanId).sort().reverse()
+    const ids = tied.filter(s => s.traceId === lastTrace).map(s => s.spanId).sort()
     expect(got[0].spans).toEqual(ids.slice(0, 2).map(id => tied.find(s => s.spanId === id).name))
   })
 
