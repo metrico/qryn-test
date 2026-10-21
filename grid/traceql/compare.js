@@ -13,10 +13,12 @@ const { SPAN_NAME, nestedSet } = require('./oracle')
 // within the round limit.
 const UNRESOLVED_ERROR = /deeper than the round limit .*GIGAPIPE_TRACEQL_ANCESTRY_ROUNDS/
 
-// selectedOf returns a listed span's select() values: its attributes by key
-// and its name at SPAN_NAME.
+// selectedOf returns a listed span's select() values: its attributes by key,
+// a string as its text and any other value as its OTLP value, and its name at
+// SPAN_NAME.
 const selectedOf = (span) => {
-  const out = Object.fromEntries((span.attributes || []).map(a => [a.key, a.value.stringValue]))
+  const out = Object.fromEntries((span.attributes || []).map(a =>
+    [a.key, a.value.stringValue !== undefined ? a.value.stringValue : a.value]))
   if (span.name !== undefined) out[SPAN_NAME] = span.name
   return out
 }
@@ -258,9 +260,24 @@ const names = (ids) => {
 }
 
 /**
- * nestedSetDiff lists the spans whose stored nested-set values are missing or
+ * nestedSetRows reads the selected nested-set values of every listed span of
+ * a search response: [{traceId, spanId, left, right, parent}], an int as its
+ * decimal text and a string as `string <text>`.
+ * @param body {Object} the /api/search response
+ */
+const nestedSetRows = (body) => body.traces.flatMap(t => (t.spanSets || []).flatMap(set => set.spans.map(s => {
+  const value = (key) => {
+    const a = (s.attributes || []).find(a => a.key === key)
+    if (!a) return undefined
+    return a.value.intValue !== undefined ? a.value.intValue : `string ${a.value.stringValue}`
+  }
+  return { traceId: t.traceID, spanId: s.spanID, left: value('nestedSetLeft'), right: value('nestedSetRight'), parent: value('nestedSetParent') }
+})))
+
+/**
+ * nestedSetDiff lists the spans whose nested-set values are missing or
  * differ from the oracle's numbering of the given spans.
- * @param rows {{traceId: string, spanId: string, left: number, right: number, parent: number}[]}
+ * @param rows {Object[]} from nestedSetRows()
  * @param spans {Object[]} the landed spans, from oracle.dataset()
  */
 const nestedSetDiff = (rows, spans) => {
@@ -277,4 +294,4 @@ const nestedSetDiff = (rows, spans) => {
   return out
 }
 
-module.exports = { fromApi, fromResponse, diff, names, fromMetricsResponse, metricsDiff, fromAutocompleteResponse, autocompleteDiff, nestedSetDiff }
+module.exports = { fromApi, fromResponse, diff, names, fromMetricsResponse, metricsDiff, fromAutocompleteResponse, autocompleteDiff, nestedSetRows, nestedSetDiff }

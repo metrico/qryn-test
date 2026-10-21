@@ -10,7 +10,7 @@ const { cityHash64, sampleThreshold } = require('./cityhash')
 const { autocomplete, selectsEverySpan } = require('./autocomplete')
 const { print } = require('./ast')
 const { runs, metricsRuns, autocompleteRuns } = require('./cases')
-const { nestedSetDiff, diff, fromApi, metricsDiff, fromMetricsResponse, fromAutocompleteResponse, autocompleteDiff } = require('./compare')
+const { nestedSetDiff, nestedSetRows, diff, fromApi, metricsDiff, fromMetricsResponse, fromAutocompleteResponse, autocompleteDiff } = require('./compare')
 
 const FROM = Date.UTC(2026, 9, 1, 12)
 const PREFIX = '7ace00000000000000000000'
@@ -217,6 +217,12 @@ const durationAttr = (d) => ({ stringValue: d })
 const strAttr = (v) => ({ stringValue: v })
 const boolAttr = (b) => ({ boolValue: b })
 const NIL = strAttr('nil')
+
+// ns is a span's selected nested-set values.
+const ns = (left, right, parent) => ({ nestedSetLeft: intAttr(left), nestedSetRight: intAttr(right), nestedSetParent: intAttr(parent) })
+
+// The tworoots spans, newest first.
+const TWO_NEWEST = ['two_r2c', 'two_r1c', 'two_r2', 'two_r1']
 
 // sets lists a trace's spansets in order, each as [listed spans, matched, attributes?, selected?].
 const sets = (...ss) => ({ sets: ss })
@@ -684,6 +690,43 @@ const EXPECTED = {
       [['mix_b', 'mix_a'], 2, { 'by(.lvl)': strAttr('1') }, { mix_b: { svc: 'api' }, mix_a: { svc: 'api' } }],
       [MIXED_NEWEST, 3, { 'by(.lvl)': strAttr('2') }, { mix_b1: { svc: 'db' }, mix_a2: { svc: 'cache' }, mix_a1: { svc: 'db' } }])
   },
+  sel_ns_left: {
+    tworoots: [TWO_NEWEST, 4, {}, { two_r2c: { nestedSetLeft: intAttr(6) }, two_r1c: { nestedSetLeft: intAttr(2) }, two_r2: { nestedSetLeft: intAttr(5) }, two_r1: { nestedSetLeft: intAttr(1) } }]
+  },
+  sel_ns_right: {
+    tworoots: [TWO_NEWEST, 4, {}, { two_r2c: { nestedSetRight: intAttr(7) }, two_r1c: { nestedSetRight: intAttr(3) }, two_r2: { nestedSetRight: intAttr(8) }, two_r1: { nestedSetRight: intAttr(4) } }]
+  },
+  sel_ns_parent: {
+    tworoots: [TWO_NEWEST, 4, {}, { two_r2c: { nestedSetParent: intAttr(5) }, two_r1c: { nestedSetParent: intAttr(1) }, two_r2: { nestedSetParent: intAttr(-1) }, two_r1: { nestedSetParent: intAttr(-1) } }]
+  },
+  sel_ns_all: {
+    orphan: [['orph_o2', 'orph_o1', 'orph_child', 'orph_root'], 4, {}, {
+      orph_o2: ns(0, 0, 0), orph_o1: ns(0, 0, 0), orph_child: ns(2, 3, 1), orph_root: ns(1, 4, -1)
+    }]
+  },
+  sel_ns_attrs: {
+    mixed: [['mix_b1', 'mix_a2', 'mix_a1', 'mix_b', 'mix_a', 'mix_root'], 6, {}, {
+      mix_b1: { svc: 'db', nestedSetLeft: intAttr(9), nestedSetRight: intAttr(10) },
+      mix_a2: { svc: 'cache', nestedSetLeft: intAttr(5), nestedSetRight: intAttr(6) },
+      mix_a1: { svc: 'db', nestedSetLeft: intAttr(3), nestedSetRight: intAttr(4) },
+      mix_b: { svc: 'api', nestedSetLeft: intAttr(8), nestedSetRight: intAttr(11) },
+      mix_a: { svc: 'api', nestedSetLeft: intAttr(2), nestedSetRight: intAttr(7) },
+      mix_root: { svc: 'gateway', nestedSetLeft: intAttr(1), nestedSetRight: intAttr(12) }
+    }]
+  },
+  sel_ns_mid_pipeline: {
+    tworoots: [TWO_NEWEST, 4, { 'count()': intAttr(4) }, {
+      two_r2c: { '#name': 'two_r2c', nestedSetParent: intAttr(5) },
+      two_r1c: { '#name': 'two_r1c', nestedSetParent: intAttr(1) },
+      two_r2: { '#name': 'two_r2', nestedSetParent: intAttr(-1) },
+      two_r1: { '#name': 'two_r1', nestedSetParent: intAttr(-1) }
+    }]
+  },
+  sel_ns_rootless_first_push: {
+    mixed2: [['mix2_b1', 'mix2_a2', 'mix2_a1', 'mix2_b', 'mix2_a'], 5, {}, {
+      mix2_b1: ns(0, 0, 0), mix2_a2: ns(0, 0, 0), mix2_a1: ns(0, 0, 0), mix2_b: ns(0, 0, 0), mix2_a: ns(0, 0, 0)
+    }]
+  },
   sel_field_expression: { error: oracle.SELECT_ERROR },
   hints_ignored_by_search: { mixed: [MIXED_NEWEST, 6] }
 }
@@ -821,6 +864,13 @@ describe('traceql result diff', () => {
     expect(diff([{ ...got, spanSets: undefined }], [want])).toEqual([])
     expect(diff([{ ...got, spanSets: undefined }], [{ ...want, selected: { x: { a: '2' } } }]))
       .toEqual(['tr selected [["x",[["#name","root"],["a","1"]]]], want [["x",[["a","2"]]]]'])
+  })
+  it('keeps a selected int value typed, so a string never matches it', () => {
+    const set = (value) => ({ matched: 1, spans: [{ spanID: 's1', attributes: [{ key: 'nestedSetLeft', value }] }] })
+    const read = (value) => fromApi({ traces: [{ traceID: 't1', spanSet: set(value), spanSets: [set(value)] }] },
+      { trace: { t1: 'tr' }, span: { s1: 'x' } })[0].selected
+    expect(read({ intValue: '3' })).toEqual({ x: { nestedSetLeft: { intValue: '3' } } })
+    expect(read({ stringValue: '3' })).toEqual({ x: { nestedSetLeft: '3' } })
   })
   it('matches regardless of trace and span order', () => {
     expect(diff([t('b', ['y', 'x'], 2), t('a', ['z'], 1)], [t('a', ['z'], 1), t('b', ['x', 'y'], 2)])).toEqual([])
@@ -1258,6 +1308,17 @@ describe('traceql nested-set oracle', () => {
 
   it('numbers two roots with one counter', () => {
     expect(numbers('tworoots')).toEqual({ two_r1: [1, 4, -1], two_r1c: [2, 3, 1], two_r2: [5, 8, -1], two_r2c: [6, 7, 5] })
+  })
+
+  it('reads selected nested-set values from a search response', () => {
+    const span = (spanID, l, r, p) => ({ spanID, attributes: [
+      { key: 'nestedSetLeft', value: { intValue: l } }, { key: 'nestedSetParent', value: { intValue: p } },
+      { key: 'nestedSetRight', value: { stringValue: r } }] })
+    const set = { matched: 2, spans: [span('s1', '1', '4', '-1'), span('s2', '2', '3', '1')] }
+    expect(nestedSetRows({ traces: [{ traceID: 't1', spanSet: set, spanSets: [set] }] })).toEqual([
+      { traceId: 't1', spanId: 's1', left: '1', right: 'string 4', parent: '-1' },
+      { traceId: 't1', spanId: 's2', left: '2', right: 'string 3', parent: '1' }
+    ])
   })
 
   it('diffs stored values against the oracle', () => {

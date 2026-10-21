@@ -8673,6 +8673,239 @@
       }
     },
     {
+      "id": "sel_ns_left",
+      "note": "select(nestedSetLeft) returns the stored left value as an int.",
+      "query": "{ .shape = \"tworoots\" } | select(nestedSetLeft)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "tworoots"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetLeft"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_ns_right",
+      "note": "select(nestedSetRight) returns the stored right value as an int.",
+      "query": "{ .shape = \"tworoots\" } | select(nestedSetRight)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "tworoots"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetRight"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_ns_parent",
+      "note": "select(nestedSetParent) returns the parent left value as an int, -1 on roots.",
+      "query": "{ .shape = \"tworoots\" } | select(nestedSetParent)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "tworoots"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetParent"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_ns_all",
+      "note": "Unreachable spans read 0/0/0.",
+      "query": "{ .shape = \"orphan\" } | select(nestedSetLeft, nestedSetRight, nestedSetParent)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "orphan"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetLeft"
+              },
+              {
+                "attr": "nestedSetRight"
+              },
+              {
+                "attr": "nestedSetParent"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_ns_attrs",
+      "note": "Nested-set values come as ints next to string attributes.",
+      "query": "{ .shape = \"mixed\" } | select(.svc, nestedSetLeft, nestedSetRight)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": ".svc"
+              },
+              {
+                "attr": "nestedSetLeft"
+              },
+              {
+                "attr": "nestedSetRight"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_ns_mid_pipeline",
+      "note": "A nested-set select() before a scalar filter still adds its values.",
+      "query": "{ .shape = \"tworoots\" } | select(nestedSetParent) | count() > 1 | select(name)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "tworoots"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetParent"
+              }
+            ]
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 1
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "name"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_ns_rootless_first_push",
+      "note": "Before its root lands, mixed2 is numbered as unreachable: 0/0/0.",
+      "query": "{ .shape = \"mixed2\" } | select(nestedSetLeft, nestedSetRight, nestedSetParent)",
+      "spss": 10,
+      "pushes": 1,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed2"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetLeft"
+              },
+              {
+                "attr": "nestedSetRight"
+              },
+              {
+                "attr": "nestedSetParent"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "id": "sel_field_expression",
       "note": "select() takes no field expression.",
       "query": "{ .shape = \"mixed\" } | select(.lvl + 1)",

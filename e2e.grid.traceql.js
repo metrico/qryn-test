@@ -3,15 +3,15 @@
 // with `pushes` run between that many seed batches landing and the next push.
 // Metrics cases run on the whole seed and must return the oracle's series.
 // Autocomplete cases must suggest the keys or values of the oracle's result
-// spans. Every seed step waits until the stored nested-set values of every
-// landed span match the oracle's numbering.
+// spans. Every seed step waits until select() returns the oracle's
+// nested-set numbering for every landed span.
 const { _it, testID } = require('./common')
 const seed = require('./grid/traceql/seed')
 const oracle = require('./grid/traceql/oracle')
 const { metrics } = require('./grid/traceql/metrics')
 const { autocomplete } = require('./grid/traceql/autocomplete')
 const { runs, metricsRuns, autocompleteRuns } = require('./grid/traceql/cases')
-const { nestedSetDiff, fromResponse, diff, names, fromMetricsResponse, metricsDiff, fromAutocompleteResponse, autocompleteDiff } = require('./grid/traceql/compare')
+const { nestedSetRows, nestedSetDiff, fromResponse, diff, names, fromMetricsResponse, metricsDiff, fromAutocompleteResponse, autocompleteDiff } = require('./grid/traceql/compare')
 const client = require('./grid/traceql/client')
 
 const TEST_ID = `${testID}_grid_traceql`
@@ -24,6 +24,24 @@ const BATCHES = seed.zipkinBatches(FROM, PREFIX, TEST_ID)
 const RUNS = runs(FROM)
 const METRICS = metricsRuns(FROM)
 const AUTOCOMPLETE = autocompleteRuns(FROM)
+
+// NESTED_SET_PROBE lists every span of this run with its nested-set values,
+// over a range holding every seeded span.
+const NESTED_SET_PROBE = {
+  query: `{ .test_id = "${TEST_ID}" } | select(nestedSetLeft, nestedSetRight, nestedSetParent)`,
+  from: FROM - seed.HOUR - seed.SECOND,
+  to: FROM + seed.WINDOW + 16 * seed.MINUTE,
+  limit: 100,
+  spss: 1000
+}
+
+// numberingDiff diffs the probe's nested-set values against the oracle's
+// numbering of the landed spans.
+const numberingDiff = async (landed) => {
+  const resp = await client.search(NESTED_SET_PROBE)
+  if (resp.status !== 200) return [`search ${resp.status}: ${JSON.stringify(resp.data)}`]
+  return nestedSetDiff(nestedSetRows(resp.data), landed)
+}
 
 const seeded = (pushes) => pushes === BATCHES.length ? 'grid traceql: seed' : `grid traceql: seed ${pushes} of ${BATCHES.length} pushes`
 
@@ -58,10 +76,9 @@ for (let pushes = 1; pushes <= BATCHES.length; pushes++) {
     })
     expect(ready).toBe(true)
     const landed = SPANS.filter(s => s.push < pushes)
-    const traceIds = [...new Set(landed.map(s => s.traceId))]
     let numbering = []
     const numbered = await client.waitFor(async () => {
-      numbering = nestedSetDiff(await client.nestedSetRows(traceIds), landed)
+      numbering = await numberingDiff(landed)
       return numbering.length === 0
     })
     expect(numbering).toEqual([])

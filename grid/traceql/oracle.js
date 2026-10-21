@@ -539,9 +539,14 @@ const LISTED = ['duration', 'span:duration', 'span:id', 'traceDuration', 'trace:
 // SPAN_NAME is the key of a listed span's selected name.
 const SPAN_NAME = '#name'
 
+// NESTED_SET are the nested-set intrinsics; select() returns them as ints
+// under their own names.
+const NESTED_SET = { nestedSetLeft: 'left', nestedSetRight: 'right', nestedSetParent: 'parent' }
+
 // isFieldName reports whether an attribute node names a scoped attribute or
 // an intrinsic.
-const isFieldName = (attr) => attrKey(attr) !== null || INTRINSIC_KEYS[attr] !== undefined || LISTED.includes(attr)
+const isFieldName = (attr) => attrKey(attr) !== null || INTRINSIC_KEYS[attr] !== undefined || LISTED.includes(attr) ||
+  NESTED_SET[attr] !== undefined
 
 // selects returns the select() stages of a pipeline, nested pipelines included.
 const selects = (elements) => elements.flatMap(e => {
@@ -569,13 +574,19 @@ const checkSelects = (elements) => {
 const selectedKeys = (elements) => {
   const keys = selects(elements).flat()
     .filter(f => !LISTED.includes(f.attr))
-    .map(f => (f.attr === 'name' || f.attr === 'span:name') ? SPAN_NAME : attrKey(f.attr) || INTRINSIC_KEYS[f.attr])
+    .map(f => (f.attr === 'name' || f.attr === 'span:name') ? SPAN_NAME : NESTED_SET[f.attr] ? f.attr : attrKey(f.attr) || INTRINSIC_KEYS[f.attr])
   return [...new Set(keys)]
 }
 
-// selectedValues returns a span's selected values by key, {} without any.
-const selectedValues = (span, keys) => Object.fromEntries(keys
-  .map(k => [k, span.attrs[k === SPAN_NAME ? 'name' : k]])
+/**
+ * selectedValues returns a span's selected values by key, {} without any:
+ * attribute text, or a nested-set value from `numbers` as {intValue}.
+ * @param numbers {Map} from nestedSet()
+ */
+const selectedValues = (span, keys, numbers) => Object.fromEntries(keys
+  .map(k => NESTED_SET[k]
+    ? [k, { intValue: String(numbers.get(`${span.traceId}/${span.spanId}`)[NESTED_SET[k]]) }]
+    : [k, span.attrs[k === SPAN_NAME ? 'name' : k]])
   .filter(([, v]) => v !== undefined))
 
 // grouped reports whether a pipeline ends grouped when its input is grouped
@@ -785,7 +796,7 @@ const attributeValue = ({ type, value, text }) => {
  * a trace lists them in spanSets by group key, each with its spss newest
  * result spans, matched and attributes as {name: OTLP value}, and the first
  * of them at the top level. selected maps a listed span's name to its
- * select() values, {key: text} with the span name at SPAN_NAME, for the spans
+ * select() values, {key: text or {intValue}} with the span name at SPAN_NAME, for the spans
  * that have any. limit counts traces by their newest result span
  * (ties by trace id, descending).
  * @param query {Object} the case AST
@@ -808,6 +819,7 @@ const search = (query, all, opts) => {
   })
   traces.sort((a, b) => b.newest - a.newest || (a.traceId < b.traceId ? 1 : -1))
   const keys = selectedKeys(query.pipeline)
+  const numbers = nestedSet(opts.pushes === undefined ? all : all.filter(s => s.push < opts.pushes))
   return traces.slice(0, limit).map(t => {
     const spanSets = t.sets.map(ss => {
       const listed = ss.spans.slice(0, spss)
@@ -815,7 +827,7 @@ const search = (query, all, opts) => {
         spans: listed.map(s => s.name),
         matched: ss.spans.length,
         attributes: Object.fromEntries(ss.attributes.map(([k, v]) => [k, attributeValue(v)])),
-        selected: Object.fromEntries(listed.map(s => [s.name, selectedValues(s, keys)]).filter(([, v]) => Object.keys(v).length))
+        selected: Object.fromEntries(listed.map(s => [s.name, selectedValues(s, keys, numbers)]).filter(([, v]) => Object.keys(v).length))
       }
     })
     return { trace: t.trace, traceId: t.traceId, ...spanSets[0], spanSets }
