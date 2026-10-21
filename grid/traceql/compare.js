@@ -131,11 +131,12 @@ const errorDiff = (got, want, size) => {
   return ok ? [] : [`error ${got.status}: ${got.error}, want ${what}`]
 }
 
-// labelsOf flattens a metrics label list to {key: value}.
+// labelsOf flattens a metrics label list to {key: value}; an int is
+// `int <n>`.
 const labelsOf = (ls) => Object.fromEntries((ls || []).map(l => {
   const v = l.value || {}
   if (v.doubleValue !== undefined) return [l.key, String(v.doubleValue)]
-  if (v.intValue !== undefined) return [l.key, v.intValue]
+  if (v.intValue !== undefined) return [l.key, `int ${v.intValue}`]
   return [l.key, v.stringValue || '']
 }))
 

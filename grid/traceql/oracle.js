@@ -101,6 +101,10 @@ const INTRINSIC_KEYS = {
 
 const isDuration = (attr) => attr === 'duration' || attr === 'span:duration'
 
+// NESTED_SET are the nested-set intrinsics, ints a span reads from its
+// numbering (span.ns); select() returns them as ints under their own names.
+const NESTED_SET = { nestedSetLeft: 'left', nestedSetRight: 'right', nestedSetParent: 'parent' }
+
 // INT matches the stored values ClickHouse reads as integers.
 const INT = /^[+-]?\d+$/
 
@@ -113,6 +117,8 @@ const ARITHMETIC = ['+', '-', '*', '/', '%', '^']
  * attribute is cast to the type of the operand it meets; two attributes
  * compare as numbers when both are, as strings when neither is, and are nil
  * otherwise. `!x` and `x` as a condition are false unless x is a boolean.
+ * A nested-set intrinsic is an int, except that `nestedSetParent < 0` and
+ * `nestedSetParent = -1` hold for the spans without a parent id.
  */
 
 // domain is the type a field node casts to: 'num', 'str', 'bool', or 'any'
@@ -120,7 +126,7 @@ const ARITHMETIC = ['+', '-', '*', '/', '%', '^']
 const domain = (f) => {
   if (f.paren !== undefined) return domain(f.paren)
   if (f.attr !== undefined) {
-    if (isDuration(f.attr)) return 'num'
+    if (isDuration(f.attr) || NESTED_SET[f.attr]) return 'num'
     return attrKey(f.attr) === null && INTRINSIC_KEYS[f.attr] ? 'str' : 'any'
   }
   if (f.num !== undefined || f.dur !== undefined) return 'num'
@@ -132,6 +138,7 @@ const domain = (f) => {
 
 // raw is an attribute's stored text, or null when the span lacks it.
 const raw = (span, attr) => {
+  if (NESTED_SET[attr]) return String(span.ns[NESTED_SET[attr]])
   const key = attrKey(attr) || INTRINSIC_KEYS[attr]
   if (!key) throw new Error(`oracle: attribute ${attr}`)
   const val = span.attrs[key]
@@ -143,6 +150,7 @@ const num = (span, f) => {
   if (f.paren !== undefined) return num(span, f.paren)
   if (f.attr !== undefined) {
     if (isDuration(f.attr)) return { v: span.durationNs, int: false }
+    if (NESTED_SET[f.attr]) return { v: span.ns[NESTED_SET[f.attr]], int: true }
     const val = raw(span, f.attr)
     return val !== null && NUMBER.test(val) ? { v: parseFloat(val), int: INT.test(val) } : null
   }
@@ -211,8 +219,14 @@ const regex = (op, text, re) => {
   return op === '=~' ? m : !m
 }
 
+// isRootFilter reports whether a comparison is `nestedSetParent < 0` or
+// `nestedSetParent = -1`.
+const isRootFilter = ({ op, lhs, rhs }) => lhs.attr === 'nestedSetParent' && rhs.num !== undefined &&
+  ((op === '<' && rhs.num === 0) || (op === '=' && rhs.num === -1))
+
 // comparison evaluates `lhs op rhs`, false when either side is nil.
 const comparison = (span, { op, lhs, rhs }) => {
+  if (isRootFilter({ op, lhs, rhs })) return span.parentId === null
   if (rhs.nil !== undefined || lhs.nil !== undefined) {
     if (rhs.nil !== undefined && lhs.nil !== undefined) return false
     const present = value(span, rhs.nil !== undefined ? lhs : rhs) !== null
@@ -388,7 +402,7 @@ const argOf = (x) => x.arg || { attr: x.attr }
 // attribute.
 const staticType = (f) => {
   if (f.paren !== undefined) return staticType(f.paren)
-  if (f.attr !== undefined) return isDuration(f.attr) ? 'duration' : 'attr'
+  if (f.attr !== undefined) return isDuration(f.attr) ? 'duration' : NESTED_SET[f.attr] ? 'number' : 'attr'
   if (f.dur !== undefined) return 'duration'
   if (f.num !== undefined) return 'number'
   if (f.unary !== undefined) return staticType(f.expr)
@@ -538,10 +552,6 @@ const LISTED = ['duration', 'span:duration', 'span:id', 'traceDuration', 'trace:
 
 // SPAN_NAME is the key of a listed span's selected name.
 const SPAN_NAME = '#name'
-
-// NESTED_SET are the nested-set intrinsics; select() returns them as ints
-// under their own names.
-const NESTED_SET = { nestedSetLeft: 'left', nestedSetRight: 'right', nestedSetParent: 'parent' }
 
 // isFieldName reports whether an attribute node names a scoped attribute or
 // an intrinsic.
@@ -716,14 +726,17 @@ const nestedSet = (spans) => {
  * {error} for a by() that reads no attribute or a select() argument that is
  * neither an attribute nor an intrinsic, and UNRESOLVED when ancestry
  * does not resolve within the round limit. Operand spans start in (from, to];
- * parents, ancestors, siblings and roots count wherever they start.
+ * parents, ancestors, siblings and roots count wherever they start. Each
+ * result span carries the nestedSet() numbering of the landed spans as ns.
  * @param pipeline {Object[]} the pipeline of the case AST
  * @param all {Object[]} from dataset(); with opts.pushes only the spans of
  *   the first `pushes` ingest batches count
  * @param opts {{from: number, to: number, rounds?: number, pushes?: number}}
  */
 const resultSpansets = (pipeline, all, { from, to, rounds = ROUNDS, pushes }) => {
-  const spans = pushes === undefined ? all : all.filter(s => s.push < pushes)
+  const landed = pushes === undefined ? all : all.filter(s => s.push < pushes)
+  const numbers = nestedSet(landed)
+  const spans = landed.map(s => ({ ...s, ns: numbers.get(`${s.traceId}/${s.spanId}`) }))
   const inRange = spans.filter(s => s.start > from && s.start <= to)
   const ctx = { spans, byId: new Map(spans.map(s => [`${s.traceId}/${s.spanId}`, s])), reach: reachable(spans), rounds }
   try {

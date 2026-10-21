@@ -730,6 +730,40 @@ const EXPECTED = {
       mix2_b1: ns(0, 0, 0), mix2_a2: ns(0, 0, 0), mix2_a1: ns(0, 0, 0), mix2_b: ns(0, 0, 0), mix2_a: ns(0, 0, 0)
     }]
   },
+  // Nested-set filters on the mixed tree: root 1/12/-1, a 2/7/1, a1 3/4/2,
+  // a2 5/6/2, b 8/11/1, b1 9/10/8.
+  ns_f_left_eq: { mixed: [['mix_a'], 1] },
+  ns_f_left_ne: { mixed: [['mix_a', 'mix_b', ...MIXED_LEAVES], 5] },
+  ns_f_left_gt: { mixed: [['mix_b', 'mix_b1'], 2] },
+  ns_f_left_ge: { mixed: [['mix_b', 'mix_b1'], 2] },
+  ns_f_left_lt: { mixed: [['mix_root', 'mix_a'], 2] },
+  ns_f_left_le: { mixed: [['mix_root', 'mix_a', 'mix_a1'], 3] },
+  ns_f_right_eq: { mixed: [['mix_root'], 1] },
+  ns_f_right_ne: { mixed: [['mix_a', 'mix_b', ...MIXED_LEAVES], 5] },
+  ns_f_right_gt: { mixed: [['mix_root', 'mix_b'], 2] },
+  ns_f_right_ge: { mixed: [['mix_root', 'mix_b', 'mix_b1'], 3] },
+  ns_f_right_lt: { mixed: [['mix_a1'], 1] },
+  ns_f_right_le: { mixed: [['mix_a1', 'mix_a2'], 2] },
+  ns_f_parent_eq: { mixed: [['mix_a', 'mix_b'], 2] },
+  ns_f_parent_ne: { mixed: [['mix_a', 'mix_b', ...MIXED_LEAVES], 5] },
+  ns_f_parent_gt: { mixed: [MIXED_LEAVES, 3] },
+  ns_f_parent_ge: { mixed: [['mix_b1'], 1] },
+  ns_f_parent_lt: { mixed: [['mix_root'], 1] },
+  ns_f_parent_le: { mixed: [MIXED_EARLIEST, 3] },
+  ns_f_parent_eq_root: { mixed: [['mix_root'], 1] },
+  ns_f_leaves: { mixed: [MIXED_LEAVES, 3] },
+  ns_f_orphan_zero: { orphan: [['orph_o1', 'orph_o2'], 2] },
+  ns_f_rootless_not_root: { rootless: [['rl_a', 'rl_b', 'rl_c'], 3] },
+  ns_f_rootless_root_filter: {},
+  ns_f_root_operand_union_descendant: { mixed: [[...MIXED_EARLIEST, ...MIXED_LEAVES], 6] },
+  ns_f_root_operand_descendant: { tworoots: [['two_r1c', 'two_r2c'], 2] },
+  ns_by_parent: {
+    tworoots: sets(
+      [['two_r1', 'two_r2'], 2, { 'by(nestedSetParent)': intAttr(-1) }],
+      [['two_r1c'], 1, { 'by(nestedSetParent)': intAttr(1) }],
+      [['two_r2c'], 1, { 'by(nestedSetParent)': intAttr(5) }])
+  },
+  ns_agg_max_right: { mixed: [MIXED_EARLIEST, 6, { 'max(nestedSetRight)': intAttr(12) }] },
   sel_field_expression: { error: oracle.SELECT_ERROR },
   hints_ignored_by_search: { mixed: [MIXED_EARLIEST, 6] }
 }
@@ -1013,7 +1047,13 @@ const EXPECTED_METRICS = {
     '__bucket=0.033554432': { 20: 2, 30: 5, 40: 5, 50: 4, 60: 5, 70: 5, 80: 4, 90: 5, 100: 5, 110: 4, 120: 5, 130: 2 },
     '__bucket=0.067108864': { 30: 2, 40: 2, 50: 2, 60: 2, 70: 2, 80: 2, 90: 2, 100: 2, 110: 2, 120: 2 }
   },
-  m_exemplars_sampled: count({ 20: 2, 30: 5, 40: 2, 50: 2, 60: 2, 70: 4, 80: 3, 90: 3, 100: 2, 110: 3, 120: 3 })
+  m_exemplars_sampled: count({ 20: 2, 30: 5, 40: 2, 50: 2, 60: 2, 70: 4, 80: 3, 90: 3, 100: 2, 110: 3, 120: 3 }),
+  // The mixed tree's left values; its right values average 50/6.
+  m_ns_by_left: Object.fromEntries([1, 2, 3, 5, 8, 9].map(n => [`nestedSetLeft=int ${n}`, { 2: 1 }])),
+  m_ns_avg_right: { '__name__=avg_over_time': { 2: 50 / 6 } },
+  // a1 and b1 of both mixed trees, under a (left 2) and b (left 8).
+  m_ns_by_parent_instant: { 'nestedSetParent=int 2': 2, 'nestedSetParent=int 8': 2 },
+  m_ns_root_filter: count({ 2: 2 })
 }
 
 // Hand-checked exemplar buckets, in seconds after FROM, of the cases with an
@@ -1144,6 +1184,12 @@ describe('traceql metrics diff', () => {
     status: 200,
     data: { series: [{ labels: [{ key: '__name__', value: { stringValue: COUNT } }], samples, exemplars }] }
   })
+  it('keeps an int label typed, so a string never matches it', () => {
+    const inst = (value) => fromMetricsResponse({ status: 200, data: { series: [{ labels: [{ key: 'nestedSetLeft', value }], value: 1 }] } }, 'instant')
+    const want = [{ labels: { nestedSetLeft: 'int 3' }, value: 1 }]
+    expect(metricsDiff(inst({ intValue: '3' }), want, { kind: 'instant' })).toEqual([])
+    expect(metricsDiff(inst({ stringValue: '3' }), want, { kind: 'instant' })).toEqual(['{nestedSetLeft=3} extra', '{nestedSetLeft=int 3} missing'])
+  })
   it('matches equal series, ignoring zero samples', () => {
     expect(metricsDiff(fromMetricsResponse(resp([ex('t1', 121000)]), 'range'), want, { kind: 'range', step: STEP })).toEqual([])
   })
@@ -1216,7 +1262,9 @@ const EXPECTED_AUTOCOMPLETE = {
   ac_values_field: ['am_int', 'am_str'],
   ac_values_narrowed: ['mix2_a1', 'mix2_a2', 'mix2_b1', 'mix_a1', 'mix_a2', 'mix_b1'],
   ac_tags_narrowed: [...SPAN_KEYS, 'db.system', 'lvl', 'svc'],
-  ac_values_by: ['mix2_a', 'mix2_a1', 'mix2_b', 'mix2_b1', 'mix_a', 'mix_a1', 'mix_b', 'mix_b1']
+  ac_values_by: ['mix2_a', 'mix2_a1', 'mix2_b', 'mix2_b1', 'mix_a', 'mix_a1', 'mix_b', 'mix_b1'],
+  ac_tags_ns_root_filter: [...SPAN_KEYS, 'http.method', 'lvl', 'svc'],
+  ac_values_ns_left: []
 }
 
 describe('traceql autocomplete oracle on hand-checked results', () => {

@@ -13,9 +13,16 @@ const INTRINSIC_LABELS = {
   rootServiceName: s => s.attrs['service.name']
 }
 
-// byValue is a span's value of a by-label, '' when it has none.
+// NESTED_SET_LABELS maps the nested-set intrinsics to their numbering field.
+const NESTED_SET_LABELS = { nestedSetLeft: 'left', nestedSetRight: 'right', nestedSetParent: 'parent' }
+
+/**
+ * byValue is a span's value of a by-label, '' when it has none; a nested-set
+ * value is an int, `int <n>`.
+ */
 const byValue = (s, label) => {
   if (INTRINSIC_LABELS[label]) return INTRINSIC_LABELS[label](s)
+  if (NESTED_SET_LABELS[label]) return `int ${s.ns[NESTED_SET_LABELS[label]]}`
   const key = label.replace(/^(span|resource)\./, '')
   return s.attrs[key] === undefined ? '' : s.attrs[key]
 }
@@ -37,10 +44,12 @@ const quantile = (xs, q) => {
 const histogramBucket = (s) => s.durationNs > 0 ? 2 ** Math.ceil(Math.log2(s.durationNs)) : 0
 
 // aggregate applies the metrics function m to spans; window is the bucket
-// width in seconds.
+// width in seconds. Its argument is the duration in seconds or a nested-set
+// value.
 const aggregate = (m, spans, window) => {
   const fn = m.fn
   const durs = () => {
+    if (NESTED_SET_LABELS[m.attr]) return spans.map(s => s.ns[NESTED_SET_LABELS[m.attr]])
     if (m.attr !== 'duration') throw new Error(`oracle: ${fn} over ${m.attr}`)
     return spans.map(seconds)
   }
