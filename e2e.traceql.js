@@ -76,6 +76,10 @@ const _itShouldTraceQL = (name, q, conf) => {
             }
             t.spanSets.forEach(s => s.spans.forEach(s => {
                 s.startTimeUnixNano = (BigInt(s.startTimeUnixNano) - (BigInt(start) * 1000000n)).toString()
+                // Mask the run's testId echoed on each span.
+                s.attributes.forEach(a => {
+                    if (a.key === 'testId' && a.value.stringValue === testID) a.value.stringValue = '<testID>'
+                })
             }))
         })
         expect(res.data).toMatchSnapshot()
