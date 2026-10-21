@@ -25,14 +25,14 @@ const RUNS = runs(FROM)
 const METRICS = metricsRuns(FROM)
 const AUTOCOMPLETE = autocompleteRuns(FROM)
 
-// NESTED_SET_PROBE lists every span of this run with its nested-set values,
-// over a range holding every seeded span.
+// NESTED_SET_PROBE lists every span of this run with its nested-set values:
+// its range holds every seeded span, limit every trace and spss every span.
 const NESTED_SET_PROBE = {
   query: `{ .test_id = "${TEST_ID}" } | select(nestedSetLeft, nestedSetRight, nestedSetParent)`,
   from: FROM - seed.HOUR - seed.SECOND,
   to: FROM + seed.WINDOW + 16 * seed.MINUTE,
-  limit: 100,
-  spss: 1000
+  limit: seed.traces().length,
+  spss: Math.max(...seed.traces().map(t => t.spans.length))
 }
 
 // numberingDiff diffs the probe's nested-set values against the oracle's
