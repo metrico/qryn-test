@@ -745,8 +745,8 @@ const attributeValue = ({ type, value, text }) => {
  * earliest-starting result spans (ties by span id), matched and attributes
  * as {name: OTLP value}, and the first of them at the top level. selected
  * maps a listed span's name to its select() values, {key: text} with the
- * span name at SPAN_NAME, for the spans that have any. limit counts traces by their newest result span
- * (ties by trace id, descending).
+ * span name at SPAN_NAME, for the spans that have any. limit counts traces
+ * by their newest result span (ties by trace id, descending).
  * @param query {Object} the case AST
  * @param all {Object[]} from dataset()
  * @param opts {{from: number, to: number, limit: number, spss?: number, rounds?: number, pushes?: number}}
