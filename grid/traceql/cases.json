@@ -8973,6 +8973,219 @@
       }
     },
     {
+      "id": "echo_union_structural",
+      "note": "Search echoes the union of the filter keys: the child also shows .svc, which only the parent operand filters on.",
+      "query": "{ .svc = \"gateway\" } > { .op = \"write\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".op"
+                },
+                "rhs": {
+                  "str": "write"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "echo_intrinsics",
+      "note": "Filtered name and status echo; a span lacking status omits it.",
+      "query": "{ status = error } && { name = \"mix_a\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": "status"
+                },
+                "rhs": {
+                  "enum": "error"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": "name"
+                },
+                "rhs": {
+                  "str": "mix_a"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "echo_ns_root_filter",
+      "note": "A root filter echoes nestedSetParent as an int.",
+      "query": "{ nestedSetParent < 0 && .shape = \"tworoots\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "<",
+                "lhs": {
+                  "attr": "nestedSetParent"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "tworoots"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "echo_ns_unnumbered",
+      "note": "Unnumbered spans echo nested-set fields as 0, next to select().",
+      "query": "{ .shape = \"orphan\" && nestedSetLeft = 0 } | select(nestedSetRight)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": "nestedSetLeft"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetRight"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "echo_listed_intrinsics",
+      "note": "duration and rootServiceName are listed already and echo nothing.",
+      "query": "{ duration > 100ms && rootServiceName = \"grid-mixed\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": ">",
+                "lhs": {
+                  "attr": "duration"
+                },
+                "rhs": {
+                  "dur": "100ms"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": "rootServiceName"
+                },
+                "rhs": {
+                  "str": "grid-mixed"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "echo_after_stage",
+      "note": "Filters after a scalar filter echo too.",
+      "query": "{ .shape = \"mixed\" } | count() > 5 | { .op = \"write\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 5
+              }
+            }
+          },
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".op"
+              },
+              "rhs": {
+                "str": "write"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "id": "ns_f_left_eq",
       "note": "nestedSetLeft = compares the stored value.",
       "query": "{ .shape = \"mixed\" && nestedSetLeft = 2 }",

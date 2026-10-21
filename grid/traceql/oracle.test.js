@@ -765,8 +765,54 @@ const EXPECTED = {
   },
   ns_agg_max_right: { mixed: [MIXED_EARLIEST, 6, { 'max(nestedSetRight)': intAttr(12) }] },
   sel_field_expression: { error: oracle.SELECT_ERROR },
-  hints_ignored_by_search: { mixed: [MIXED_EARLIEST, 6] }
+  hints_ignored_by_search: { mixed: [MIXED_EARLIEST, 6] },
+  echo_union_structural: {
+    mixed: [['mix_b'], 1, {}, { mix_b: { svc: 'api', op: 'write' } }],
+    mixed2: [['mix2_b'], 1, {}, { mix2_b: { svc: 'api', op: 'write' } }]
+  },
+  echo_intrinsics: { mixed: [['mix_a', 'mix_b'], 2, {}, { mix_a: { '#name': 'mix_a' }, mix_b: { '#name': 'mix_b', status: 'error' } }] },
+  echo_ns_root_filter: {
+    tworoots: [['two_r1', 'two_r2'], 2, {}, {
+      two_r1: { nestedSetParent: intAttr(-1), shape: 'tworoots' },
+      two_r2: { nestedSetParent: intAttr(-1), shape: 'tworoots' }
+    }]
+  },
+  echo_ns_unnumbered: {
+    orphan: [['orph_o1', 'orph_o2'], 2, {}, {
+      orph_o1: { nestedSetLeft: intAttr(0), nestedSetRight: intAttr(0), shape: 'orphan' },
+      orph_o2: { nestedSetLeft: intAttr(0), nestedSetRight: intAttr(0), shape: 'orphan' }
+    }]
+  },
+  echo_listed_intrinsics: { mixed: [['mix_root'], 1] },
+  echo_after_stage: { mixed: [['mix_b'], 1, { 'count()': intAttr(6) }, { mix_b: { shape: 'mixed', op: 'write' } }] }
 }
+
+// ECHO_CHECKED are the cases whose hand-checked selected values include the
+// echoed filter keys; the other cases' hand-checks list select() values only.
+const ECHO_CHECKED = ['echo_union_structural', 'echo_intrinsics', 'echo_ns_root_filter', 'echo_ns_unnumbered',
+  'echo_listed_intrinsics', 'echo_after_stage']
+
+// stripEcho drops the echoed filter keys that select() does not read from a
+// search result, unless the case's hand-check lists them.
+const stripEcho = (run, got) => {
+  if (got.error || ECHO_CHECKED.includes(run.id)) return got
+  const selected = new Set(oracle.selectKeys(run.ast.pipeline))
+  const echoed = oracle.filterKeys(run.ast.pipeline).filter(k => !selected.has(k))
+  const strip = (set) => ({
+    ...set,
+    selected: Object.fromEntries(Object.entries(set.selected)
+      .map(([span, v]) => [span, Object.fromEntries(Object.entries(v).filter(([k]) => !echoed.includes(k)))])
+      .filter(([, v]) => Object.keys(v).length))
+  })
+  return got.map(t => ({ ...strip(t), spanSets: t.spanSets.map(strip) }))
+}
+
+// earliestFirst orders seed span names by start time, then span id.
+const earliestFirst = (names) => [...names].sort((a, b) => {
+  const x = spans.find(s => s.name === a)
+  const y = spans.find(s => s.name === b)
+  return x.start - y.start || (x.spanId < y.spanId ? -1 : x.spanId > y.spanId ? 1 : 0)
+})
 
 describe('traceql oracle on hand-checked results', () => {
   const all = runs(FROM)
@@ -775,10 +821,10 @@ describe('traceql oracle on hand-checked results', () => {
   })
   for (const run of all) {
     it(run.name, () => {
-      const got = oracle.search(run.ast, spans, run)
+      const got = stripEcho(run, oracle.search(run.ast, spans, run))
       if (EXPECTED[run.id] && EXPECTED[run.id].error) return expect(got).toEqual(EXPECTED[run.id])
       const spss = run.spss || oracle.DEFAULT_SPSS
-      const spanset = (e) => ({ spans: e[0], matched: e[1], attributes: e[2] || {}, selected: e[3] || {} })
+      const spanset = (e) => ({ spans: earliestFirst(e[0]), matched: e[1], attributes: e[2] || {}, selected: e[3] || {} })
       const want = Object.entries(EXPECTED[run.id] || {}).map(([trace, e]) => {
         if (typeof e === 'number') {
           return { trace, spans: got.find(t => t.trace === trace)?.spans || [], matched: e, attributes: {}, selected: {}, spssCheck: Math.min(spss, e) }
@@ -810,6 +856,15 @@ describe('traceql oracle rules', () => {
     expect(got[0].spans).toEqual(ids.slice(0, 2).map(id => tied.find(s => s.spanId === id).name))
   })
 
+  it('echoes the union of the filter keys, apart from select() and the listed intrinsics', () => {
+    const q = (text) => runs(FROM).find(r => r.query === text)
+    const keys = (r) => [oracle.selectKeys(r.ast.pipeline), oracle.filterKeys(r.ast.pipeline)]
+    expect(keys(q('{ .svc = "gateway" } > { .op = "write" }'))).toEqual([[], ['svc', 'op']])
+    expect(keys(q('{ status = error } && { name = "mix_a" }'))).toEqual([[], ['status', '#name']])
+    expect(keys(q('{ .shape = "orphan" && nestedSetLeft = 0 } | select(nestedSetRight)'))).toEqual([['nestedSetRight'], ['shape', 'nestedSetLeft']])
+    expect(keys(q('{ duration > 100ms && rootServiceName = "grid-mixed" }'))).toEqual([[], []])
+    expect(keys(q('{ .shape = "mixed" } | count() > 5 | { .op = "write" }'))).toEqual([[], ['shape', 'op']])
+  })
   it('rejects what it cannot evaluate', () => {
     expect(() => oracle.search({ pipeline: [{ spansetOp: '>>>', lhs: sel(null).pipeline[0], rhs: sel(null).pipeline[0] }] }, spans, opts)).toThrow(/unsupported/)
     expect(() => oracle.search(sel({ op: '=', lhs: { attr: 'foo' }, rhs: { str: 'x' } }), spans, opts)).toThrow(/attribute/)
@@ -909,8 +964,9 @@ describe('traceql result diff', () => {
     expect(read({ intValue: '3' })).toEqual({ x: { nestedSetLeft: { intValue: '3' } } })
     expect(read({ stringValue: '3' })).toEqual({ x: { nestedSetLeft: '3' } })
   })
-  it('matches regardless of trace and span order', () => {
-    expect(diff([t('b', ['y', 'x'], 2), t('a', ['z'], 1)], [t('a', ['z'], 1), t('b', ['x', 'y'], 2)])).toEqual([])
+  it('matches regardless of trace order, comparing listed spans in order', () => {
+    expect(diff([t('b', ['x', 'y'], 2), t('a', ['z'], 1)], [t('a', ['z'], 1), t('b', ['x', 'y'], 2)])).toEqual([])
+    expect(diff([t('b', ['y', 'x'], 2)], [t('b', ['x', 'y'], 2)])).toEqual(['b spans y,x, want x,y'])
   })
   it('reports extra, missing, span and matched mismatches', () => {
     expect(diff([t('a', ['x'], 1), t('c', ['w'], 1)], [t('a', ['y'], 2), t('b', ['z'], 1)])).toEqual([

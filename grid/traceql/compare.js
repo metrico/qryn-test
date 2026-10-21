@@ -69,8 +69,8 @@ const attributesDiff = (name, got, want) => {
 // spansetDiff compares one spanset of a trace.
 const spansetDiff = (name, gt, wt) => {
   const out = []
-  const gs = [...gt.spans].sort().join(',')
-  const ws = [...wt.spans].sort().join(',')
+  const gs = gt.spans.join(',')
+  const ws = wt.spans.join(',')
   if (gs !== ws) out.push(`${name} spans ${gs}, want ${ws}`)
   if (gt.matched !== wt.matched) out.push(`${name} matched ${gt.matched}, want ${wt.matched}`)
   if (wt.attributes !== undefined) out.push(...attributesDiff(name, gt.attributes || {}, wt.attributes))
@@ -88,7 +88,7 @@ const selectedDiff = (name, got, want) => {
 /**
  * diff returns [] when got and want hold the same traces, spans and matched
  * counts, and the same attributes where want lists them, or one line per
- * mismatch. Trace and span order are not compared; a trace's spansets are
+ * mismatch. Trace order is not compared, listed spans are; a trace's spansets are
  * compared in order when want lists them, else the trace must have one. A
  * want of {error} expects that error.
  */

@@ -576,17 +576,46 @@ const checkSelects = (elements) => {
   }
 }
 
+// fieldKey is the stored key a listed span carries a field's value under; the
+// span name is SPAN_NAME. An attribute named like a nested-set intrinsic
+// shares its key.
+const fieldKey = (attr) => (attr === 'name' || attr === 'span:name')
+  ? SPAN_NAME
+  : NESTED_SET[attr] ? attr : attrKey(attr) || INTRINSIC_KEYS[attr]
+
+// fieldKeys lists the keys of field nodes, each once, skipping LISTED.
+const fieldKeys = (fields) => [...new Set(fields.filter(f => !LISTED.includes(f.attr)).map(f => fieldKey(f.attr)))]
+
+// filtered returns the attribute nodes every spanset filter of a pipeline
+// reads, across operators and nested pipelines.
+const filtered = (elements) => {
+  const attrs = (f) => f.attr !== undefined ? [f] : [f.paren, f.expr, f.lhs, f.rhs].filter(x => x !== undefined).flatMap(attrs)
+  const spanset = (x) => {
+    if (x.selector !== undefined) return x.selector === null ? [] : attrs(x.selector)
+    if (x.paren !== undefined) return spanset(x.paren)
+    if (x.pipeline !== undefined) return filtered(x.pipeline)
+    if (x.spansetOp !== undefined) return [...spanset(x.lhs), ...spanset(x.rhs)]
+    return []
+  }
+  return elements.flatMap(spanset)
+}
+
 /**
- * selectedKeys lists the stored keys select() reads for each listed span,
- * each once; the span name is SPAN_NAME.
+ * selectKeys lists the keys select() reads for each listed span, each once.
  * @param elements {Object[]} a pipeline
  */
-const selectedKeys = (elements) => {
-  const keys = selects(elements).flat()
-    .filter(f => !LISTED.includes(f.attr))
-    .map(f => (f.attr === 'name' || f.attr === 'span:name') ? SPAN_NAME : NESTED_SET[f.attr] ? f.attr : attrKey(f.attr) || INTRINSIC_KEYS[f.attr])
-  return [...new Set(keys)]
-}
+const selectKeys = (elements) => fieldKeys(selects(elements).flat())
+
+/**
+ * filterKeys lists the keys the spanset filters read, each once: search
+ * echoes them on every listed span, the union across the whole query.
+ * @param elements {Object[]} a pipeline
+ */
+const filterKeys = (elements) => fieldKeys(filtered(elements))
+
+// selectedKeys lists the keys search reads for each listed span: those of
+// select() and the echoed filter keys.
+const selectedKeys = (elements) => [...new Set([...selectKeys(elements), ...filterKeys(elements)])]
 
 /**
  * selectedValues returns a span's selected values by key, {} without any:
@@ -808,8 +837,9 @@ const attributeValue = ({ type, value, text }) => {
  * a trace lists them in spanSets by group key, each with its spss
  * earliest-starting result spans (ties by span id), matched and attributes
  * as {name: OTLP value}, and the first of them at the top level. selected
- * maps a listed span's name to its select() values, {key: text or
- * {intValue}} with the span name at SPAN_NAME, for the spans that have any.
+ * maps a listed span's name to its select() and echoed filter values, {key:
+ * text or {intValue}} with the span name at SPAN_NAME, for the spans that
+ * have any.
  * limit counts traces by their newest result span (ties by trace id,
  * descending).
  * @param query {Object} the case AST
@@ -847,4 +877,4 @@ const search = (query, all, opts) => {
   })
 }
 
-module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, SPAN_NAME, NESTED_SET, dataset, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace, nestedSet }
+module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, SPAN_NAME, NESTED_SET, dataset, selectKeys, filterKeys, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace, nestedSet }
