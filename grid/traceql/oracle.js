@@ -101,6 +101,10 @@ const INTRINSIC_KEYS = {
 
 const isDuration = (attr) => attr === 'duration' || attr === 'span:duration'
 
+// NESTED_SET are the nested-set intrinsics, ints a span reads from its
+// numbering (span.ns); select() returns them as ints under their own names.
+const NESTED_SET = { nestedSetLeft: 'left', nestedSetRight: 'right', nestedSetParent: 'parent' }
+
 // INT matches the stored values ClickHouse reads as integers.
 const INT = /^[+-]?\d+$/
 
@@ -113,6 +117,8 @@ const ARITHMETIC = ['+', '-', '*', '/', '%', '^']
  * attribute is cast to the type of the operand it meets; two attributes
  * compare as numbers when both are, as strings when neither is, and are nil
  * otherwise. `!x` and `x` as a condition are false unless x is a boolean.
+ * A nested-set intrinsic is an int, except that `nestedSetParent < 0` and
+ * `nestedSetParent = -1` hold for the spans without a parent id.
  */
 
 // domain is the type a field node casts to: 'num', 'str', 'bool', or 'any'
@@ -120,7 +126,7 @@ const ARITHMETIC = ['+', '-', '*', '/', '%', '^']
 const domain = (f) => {
   if (f.paren !== undefined) return domain(f.paren)
   if (f.attr !== undefined) {
-    if (isDuration(f.attr)) return 'num'
+    if (isDuration(f.attr) || NESTED_SET[f.attr]) return 'num'
     return attrKey(f.attr) === null && INTRINSIC_KEYS[f.attr] ? 'str' : 'any'
   }
   if (f.num !== undefined || f.dur !== undefined) return 'num'
@@ -132,6 +138,7 @@ const domain = (f) => {
 
 // raw is an attribute's stored text, or null when the span lacks it.
 const raw = (span, attr) => {
+  if (NESTED_SET[attr]) return String(span.ns[NESTED_SET[attr]])
   const key = attrKey(attr) || INTRINSIC_KEYS[attr]
   if (!key) throw new Error(`oracle: attribute ${attr}`)
   const val = span.attrs[key]
@@ -143,6 +150,7 @@ const num = (span, f) => {
   if (f.paren !== undefined) return num(span, f.paren)
   if (f.attr !== undefined) {
     if (isDuration(f.attr)) return { v: span.durationNs, int: false }
+    if (NESTED_SET[f.attr]) return { v: span.ns[NESTED_SET[f.attr]], int: true }
     const val = raw(span, f.attr)
     return val !== null && NUMBER.test(val) ? { v: parseFloat(val), int: INT.test(val) } : null
   }
@@ -211,8 +219,14 @@ const regex = (op, text, re) => {
   return op === '=~' ? m : !m
 }
 
+// isRootFilter reports whether a comparison is `nestedSetParent < 0` or
+// `nestedSetParent = -1`.
+const isRootFilter = ({ op, lhs, rhs }) => lhs.attr === 'nestedSetParent' && rhs.num !== undefined &&
+  ((op === '<' && rhs.num === 0) || (op === '=' && rhs.num === -1))
+
 // comparison evaluates `lhs op rhs`, false when either side is nil.
 const comparison = (span, { op, lhs, rhs }) => {
+  if (isRootFilter({ op, lhs, rhs })) return span.parentId === null
   if (rhs.nil !== undefined || lhs.nil !== undefined) {
     if (rhs.nil !== undefined && lhs.nil !== undefined) return false
     const present = value(span, rhs.nil !== undefined ? lhs : rhs) !== null
@@ -388,7 +402,7 @@ const argOf = (x) => x.arg || { attr: x.attr }
 // attribute.
 const staticType = (f) => {
   if (f.paren !== undefined) return staticType(f.paren)
-  if (f.attr !== undefined) return isDuration(f.attr) ? 'duration' : 'attr'
+  if (f.attr !== undefined) return isDuration(f.attr) ? 'duration' : NESTED_SET[f.attr] ? 'number' : 'attr'
   if (f.dur !== undefined) return 'duration'
   if (f.num !== undefined) return 'number'
   if (f.unary !== undefined) return staticType(f.expr)
@@ -541,7 +555,8 @@ const SPAN_NAME = '#name'
 
 // isFieldName reports whether an attribute node names a scoped attribute or
 // an intrinsic.
-const isFieldName = (attr) => attrKey(attr) !== null || INTRINSIC_KEYS[attr] !== undefined || LISTED.includes(attr)
+const isFieldName = (attr) => attrKey(attr) !== null || INTRINSIC_KEYS[attr] !== undefined || LISTED.includes(attr) ||
+  NESTED_SET[attr] !== undefined
 
 // selects returns the select() stages of a pipeline, nested pipelines included.
 const selects = (elements) => elements.flatMap(e => {
@@ -561,21 +576,56 @@ const checkSelects = (elements) => {
   }
 }
 
-/**
- * selectedKeys lists the stored keys select() reads for each listed span,
- * each once; the span name is SPAN_NAME.
- * @param elements {Object[]} a pipeline
- */
-const selectedKeys = (elements) => {
-  const keys = selects(elements).flat()
-    .filter(f => !LISTED.includes(f.attr))
-    .map(f => (f.attr === 'name' || f.attr === 'span:name') ? SPAN_NAME : attrKey(f.attr) || INTRINSIC_KEYS[f.attr])
-  return [...new Set(keys)]
+// fieldKey is the stored key a listed span carries a field's value under; the
+// span name is SPAN_NAME. An attribute named like a nested-set intrinsic
+// shares its key.
+const fieldKey = (attr) => (attr === 'name' || attr === 'span:name')
+  ? SPAN_NAME
+  : NESTED_SET[attr] ? attr : attrKey(attr) || INTRINSIC_KEYS[attr]
+
+// fieldKeys lists the keys of field nodes, each once, skipping LISTED.
+const fieldKeys = (fields) => [...new Set(fields.filter(f => !LISTED.includes(f.attr)).map(f => fieldKey(f.attr)))]
+
+// filtered returns the attribute nodes every spanset filter of a pipeline
+// reads, across operators and nested pipelines.
+const filtered = (elements) => {
+  const attrs = (f) => f.attr !== undefined ? [f] : [f.paren, f.expr, f.lhs, f.rhs].filter(x => x !== undefined).flatMap(attrs)
+  const spanset = (x) => {
+    if (x.selector !== undefined) return x.selector === null ? [] : attrs(x.selector)
+    if (x.paren !== undefined) return spanset(x.paren)
+    if (x.pipeline !== undefined) return filtered(x.pipeline)
+    if (x.spansetOp !== undefined) return [...spanset(x.lhs), ...spanset(x.rhs)]
+    return []
+  }
+  return elements.flatMap(spanset)
 }
 
-// selectedValues returns a span's selected values by key, {} without any.
-const selectedValues = (span, keys) => Object.fromEntries(keys
-  .map(k => [k, span.attrs[k === SPAN_NAME ? 'name' : k]])
+/**
+ * selectKeys lists the keys select() reads for each listed span, each once.
+ * @param elements {Object[]} a pipeline
+ */
+const selectKeys = (elements) => fieldKeys(selects(elements).flat())
+
+/**
+ * filterKeys lists the keys the spanset filters read, each once: search
+ * echoes them on every listed span, the union across the whole query.
+ * @param elements {Object[]} a pipeline
+ */
+const filterKeys = (elements) => fieldKeys(filtered(elements))
+
+// spanValueKeys lists the keys search reads for each listed span: those of
+// select() and the echoed filter keys.
+const spanValueKeys = (elements) => [...new Set([...selectKeys(elements), ...filterKeys(elements)])]
+
+/**
+ * selectedValues returns a span's selected values by key, {} without any:
+ * attribute text, or a nested-set value from `numbers` as {intValue}.
+ * @param numbers {Map} from nestedSet()
+ */
+const selectedValues = (span, keys, numbers) => Object.fromEntries(keys
+  .map(k => NESTED_SET[k]
+    ? [k, { intValue: String(numbers.get(`${span.traceId}/${span.spanId}`)[NESTED_SET[k]]) }]
+    : [k, span.attrs[k === SPAN_NAME ? 'name' : k]])
   .filter(([, v]) => v !== undefined))
 
 // grouped reports whether a pipeline ends grouped when its input is grouped
@@ -655,24 +705,62 @@ const needsWholeTrace = (elements) => elements.some(e => {
   return false
 })
 
-// newestFirst orders spans by start time, then span id, both descending.
-const newestFirst = (a, b) => b.start - a.start || (a.spanId < b.spanId ? 1 : a.spanId > b.spanId ? -1 : 0)
+// earliestFirst orders spans by start time, then span id, both ascending.
+const earliestFirst = (a, b) => a.start - b.start || (a.spanId < b.spanId ? -1 : a.spanId > b.spanId ? 1 : 0)
+
+/**
+ * nestedSet numbers each trace's spans depth-first under gigapipe's rules:
+ * `traceId/spanId` -> {left, right, parent}, 0/0/0 when no root reaches it.
+ * @param spans {Object[]} from dataset()
+ */
+const nestedSet = (spans) => {
+  const out = new Map()
+  const nodes = new Map()
+  for (const s of spans) {
+    const key = `${s.traceId}/${s.spanId}`
+    // Copies of a span id form one node, placed by the earliest copy.
+    const node = nodes.get(key)
+    if (!node || s.start < node.start) nodes.set(key, { traceId: s.traceId, spanId: s.spanId, parentId: s.parentId, start: s.start })
+  }
+  const children = new Map()
+  for (const n of nodes.values()) {
+    const key = n.parentId === null ? n.traceId : `${n.traceId}/${n.parentId}`
+    if (!children.has(key)) children.set(key, [])
+    children.get(key).push(n)
+  }
+  const counters = new Map()
+  const visit = (n, parent) => {
+    const key = `${n.traceId}/${n.spanId}`
+    const left = counters.get(n.traceId) + 1
+    counters.set(n.traceId, left)
+    for (const c of (children.get(key) || []).sort(earliestFirst)) visit(c, left)
+    const right = counters.get(n.traceId) + 1
+    counters.set(n.traceId, right)
+    out.set(key, { left, right, parent })
+  }
+  for (const traceId of new Set([...nodes.values()].map(n => n.traceId))) {
+    counters.set(traceId, 0)
+    for (const root of (children.get(traceId) || []).sort(earliestFirst)) visit(root, -1)
+  }
+  for (const key of nodes.keys()) {
+    if (!out.has(key)) out.set(key, { left: 0, right: 0, parent: 0 })
+  }
+  return out
+}
 
 /**
  * resultSpansets returns the spansets a pipeline yields, one per trace and
- * group key with its spans, attributes ([name, {type, value, text?}]) and
- * key. It returns GROUPED for a spanset operator over grouped spansets,
- * {error} for a by() that reads no attribute or a select() argument that is
- * neither an attribute nor an intrinsic, and UNRESOLVED when ancestry
- * does not resolve within the round limit. Operand spans start in (from, to];
- * parents, ancestors, siblings and roots count wherever they start.
+ * group key, or GROUPED, UNRESOLVED or {error}. Operand spans start in
+ * (from, to]; related spans count wherever they start. Spans carry ns.
  * @param pipeline {Object[]} the pipeline of the case AST
  * @param all {Object[]} from dataset(); with opts.pushes only the spans of
  *   the first `pushes` ingest batches count
  * @param opts {{from: number, to: number, rounds?: number, pushes?: number}}
  */
 const resultSpansets = (pipeline, all, { from, to, rounds = ROUNDS, pushes }) => {
-  const spans = pushes === undefined ? all : all.filter(s => s.push < pushes)
+  const landed = pushes === undefined ? all : all.filter(s => s.push < pushes)
+  const numbers = nestedSet(landed)
+  const spans = landed.map(s => ({ ...s, ns: numbers.get(`${s.traceId}/${s.spanId}`) }))
   const inRange = spans.filter(s => s.start > from && s.start <= to)
   const ctx = { spans, byId: new Map(spans.map(s => [`${s.traceId}/${s.spanId}`, s])), reach: reachable(spans), rounds }
   try {
@@ -739,14 +827,9 @@ const attributeValue = ({ type, value, text }) => {
 
 /**
  * search returns the expected traces of a search, newest first:
- * [{trace, traceId, spans: [span name, ...], matched, attributes, selected, spanSets}],
- * or the error result of resultSpansets(). The spansets are resultSpansets();
- * a trace lists them in spanSets by group key, each with its spss newest
- * result spans, matched and attributes as {name: OTLP value}, and the first
- * of them at the top level. selected maps a listed span's name to its
- * select() values, {key: text} with the span name at SPAN_NAME, for the spans
- * that have any. limit counts traces by their newest result span
- * (ties by trace id, descending).
+ * [{trace, traceId, spans, matched, attributes, selected, spanSets}], or the
+ * error result of resultSpansets(). Each spanset lists its spss earliest spans
+ * (ties by span id); limit keeps the traces with the newest result spans.
  * @param query {Object} the case AST
  * @param all {Object[]} from dataset()
  * @param opts {{from: number, to: number, limit: number, spss?: number, rounds?: number, pushes?: number}}
@@ -758,15 +841,16 @@ const search = (query, all, opts) => {
   const byTrace = new Map()
   for (const ss of sets) {
     if (!byTrace.has(ss.traceId)) byTrace.set(ss.traceId, [])
-    byTrace.get(ss.traceId).push({ ...ss, spans: [...ss.spans].sort(newestFirst) })
+    byTrace.get(ss.traceId).push({ ...ss, spans: [...ss.spans].sort(earliestFirst) })
   }
   const traces = [...byTrace.values()].map(tss => {
     tss.sort((a, b) => compareKeys(a.key, b.key))
-    const newest = Math.max(...tss.map(ss => ss.spans[0].start))
+    const newest = Math.max(...tss.flatMap(ss => ss.spans.map(s => s.start)))
     return { traceId: tss[0].traceId, trace: tss[0].spans[0].trace, newest, sets: tss }
   })
   traces.sort((a, b) => b.newest - a.newest || (a.traceId < b.traceId ? 1 : -1))
-  const keys = selectedKeys(query.pipeline)
+  const keys = spanValueKeys(query.pipeline)
+  const numbers = nestedSet(opts.pushes === undefined ? all : all.filter(s => s.push < opts.pushes))
   return traces.slice(0, limit).map(t => {
     const spanSets = t.sets.map(ss => {
       const listed = ss.spans.slice(0, spss)
@@ -774,11 +858,11 @@ const search = (query, all, opts) => {
         spans: listed.map(s => s.name),
         matched: ss.spans.length,
         attributes: Object.fromEntries(ss.attributes.map(([k, v]) => [k, attributeValue(v)])),
-        selected: Object.fromEntries(listed.map(s => [s.name, selectedValues(s, keys)]).filter(([, v]) => Object.keys(v).length))
+        selected: Object.fromEntries(listed.map(s => [s.name, selectedValues(s, keys, numbers)]).filter(([, v]) => Object.keys(v).length))
       }
     })
     return { trace: t.trace, traceId: t.traceId, ...spanSets[0], spanSets }
   })
 }
 
-module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, SPAN_NAME, dataset, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace }
+module.exports = { DEFAULT_SPSS, ROUNDS, UNRESOLVED, GROUPED, SELECT_ERROR, SPAN_NAME, NESTED_SET, dataset, selectKeys, filterKeys, earliestFirst, matches, resultSpans, search, durationNs, goDuration, needsWholeTrace, nestedSet }

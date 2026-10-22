@@ -1,4 +1,4 @@
-// TraceQL grid seed: the nine fixture shapes as named spans. Every time is in
+// TraceQL grid seed: the fixture shapes as named spans. Every time is in
 // milliseconds relative to FROM, the query window is (FROM, TO], and FROM is a
 // whole second. Generators are pure functions of their arguments.
 
@@ -22,9 +22,10 @@ const window = (nowMs, slot, slots = 60) => {
 
 /**
  * A trace is {name, shape, spans}; a span is
- * {name, parent, start, duration, attrs, push}. parent is a span name, null
- * for a root, or `missing:<name>` for a parent that is never written. start
- * and duration are ms (start relative to FROM); push is the ingest batch.
+ * {name, parent, start, duration, attrs, push, sameId?}. parent is a span
+ * name, null for a root, or `missing:<name>` for a parent that is never
+ * written. start and duration are ms (start relative to FROM); push is the
+ * ingest batch; sameId names an earlier span whose id the span reuses.
  */
 const traces = () => {
   const out = []
@@ -37,7 +38,8 @@ const traces = () => {
     start: extra.start !== undefined ? extra.start : tick(),
     duration: extra.duration !== undefined ? extra.duration : 10 + (name.length * 7) % 40,
     attrs: { ...SUITE, ...attrs },
-    push: extra.push || 0
+    push: extra.push || 0,
+    ...(extra.sameId ? { sameId: extra.sameId } : {})
   })
 
   // 1. Chains of depth 9 and 8.
@@ -158,6 +160,32 @@ const traces = () => {
     ]
   })
 
+  // 10. Nested-set numbering, after every case's range: ties, a duplicate id,
+  // a self-parent, a cycle and a late span.
+  {
+    const at = (ms) => ({ start: WINDOW + 15 * MINUTE + ms })
+    const ns = { shape: 'nested' }
+    out.push({
+      name: 'nested',
+      shape: 'nested',
+      spans: [
+        span('ns_r1', null, ns, at(0)),
+        span('ns_r2', null, ns, at(0)),
+        span('ns_a', 'ns_r1', ns, at(1000)),
+        span('ns_b', 'ns_r1', ns, at(1000)),
+        span('ns_dup', 'ns_r1', ns, at(3000)),
+        span('ns_dup_early', 'ns_r2', ns, { ...at(500), sameId: 'ns_dup' }),
+        span('ns_dup_c', 'ns_dup', ns, at(4000)),
+        span('ns_r2c', 'ns_r2', ns, at(2000)),
+        span('ns_self', 'ns_self', ns, at(5000)),
+        span('ns_cyc1', 'ns_cyc2', ns, at(6000)),
+        span('ns_cyc2', 'ns_cyc1', ns, at(7000)),
+        span('ns_cyc_c', 'ns_cyc1', ns, at(8000)),
+        span('ns_late', 'ns_r1', ns, { ...at(200), push: 2 })
+      ]
+    })
+  }
+
   if (clock >= WINDOW) throw new Error(`seed overflows the window: ${clock}ms`)
   return out
 }
@@ -176,7 +204,7 @@ const ids = (prefix, ts = traces()) => {
   ts.forEach((t, ti) => {
     const traceId = prefix + hex(ti + 1, 8)
     byTrace[t.name] = traceId
-    t.spans.forEach((s, si) => { bySpan[s.name] = hex(ti + 1, 8) + hex(si + 1, 8) })
+    t.spans.forEach((s, si) => { bySpan[s.name] = s.sameId ? bySpan[s.sameId] : hex(ti + 1, 8) + hex(si + 1, 8) })
     // Missing parents get ids no seeded span uses.
     t.spans.forEach((s, si) => {
       if (s.parent && s.parent.startsWith('missing:')) bySpan[s.parent] = hex(ti + 1, 8) + hex(0xffff0000 + si, 8)

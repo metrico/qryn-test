@@ -138,7 +138,7 @@
     },
     {
       "id": "fanout_spss_1",
-      "note": "spss=1 lists only the newest span.",
+      "note": "spss=1 lists only the earliest-starting span.",
       "query": "{ .shape = \"fanout\" }",
       "spss": 1,
       "ast": {
@@ -2526,7 +2526,7 @@
     },
     {
       "id": "hop_fanout_union_spss",
-      "note": "&> over the fan-out lists the newest three of 30.",
+      "note": "&> over the fan-out lists the earliest-starting three of 30.",
       "query": "{ .role = \"child\" } &> { .role = \"grandchild\" }",
       "ast": {
         "pipeline": [
@@ -8673,6 +8673,239 @@
       }
     },
     {
+      "id": "sel_ns_left",
+      "note": "select(nestedSetLeft) returns the stored left value as an int.",
+      "query": "{ .shape = \"tworoots\" } | select(nestedSetLeft)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "tworoots"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetLeft"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_ns_right",
+      "note": "select(nestedSetRight) returns the stored right value as an int.",
+      "query": "{ .shape = \"tworoots\" } | select(nestedSetRight)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "tworoots"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetRight"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_ns_parent",
+      "note": "select(nestedSetParent) returns the parent left value as an int, -1 on roots.",
+      "query": "{ .shape = \"tworoots\" } | select(nestedSetParent)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "tworoots"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetParent"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_ns_all",
+      "note": "Unreachable spans read 0/0/0.",
+      "query": "{ .shape = \"orphan\" } | select(nestedSetLeft, nestedSetRight, nestedSetParent)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "orphan"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetLeft"
+              },
+              {
+                "attr": "nestedSetRight"
+              },
+              {
+                "attr": "nestedSetParent"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_ns_attrs",
+      "note": "Nested-set values come as ints next to string attributes.",
+      "query": "{ .shape = \"mixed\" } | select(.svc, nestedSetLeft, nestedSetRight)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": ".svc"
+              },
+              {
+                "attr": "nestedSetLeft"
+              },
+              {
+                "attr": "nestedSetRight"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_ns_mid_pipeline",
+      "note": "A nested-set select() before a scalar filter still adds its values.",
+      "query": "{ .shape = \"tworoots\" } | select(nestedSetParent) | count() > 1 | select(name)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "tworoots"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetParent"
+              }
+            ]
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 1
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "name"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sel_ns_rootless_first_push",
+      "note": "Before its root lands, mixed2 is numbered as unreachable: 0/0/0.",
+      "query": "{ .shape = \"mixed2\" } | select(nestedSetLeft, nestedSetRight, nestedSetParent)",
+      "spss": 10,
+      "pushes": 1,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed2"
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetLeft"
+              },
+              {
+                "attr": "nestedSetRight"
+              },
+              {
+                "attr": "nestedSetParent"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "id": "sel_field_expression",
       "note": "select() takes no field expression.",
       "query": "{ .shape = \"mixed\" } | select(.lvl + 1)",
@@ -8736,6 +8969,1124 @@
             "most_recent",
             "true"
           ]
+        ]
+      }
+    },
+    {
+      "id": "echo_union_structural",
+      "note": "Search echoes the union of the filter keys: the child also shows .svc, which only the parent operand filters on.",
+      "query": "{ .svc = \"gateway\" } > { .op = \"write\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".svc"
+                },
+                "rhs": {
+                  "str": "gateway"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".op"
+                },
+                "rhs": {
+                  "str": "write"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "echo_intrinsics",
+      "note": "Filtered name and status echo; a span lacking status omits it.",
+      "query": "{ status = error } && { name = \"mix_a\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&&",
+            "lhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": "status"
+                },
+                "rhs": {
+                  "enum": "error"
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "op": "=",
+                "lhs": {
+                  "attr": "name"
+                },
+                "rhs": {
+                  "str": "mix_a"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "echo_ns_root_filter",
+      "note": "A root filter echoes nestedSetParent as an int.",
+      "query": "{ nestedSetParent < 0 && .shape = \"tworoots\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "<",
+                "lhs": {
+                  "attr": "nestedSetParent"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "tworoots"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "echo_ns_unnumbered",
+      "note": "Unnumbered spans echo nested-set fields as 0, next to select().",
+      "query": "{ .shape = \"orphan\" && nestedSetLeft = 0 } | select(nestedSetRight)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": "nestedSetLeft"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          },
+          {
+            "select": [
+              {
+                "attr": "nestedSetRight"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "echo_listed_intrinsics",
+      "note": "duration and rootServiceName are listed already and echo nothing.",
+      "query": "{ duration > 100ms && rootServiceName = \"grid-mixed\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": ">",
+                "lhs": {
+                  "attr": "duration"
+                },
+                "rhs": {
+                  "dur": "100ms"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": "rootServiceName"
+                },
+                "rhs": {
+                  "str": "grid-mixed"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "echo_after_stage",
+      "note": "Filters after a scalar filter echo too.",
+      "query": "{ .shape = \"mixed\" } | count() > 5 | { .op = \"write\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "count"
+              },
+              "rhs": {
+                "num": 5
+              }
+            }
+          },
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".op"
+              },
+              "rhs": {
+                "str": "write"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_left_eq",
+      "note": "nestedSetLeft = compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetLeft = 2 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": "nestedSetLeft"
+                },
+                "rhs": {
+                  "num": 2
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_left_ne",
+      "note": "nestedSetLeft != compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetLeft != 1 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "!=",
+                "lhs": {
+                  "attr": "nestedSetLeft"
+                },
+                "rhs": {
+                  "num": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_left_gt",
+      "note": "nestedSetLeft > compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetLeft > 7 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": ">",
+                "lhs": {
+                  "attr": "nestedSetLeft"
+                },
+                "rhs": {
+                  "num": 7
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_left_ge",
+      "note": "nestedSetLeft >= compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetLeft >= 8 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": ">=",
+                "lhs": {
+                  "attr": "nestedSetLeft"
+                },
+                "rhs": {
+                  "num": 8
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_left_lt",
+      "note": "nestedSetLeft < compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetLeft < 3 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "<",
+                "lhs": {
+                  "attr": "nestedSetLeft"
+                },
+                "rhs": {
+                  "num": 3
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_left_le",
+      "note": "nestedSetLeft <= compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetLeft <= 3 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "<=",
+                "lhs": {
+                  "attr": "nestedSetLeft"
+                },
+                "rhs": {
+                  "num": 3
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_right_eq",
+      "note": "nestedSetRight = compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetRight = 12 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": "nestedSetRight"
+                },
+                "rhs": {
+                  "num": 12
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_right_ne",
+      "note": "nestedSetRight != compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetRight != 12 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "!=",
+                "lhs": {
+                  "attr": "nestedSetRight"
+                },
+                "rhs": {
+                  "num": 12
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_right_gt",
+      "note": "nestedSetRight > compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetRight > 10 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": ">",
+                "lhs": {
+                  "attr": "nestedSetRight"
+                },
+                "rhs": {
+                  "num": 10
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_right_ge",
+      "note": "nestedSetRight >= compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetRight >= 10 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": ">=",
+                "lhs": {
+                  "attr": "nestedSetRight"
+                },
+                "rhs": {
+                  "num": 10
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_right_lt",
+      "note": "nestedSetRight < compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetRight < 5 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "<",
+                "lhs": {
+                  "attr": "nestedSetRight"
+                },
+                "rhs": {
+                  "num": 5
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_right_le",
+      "note": "nestedSetRight <= compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetRight <= 6 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "<=",
+                "lhs": {
+                  "attr": "nestedSetRight"
+                },
+                "rhs": {
+                  "num": 6
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_parent_eq",
+      "note": "nestedSetParent = compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetParent = 1 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": "nestedSetParent"
+                },
+                "rhs": {
+                  "num": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_parent_ne",
+      "note": "nestedSetParent != compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetParent != -1 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "!=",
+                "lhs": {
+                  "attr": "nestedSetParent"
+                },
+                "rhs": {
+                  "num": -1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_parent_gt",
+      "note": "nestedSetParent > compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetParent > 1 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": ">",
+                "lhs": {
+                  "attr": "nestedSetParent"
+                },
+                "rhs": {
+                  "num": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_parent_ge",
+      "note": "nestedSetParent >= compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetParent >= 8 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": ">=",
+                "lhs": {
+                  "attr": "nestedSetParent"
+                },
+                "rhs": {
+                  "num": 8
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_parent_lt",
+      "note": "nestedSetParent < 0 matches the spans without a parent id.",
+      "query": "{ .shape = \"mixed\" && nestedSetParent < 0 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "<",
+                "lhs": {
+                  "attr": "nestedSetParent"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_parent_le",
+      "note": "nestedSetParent <= compares the stored value.",
+      "query": "{ .shape = \"mixed\" && nestedSetParent <= 1 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "<=",
+                "lhs": {
+                  "attr": "nestedSetParent"
+                },
+                "rhs": {
+                  "num": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_parent_eq_root",
+      "note": "nestedSetParent = -1 matches the spans without a parent id.",
+      "query": "{ .shape = \"mixed\" && nestedSetParent = -1 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": "nestedSetParent"
+                },
+                "rhs": {
+                  "num": -1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_leaves",
+      "note": "A field expression over stored values: right - left = 1 holds on leaves.",
+      "query": "{ .shape = \"mixed\" && nestedSetRight - nestedSetLeft = 1 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "op": "-",
+                  "lhs": {
+                    "attr": "nestedSetRight"
+                  },
+                  "rhs": {
+                    "attr": "nestedSetLeft"
+                  }
+                },
+                "rhs": {
+                  "num": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_orphan_zero",
+      "note": "Spans no root reaches read 0.",
+      "query": "{ .shape = \"orphan\" && nestedSetLeft = 0 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "orphan"
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": "nestedSetLeft"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_rootless_not_root",
+      "note": "Root-less spans read parent 0, so != -1 holds on all of them.",
+      "query": "{ .shape = \"rootless\" && nestedSetParent != -1 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "rootless"
+                }
+              },
+              "rhs": {
+                "op": "!=",
+                "lhs": {
+                  "attr": "nestedSetParent"
+                },
+                "rhs": {
+                  "num": -1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_rootless_root_filter",
+      "note": "The root filter reads the parent id: a root-less trace has no root.",
+      "query": "{ .shape = \"rootless\" && nestedSetParent < 0 }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "rootless"
+                }
+              },
+              "rhs": {
+                "op": "<",
+                "lhs": {
+                  "attr": "nestedSetParent"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_root_operand_union_descendant",
+      "note": "The root filter narrows only its own operand: &>> { true } returns the whole tree.",
+      "query": "{ nestedSetParent < 0 && .shape = \"mixed\" } &>> { true }",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": "&>>",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "<",
+                  "lhs": {
+                    "attr": "nestedSetParent"
+                  },
+                  "rhs": {
+                    "num": 0
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "mixed"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": {
+                "bool": true
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_f_root_operand_descendant",
+      "note": "nestedSetParent = -1 on the left of >> keeps every descendant on the right.",
+      "query": "{ nestedSetParent = -1 && .shape = \"tworoots\" } >> {}",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "spansetOp": ">>",
+            "lhs": {
+              "selector": {
+                "op": "&&",
+                "lhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": "nestedSetParent"
+                  },
+                  "rhs": {
+                    "num": -1
+                  }
+                },
+                "rhs": {
+                  "op": "=",
+                  "lhs": {
+                    "attr": ".shape"
+                  },
+                  "rhs": {
+                    "str": "tworoots"
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "selector": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_by_parent",
+      "note": "by(nestedSetParent) groups on the stored value, keyed by ints.",
+      "query": "{ .shape = \"tworoots\" } | by(nestedSetParent)",
+      "spss": 10,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "tworoots"
+              }
+            }
+          },
+          {
+            "groupBy": {
+              "attr": "nestedSetParent"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ns_agg_max_right",
+      "note": "An aggregate over a nested-set field is an int.",
+      "query": "{ .shape = \"mixed\" } | max(nestedSetRight) > 11",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          },
+          {
+            "scalarFilter": {
+              "op": ">",
+              "lhs": {
+                "agg": "max",
+                "arg": {
+                  "attr": "nestedSetRight"
+                }
+              },
+              "rhs": {
+                "num": 11
+              }
+            }
+          }
         ]
       }
     }
@@ -10823,6 +12174,118 @@
           ]
         ]
       }
+    },
+    {
+      "id": "m_ns_by_left",
+      "note": "count_over_time() by (nestedSetLeft) labels series with ints.",
+      "query": "{ .shape = \"mixed\" } | count_over_time() by (nestedSetLeft)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time",
+          "by": [
+            "nestedSetLeft"
+          ]
+        }
+      }
+    },
+    {
+      "id": "m_ns_avg_right",
+      "note": "avg_over_time(nestedSetRight) averages the stored values.",
+      "query": "{ .shape = \"mixed\" } | avg_over_time(nestedSetRight)",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "avg_over_time",
+          "attr": "nestedSetRight"
+        }
+      }
+    },
+    {
+      "id": "m_ns_by_parent_instant",
+      "note": "An instant query by nestedSetParent.",
+      "query": "{ .svc = \"db\" } | count_over_time() by (nestedSetParent)",
+      "instant": true,
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".svc"
+              },
+              "rhs": {
+                "str": "db"
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time",
+          "by": [
+            "nestedSetParent"
+          ]
+        }
+      }
+    },
+    {
+      "id": "m_ns_root_filter",
+      "note": "The root filter counts the roots.",
+      "query": "{ nestedSetParent < 0 && .shape = \"tworoots\" } | count_over_time()",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "<",
+                "lhs": {
+                  "attr": "nestedSetParent"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "tworoots"
+                }
+              }
+            }
+          }
+        ],
+        "metrics": {
+          "fn": "count_over_time"
+        }
+      }
     }
   ],
   "autocomplete": [
@@ -11543,6 +13006,59 @@
               },
               "rhs": {
                 "num": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_tags_ns_root_filter",
+      "note": "Nested-set fields are not suggested; the root filter suggests the keys of the roots.",
+      "query": "{ nestedSetParent < 0 && .shape = \"mixed\" }",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "&&",
+              "lhs": {
+                "op": "<",
+                "lhs": {
+                  "attr": "nestedSetParent"
+                },
+                "rhs": {
+                  "num": 0
+                }
+              },
+              "rhs": {
+                "op": "=",
+                "lhs": {
+                  "attr": ".shape"
+                },
+                "rhs": {
+                  "str": "mixed"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ac_values_ns_left",
+      "note": "A nested-set field has no suggested values.",
+      "query": "{ .shape = \"mixed\" }",
+      "tag": "nestedSetLeft",
+      "ast": {
+        "pipeline": [
+          {
+            "selector": {
+              "op": "=",
+              "lhs": {
+                "attr": ".shape"
+              },
+              "rhs": {
+                "str": "mixed"
               }
             }
           }

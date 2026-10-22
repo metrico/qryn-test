@@ -220670,7 +220670,20 @@ exports[`traceql: count 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "599400000000",
@@ -220698,7 +220711,20 @@ exports[`traceql: count 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "593400000000",
@@ -220726,7 +220752,20 @@ exports[`traceql: count 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "587400000000",
@@ -220754,7 +220793,20 @@ exports[`traceql: count 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "581400000000",
@@ -220782,7 +220834,20 @@ exports[`traceql: count 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "575400000000",
@@ -220815,7 +220880,14 @@ exports[`traceql: duration 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "599400000000",
@@ -220835,7 +220907,14 @@ exports[`traceql: duration 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "593400000000",
@@ -220855,7 +220934,14 @@ exports[`traceql: duration 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "587400000000",
@@ -220875,7 +220961,14 @@ exports[`traceql: duration 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "581400000000",
@@ -220895,7 +220988,14 @@ exports[`traceql: duration 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "575400000000",
@@ -220922,7 +221022,20 @@ exports[`traceql: float comparison 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "599400000000",
@@ -220942,7 +221055,20 @@ exports[`traceql: float comparison 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "593400000000",
@@ -220962,7 +221088,20 @@ exports[`traceql: float comparison 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "587400000000",
@@ -220982,7 +221121,20 @@ exports[`traceql: float comparison 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "581400000000",
@@ -221002,7 +221154,20 @@ exports[`traceql: float comparison 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "575400000000",
@@ -221037,22 +221202,43 @@ exports[`traceql: max duration 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "599400000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "594000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "598800000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "594600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "598200000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "595200000000",
             },
           ],
         },
@@ -221077,22 +221263,43 @@ exports[`traceql: max duration 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "593400000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "588000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "592800000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "588600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "592200000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "589200000000",
             },
           ],
         },
@@ -221117,22 +221324,43 @@ exports[`traceql: max duration 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "587400000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "582000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "586800000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "582600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "586200000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "583200000000",
             },
           ],
         },
@@ -221157,22 +221385,43 @@ exports[`traceql: max duration 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "581400000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "576000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "580800000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "576600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "580200000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "577200000000",
             },
           ],
         },
@@ -221197,22 +221446,43 @@ exports[`traceql: max duration 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "575400000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "570000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "574800000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "570600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "574200000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "571200000000",
             },
           ],
         },
@@ -221242,7 +221512,20 @@ exports[`traceql: multiple selectors 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "599400000000",
@@ -221262,7 +221545,20 @@ exports[`traceql: multiple selectors 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "593400000000",
@@ -221282,7 +221578,20 @@ exports[`traceql: multiple selectors 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "587400000000",
@@ -221302,7 +221611,20 @@ exports[`traceql: multiple selectors 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "581400000000",
@@ -221322,7 +221644,20 @@ exports[`traceql: multiple selectors 1`] = `
           "matched": 1,
           "spans": [
             {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "9000000",
               "spanID": "0000000000000009",
               "startTimeUnixNano": "575400000000",
@@ -221349,16 +221684,42 @@ exports[`traceql: multiple selectors OR Brackets 1`] = `
           "matched": 2,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "599400000000",
-            },
-            {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "8",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "8000000",
               "spanID": "0000000000000008",
               "startTimeUnixNano": "598800000000",
+            },
+            {
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "9000000",
+              "spanID": "0000000000000009",
+              "startTimeUnixNano": "599400000000",
             },
           ],
         },
@@ -221375,16 +221736,42 @@ exports[`traceql: multiple selectors OR Brackets 1`] = `
           "matched": 2,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "593400000000",
-            },
-            {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "8",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "8000000",
               "spanID": "0000000000000008",
               "startTimeUnixNano": "592800000000",
+            },
+            {
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "9000000",
+              "spanID": "0000000000000009",
+              "startTimeUnixNano": "593400000000",
             },
           ],
         },
@@ -221401,16 +221788,42 @@ exports[`traceql: multiple selectors OR Brackets 1`] = `
           "matched": 2,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "587400000000",
-            },
-            {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "8",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "8000000",
               "spanID": "0000000000000008",
               "startTimeUnixNano": "586800000000",
+            },
+            {
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "9000000",
+              "spanID": "0000000000000009",
+              "startTimeUnixNano": "587400000000",
             },
           ],
         },
@@ -221427,16 +221840,42 @@ exports[`traceql: multiple selectors OR Brackets 1`] = `
           "matched": 2,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "581400000000",
-            },
-            {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "8",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "8000000",
               "spanID": "0000000000000008",
               "startTimeUnixNano": "580800000000",
+            },
+            {
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "9000000",
+              "spanID": "0000000000000009",
+              "startTimeUnixNano": "581400000000",
             },
           ],
         },
@@ -221453,16 +221892,42 @@ exports[`traceql: multiple selectors OR Brackets 1`] = `
           "matched": 2,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "575400000000",
-            },
-            {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "8",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "8000000",
               "spanID": "0000000000000008",
               "startTimeUnixNano": "574800000000",
+            },
+            {
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "9000000",
+              "spanID": "0000000000000009",
+              "startTimeUnixNano": "575400000000",
             },
           ],
         },
@@ -221486,16 +221951,42 @@ exports[`traceql: multiple selectors regexp 1`] = `
           "matched": 2,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "599400000000",
-            },
-            {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "8",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "8000000",
               "spanID": "0000000000000008",
               "startTimeUnixNano": "598800000000",
+            },
+            {
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "9000000",
+              "spanID": "0000000000000009",
+              "startTimeUnixNano": "599400000000",
             },
           ],
         },
@@ -221512,16 +222003,42 @@ exports[`traceql: multiple selectors regexp 1`] = `
           "matched": 2,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "593400000000",
-            },
-            {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "8",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "8000000",
               "spanID": "0000000000000008",
               "startTimeUnixNano": "592800000000",
+            },
+            {
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "9000000",
+              "spanID": "0000000000000009",
+              "startTimeUnixNano": "593400000000",
             },
           ],
         },
@@ -221538,16 +222055,42 @@ exports[`traceql: multiple selectors regexp 1`] = `
           "matched": 2,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "587400000000",
-            },
-            {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "8",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "8000000",
               "spanID": "0000000000000008",
               "startTimeUnixNano": "586800000000",
+            },
+            {
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "9000000",
+              "spanID": "0000000000000009",
+              "startTimeUnixNano": "587400000000",
             },
           ],
         },
@@ -221564,16 +222107,42 @@ exports[`traceql: multiple selectors regexp 1`] = `
           "matched": 2,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "581400000000",
-            },
-            {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "8",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "8000000",
               "spanID": "0000000000000008",
               "startTimeUnixNano": "580800000000",
+            },
+            {
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "9000000",
+              "spanID": "0000000000000009",
+              "startTimeUnixNano": "581400000000",
             },
           ],
         },
@@ -221590,16 +222159,42 @@ exports[`traceql: multiple selectors regexp 1`] = `
           "matched": 2,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "575400000000",
-            },
-            {
-              "attributes": [],
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "8",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
               "durationNanos": "8000000",
               "spanID": "0000000000000008",
               "startTimeUnixNano": "574800000000",
+            },
+            {
+              "attributes": [
+                {
+                  "key": "spanN",
+                  "value": {
+                    "stringValue": "9",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "9000000",
+              "spanID": "0000000000000009",
+              "startTimeUnixNano": "575400000000",
             },
           ],
         },
@@ -221623,22 +222218,43 @@ exports[`traceql: one selector 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "599400000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "594000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "598800000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "594600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "598200000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "595200000000",
             },
           ],
         },
@@ -221655,22 +222271,43 @@ exports[`traceql: one selector 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "593400000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "588000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "592800000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "588600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "592200000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "589200000000",
             },
           ],
         },
@@ -221687,22 +222324,43 @@ exports[`traceql: one selector 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "587400000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "582000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "586800000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "582600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "586200000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "583200000000",
             },
           ],
         },
@@ -221719,22 +222377,43 @@ exports[`traceql: one selector 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "581400000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "576000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "580800000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "576600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "580200000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "577200000000",
             },
           ],
         },
@@ -221751,22 +222430,43 @@ exports[`traceql: one selector 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "575400000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "570000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "574800000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "570600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "574200000000",
+              "attributes": [
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "571200000000",
             },
           ],
         },
@@ -221798,22 +222498,61 @@ exports[`traceql: tags with dash 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "599400000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "594000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "598800000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "594600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "598200000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "595200000000",
             },
           ],
         },
@@ -221838,22 +222577,61 @@ exports[`traceql: tags with dash 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "593400000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "588000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "592800000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "588600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "592200000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "589200000000",
             },
           ],
         },
@@ -221878,22 +222656,61 @@ exports[`traceql: tags with dash 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "587400000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "582000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "586800000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "582600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "586200000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "583200000000",
             },
           ],
         },
@@ -221918,22 +222735,61 @@ exports[`traceql: tags with dash 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "581400000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "576000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "580800000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "576600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "580200000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "577200000000",
             },
           ],
         },
@@ -221958,22 +222814,61 @@ exports[`traceql: tags with dash 1`] = `
           "matched": 10,
           "spans": [
             {
-              "attributes": [],
-              "durationNanos": "9000000",
-              "spanID": "0000000000000009",
-              "startTimeUnixNano": "575400000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "0",
+              "spanID": "0000000000000000",
+              "startTimeUnixNano": "570000000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "8000000",
-              "spanID": "0000000000000008",
-              "startTimeUnixNano": "574800000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "1000000",
+              "spanID": "0000000000000001",
+              "startTimeUnixNano": "570600000000",
             },
             {
-              "attributes": [],
-              "durationNanos": "7000000",
-              "spanID": "0000000000000007",
-              "startTimeUnixNano": "574200000000",
+              "attributes": [
+                {
+                  "key": "tag-with-dash",
+                  "value": {
+                    "stringValue": "value-with-dash",
+                  },
+                },
+                {
+                  "key": "testId",
+                  "value": {
+                    "stringValue": "<testID>",
+                  },
+                },
+              ],
+              "durationNanos": "2000000",
+              "spanID": "0000000000000002",
+              "startTimeUnixNano": "571200000000",
             },
           ],
         },

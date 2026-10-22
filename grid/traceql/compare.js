@@ -7,16 +7,18 @@
 // value, and selected a listed span's name to its select() values.
 
 const { labelKey } = require('./metrics')
-const { SPAN_NAME } = require('./oracle')
+const { SPAN_NAME, nestedSet } = require('./oracle')
 
 // UNRESOLVED_ERROR is the error of a search whose ancestry does not resolve
 // within the round limit.
 const UNRESOLVED_ERROR = /deeper than the round limit .*GIGAPIPE_TRACEQL_ANCESTRY_ROUNDS/
 
-// selectedOf returns a listed span's select() values: its attributes by key
-// and its name at SPAN_NAME.
+// selectedOf returns a listed span's select() values: its attributes by key,
+// a string as its text and any other value as its OTLP value, and its name at
+// SPAN_NAME.
 const selectedOf = (span) => {
-  const out = Object.fromEntries((span.attributes || []).map(a => [a.key, a.value.stringValue]))
+  const out = Object.fromEntries((span.attributes || []).map(a =>
+    [a.key, a.value.stringValue !== undefined ? a.value.stringValue : a.value]))
   if (span.name !== undefined) out[SPAN_NAME] = span.name
   return out
 }
@@ -67,8 +69,8 @@ const attributesDiff = (name, got, want) => {
 // spansetDiff compares one spanset of a trace.
 const spansetDiff = (name, gt, wt) => {
   const out = []
-  const gs = [...gt.spans].sort().join(',')
-  const ws = [...wt.spans].sort().join(',')
+  const gs = gt.spans.join(',')
+  const ws = wt.spans.join(',')
   if (gs !== ws) out.push(`${name} spans ${gs}, want ${ws}`)
   if (gt.matched !== wt.matched) out.push(`${name} matched ${gt.matched}, want ${wt.matched}`)
   if (wt.attributes !== undefined) out.push(...attributesDiff(name, gt.attributes || {}, wt.attributes))
@@ -86,9 +88,9 @@ const selectedDiff = (name, got, want) => {
 /**
  * diff returns [] when got and want hold the same traces, spans and matched
  * counts, and the same attributes where want lists them, or one line per
- * mismatch. Trace and span order are not compared; a trace's spansets are
- * compared in order when want lists them, else the trace must have one. A
- * want of {error} expects that error.
+ * mismatch. Listed spans are compared in order, traces in any; a trace's
+ * spansets are compared in order when want lists them, else the trace must
+ * have one. A want of {error} expects that error.
  */
 const diff = (got, want) => {
   const err = errorDiff(got, want, (g) => `${g.length} traces`)
@@ -129,11 +131,12 @@ const errorDiff = (got, want, size) => {
   return ok ? [] : [`error ${got.status}: ${got.error}, want ${what}`]
 }
 
-// labelsOf flattens a metrics label list to {key: value}.
+// labelsOf flattens a metrics label list to {key: value}; an int is
+// `int <n>`.
 const labelsOf = (ls) => Object.fromEntries((ls || []).map(l => {
   const v = l.value || {}
   if (v.doubleValue !== undefined) return [l.key, String(v.doubleValue)]
-  if (v.intValue !== undefined) return [l.key, v.intValue]
+  if (v.intValue !== undefined) return [l.key, `int ${v.intValue}`]
   return [l.key, v.stringValue || '']
 }))
 
@@ -257,4 +260,39 @@ const names = (ids) => {
   return { trace: invert(ids.trace), span: invert(ids.span) }
 }
 
-module.exports = { fromApi, fromResponse, diff, names, fromMetricsResponse, metricsDiff, fromAutocompleteResponse, autocompleteDiff }
+/**
+ * nestedSetRows reads the selected nested-set values of every listed span of
+ * a search response: [{traceId, spanId, left, right, parent}], an int as its
+ * decimal text and a string as `string <text>`.
+ * @param body {Object} the /api/search response
+ */
+const nestedSetRows = (body) => body.traces.flatMap(t => (t.spanSets || []).flatMap(set => set.spans.map(s => {
+  const value = (key) => {
+    const a = (s.attributes || []).find(a => a.key === key)
+    if (!a) return undefined
+    return a.value.intValue !== undefined ? a.value.intValue : `string ${a.value.stringValue}`
+  }
+  return { traceId: t.traceID, spanId: s.spanID, left: value('nestedSetLeft'), right: value('nestedSetRight'), parent: value('nestedSetParent') }
+})))
+
+/**
+ * nestedSetDiff lists the spans whose nested-set values are missing or
+ * differ from the oracle's numbering of the given spans.
+ * @param rows {Object[]} from nestedSetRows()
+ * @param spans {Object[]} the landed spans, from oracle.dataset()
+ */
+const nestedSetDiff = (rows, spans) => {
+  const text = (n) => [n.left, n.right, n.parent].join('/')
+  const got = new Map(rows.map(r => [`${r.traceId}/${r.spanId}`, text(r)]))
+  const want = nestedSet(spans)
+  const out = []
+  for (const s of spans) {
+    const key = `${s.traceId}/${s.spanId}`
+    const w = text(want.get(key))
+    if (!got.has(key)) out.push(`${s.name}: missing, want ${w}`)
+    else if (got.get(key) !== w) out.push(`${s.name}: got ${got.get(key)}, want ${w}`)
+  }
+  return out
+}
+
+module.exports = { fromApi, fromResponse, diff, names, fromMetricsResponse, metricsDiff, fromAutocompleteResponse, autocompleteDiff, nestedSetRows, nestedSetDiff }
