@@ -22,6 +22,7 @@ it('qryn should work', async () => {
 require('./e2e.writer')
 require('./e2e.logql.reader')
 require('./e2e.tempo.reader')
+require('./e2e.otlp.peer')
 require('./e2e.prom.reader')
 require('./e2e.misc')
 require('./e2e.alert.config')
