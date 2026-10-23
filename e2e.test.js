@@ -28,6 +28,7 @@ require('./e2e.alert.config')
 require('./e2e.ruler')
 require('./e2e.traceql')
 require('./e2e.pprof')
+require('./e2e.pprof.pushv2')
 require('./e2e.otlp.pprof')
 require('./e2e.otlp')
 
