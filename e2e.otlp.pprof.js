@@ -316,3 +316,85 @@ __it('otlp pprof: should read pyro SelectSeries', async () => {
   }
   expect(series).toMatchSnapshot()
 }, ['otlp pprof: should push otlp profiles'])
+
+// Collectors and the eBPF profiler batch many processes into ONE export
+// request: several resources, each with its own attributes, sharing one
+// dictionary. Each resource must land as its own series, carrying only its own
+// resource attributes and only its own samples. The failure this catches is a
+// batch folded into one insert row: the request is rejected and nothing is
+// stored, or the last resource's attributes and values overwrite the others'.
+const multiTestID = testID + 'otlp-multi'
+const multiResources = [
+  { service: 'otlp-multi-a', resourceID: 'a', fn: 'a.work', value: 3 },
+  { service: 'otlp-multi-b', resourceID: 'b', fn: 'b.work', value: 9 }
+]
+
+__it('otlp pprof: should push one request with several resources', async () => {
+  const dict = new Dictionary()
+  const timeUnixNanoStr = (start * 1000000).toString()
+  const body = encodeRequest({
+    dict,
+    resources: multiResources.map(r => ({
+      resourceAttrs: {
+        'service.name': r.service,
+        __session_id__: multiTestID,
+        resource_id: r.resourceID
+      },
+      profiles: [
+        profile(dict, {
+          sampleType: ['samples', 'count'],
+          periodType: ['cpu', 'nanoseconds'],
+          timeUnixNanoStr,
+          durationNano: 10000000000,
+          samples: [{ stack: dict.stack([r.fn, 'main']), values: [r.value] }]
+        })
+      ]
+    }))
+  })
+  await axiosPost(
+    `${otelCollectorUrl}/v1development/profiles`,
+    body,
+    { headers: { 'Content-Type': 'application/x-protobuf' } }
+  )
+  await new Promise(f => setTimeout(f, 5000))
+})
+
+__it('otlp pprof: should keep each resource of one request as its own series', async () => {
+  const req = new querier.SeriesRequest()
+  req.setStart(start)
+  req.setEnd(end)
+  req.setMatchersList([`{__session_id__="${multiTestID}"}`])
+  const _res = await axiosPost(
+    `http://${clokiExtUrl}/querier.v1.QuerierService/Series`,
+    req.serializeBinary(), { responseType: 'arraybuffer' }
+  )
+  const res = querier.SeriesResponse.deserializeBinary(_res.data)
+  const pairs = res.getLabelsSetList().map(ls => {
+    const labels = Object.fromEntries(ls.toObject().labelsList.map(l => [l.name, l.value]))
+    return `${labels.service_name}/${labels.resource_id}`
+  })
+  pairs.sort()
+  expect(pairs).toEqual(['otlp-multi-a/a', 'otlp-multi-b/b'])
+}, ['otlp pprof: should push one request with several resources'])
+
+__it('otlp pprof: should keep each resource of one request to its own samples', async () => {
+  for (const r of multiResources) {
+    const req = new querier.SelectMergeStacktracesRequest()
+    req.setProfileTypeid(CPU_TYPE)
+    req.setLabelSelector(`{service_name="${r.service}", __session_id__="${multiTestID}"}`)
+    req.setStart(start)
+    req.setEnd(end)
+    const _res = await axiosPost(
+      `http://${clokiExtUrl}/querier.v1.QuerierService/SelectMergeStacktraces`,
+      req.serializeBinary(), { responseType: 'arraybuffer' }
+    )
+    const res = (querier.SelectMergeStacktracesResponse.deserializeBinary(_res.data)).toObject()
+    const names = res.flamegraph.namesList
+    const others = multiResources.filter(o => o !== r).map(o => o.fn)
+    expect(names).toContain(r.fn)
+    for (const fn of others) {
+      expect(names).not.toContain(fn)
+    }
+    expect(res.flamegraph.total).toBe(r.value)
+  }
+}, ['otlp pprof: should push one request with several resources'])
