@@ -188,17 +188,43 @@ const profile = (dict, opts) => ({
 })
 
 /**
- * @param opts {{
- *   dict: Dictionary,
+ * @param res {{
  *   resourceAttrs: Object<string,string>,
  *   scopeName?: string,
  *   scopeAttrs?: Object<string,string>,
  *   profiles: Object[]
  * }}
+ */
+const resourceProfiles = (res) => ({
+  resource: { attributes: attrs(res.resourceAttrs || {}) },
+  scope_profiles: [{
+    scope: {
+      name: res.scopeName || 'qryn-e2e',
+      version: '1.0.0',
+      attributes: attrs(res.scopeAttrs || {})
+    },
+    profiles: res.profiles
+  }]
+})
+
+/**
+ * Builds one export request. Pass either a single resource inline
+ * (resourceAttrs/scopeName/scopeAttrs/profiles) or several in `resources`; all
+ * of them share `dict`, as in a real batched export.
+ *
+ * @param opts {{
+ *   dict: Dictionary,
+ *   resourceAttrs?: Object<string,string>,
+ *   scopeName?: string,
+ *   scopeAttrs?: Object<string,string>,
+ *   profiles?: Object[],
+ *   resources?: Object[]
+ * }}
  * @returns {Buffer} serialized ExportProfilesServiceRequest
  */
 const encodeRequest = (opts) => {
   const dict = opts.dict
+  const resources = opts.resources || [opts]
   const msg = {
     dictionary: {
       string_table: dict.string_table,
@@ -209,17 +235,7 @@ const encodeRequest = (opts) => {
       attribute_table: dict.attribute_table,
       link_table: dict.link_table
     },
-    resource_profiles: [{
-      resource: { attributes: attrs(opts.resourceAttrs || {}) },
-      scope_profiles: [{
-        scope: {
-          name: opts.scopeName || 'qryn-e2e',
-          version: '1.0.0',
-          attributes: attrs(opts.scopeAttrs || {})
-        },
-        profiles: opts.profiles
-      }]
-    }]
+    resource_profiles: resources.map(resourceProfiles)
   }
   const err = ExportProfilesServiceRequest.verify(msg)
   if (err) {
