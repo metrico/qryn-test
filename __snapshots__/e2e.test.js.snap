@@ -208651,3 +208651,136 @@ Object {
   "status": "success",
 }
 `;
+
+exports[`otlp pprof: should read pyro SelectMergeProfile 1`] = `
+Object {
+  "app.encode": Array [
+    65,
+  ],
+  "app.handler": Array [
+    100,
+  ],
+  "app.parse": Array [
+    35,
+  ],
+  "main": Array [
+    180,
+  ],
+}
+`;
+
+exports[`otlp pprof: should read pyro SelectMergeStacktraces 1`] = `
+Array [
+  "/usr/bin/otlp-test-client+0x2a",
+  "/usr/lib/libtest-other.so+0x2a",
+  "app.encode",
+  "app.handler",
+  "app.parse",
+  "main",
+  "n/a",
+  "total",
+]
+`;
+
+exports[`otlp pprof: should read pyro SelectMergeStacktraces 2`] = `
+Array [
+  Object {
+    "total": Object {
+      "self": 0,
+      "total": 180,
+    },
+  },
+  Object {
+    "main": Object {
+      "self": 0,
+      "total": 180,
+    },
+  },
+  Object {
+    "/usr/bin/otlp-test-client+0x2a": Object {
+      "self": 25,
+      "total": 25,
+    },
+    "/usr/lib/libtest-other.so+0x2a": Object {
+      "self": 55,
+      "total": 55,
+    },
+    "app.handler": Object {
+      "self": 0,
+      "total": 100,
+    },
+  },
+  Object {
+    "app.encode": Object {
+      "self": 65,
+      "total": 65,
+    },
+    "app.parse": Object {
+      "self": 35,
+      "total": 35,
+    },
+  },
+  Object {},
+]
+`;
+
+exports[`otlp pprof: should read pyro SelectSeries 1`] = `
+Object {
+  "[{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"0\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]": Array [
+    Object {
+      "timestamp": 0,
+      "value": 36,
+    },
+  ],
+  "[{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"1\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]": Array [
+    Object {
+      "timestamp": 20000,
+      "value": 36,
+    },
+  ],
+  "[{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"2\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]": Array [
+    Object {
+      "timestamp": 40000,
+      "value": 36,
+    },
+  ],
+  "[{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"3\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]": Array [
+    Object {
+      "timestamp": 60000,
+      "value": 36,
+    },
+  ],
+  "[{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"4\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]": Array [
+    Object {
+      "timestamp": 80000,
+      "value": 36,
+    },
+  ],
+}
+`;
+
+exports[`otlp pprof: should read pyro Series 1`] = `
+Array [
+  "[{\\"name\\":\\"__name__\\",\\"value\\":\\"alloc_objects\\"},{\\"name\\":\\"__period_type__\\",\\"value\\":\\"space\\"},{\\"name\\":\\"__period_unit__\\",\\"value\\":\\"bytes\\"},{\\"name\\":\\"__profile_type__\\",\\"value\\":\\"alloc_objects:alloc_objects:count:space:bytes\\"},{\\"name\\":\\"__sample_type__\\",\\"value\\":\\"alloc_objects\\"},{\\"name\\":\\"__sample_unit__\\",\\"value\\":\\"count\\"},{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"0\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]",
+  "[{\\"name\\":\\"__name__\\",\\"value\\":\\"alloc_objects\\"},{\\"name\\":\\"__period_type__\\",\\"value\\":\\"space\\"},{\\"name\\":\\"__period_unit__\\",\\"value\\":\\"bytes\\"},{\\"name\\":\\"__profile_type__\\",\\"value\\":\\"alloc_objects:alloc_objects:count:space:bytes\\"},{\\"name\\":\\"__sample_type__\\",\\"value\\":\\"alloc_objects\\"},{\\"name\\":\\"__sample_unit__\\",\\"value\\":\\"count\\"},{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"1\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]",
+  "[{\\"name\\":\\"__name__\\",\\"value\\":\\"alloc_objects\\"},{\\"name\\":\\"__period_type__\\",\\"value\\":\\"space\\"},{\\"name\\":\\"__period_unit__\\",\\"value\\":\\"bytes\\"},{\\"name\\":\\"__profile_type__\\",\\"value\\":\\"alloc_objects:alloc_objects:count:space:bytes\\"},{\\"name\\":\\"__sample_type__\\",\\"value\\":\\"alloc_objects\\"},{\\"name\\":\\"__sample_unit__\\",\\"value\\":\\"count\\"},{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"2\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]",
+  "[{\\"name\\":\\"__name__\\",\\"value\\":\\"alloc_objects\\"},{\\"name\\":\\"__period_type__\\",\\"value\\":\\"space\\"},{\\"name\\":\\"__period_unit__\\",\\"value\\":\\"bytes\\"},{\\"name\\":\\"__profile_type__\\",\\"value\\":\\"alloc_objects:alloc_objects:count:space:bytes\\"},{\\"name\\":\\"__sample_type__\\",\\"value\\":\\"alloc_objects\\"},{\\"name\\":\\"__sample_unit__\\",\\"value\\":\\"count\\"},{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"3\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]",
+  "[{\\"name\\":\\"__name__\\",\\"value\\":\\"alloc_objects\\"},{\\"name\\":\\"__period_type__\\",\\"value\\":\\"space\\"},{\\"name\\":\\"__period_unit__\\",\\"value\\":\\"bytes\\"},{\\"name\\":\\"__profile_type__\\",\\"value\\":\\"alloc_objects:alloc_objects:count:space:bytes\\"},{\\"name\\":\\"__sample_type__\\",\\"value\\":\\"alloc_objects\\"},{\\"name\\":\\"__sample_unit__\\",\\"value\\":\\"count\\"},{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"4\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]",
+  "[{\\"name\\":\\"__name__\\",\\"value\\":\\"samples\\"},{\\"name\\":\\"__period_type__\\",\\"value\\":\\"cpu\\"},{\\"name\\":\\"__period_unit__\\",\\"value\\":\\"nanoseconds\\"},{\\"name\\":\\"__profile_type__\\",\\"value\\":\\"samples:samples:count:cpu:nanoseconds\\"},{\\"name\\":\\"__sample_type__\\",\\"value\\":\\"samples\\"},{\\"name\\":\\"__sample_unit__\\",\\"value\\":\\"count\\"},{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"0\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]",
+  "[{\\"name\\":\\"__name__\\",\\"value\\":\\"samples\\"},{\\"name\\":\\"__period_type__\\",\\"value\\":\\"cpu\\"},{\\"name\\":\\"__period_unit__\\",\\"value\\":\\"nanoseconds\\"},{\\"name\\":\\"__profile_type__\\",\\"value\\":\\"samples:samples:count:cpu:nanoseconds\\"},{\\"name\\":\\"__sample_type__\\",\\"value\\":\\"samples\\"},{\\"name\\":\\"__sample_unit__\\",\\"value\\":\\"count\\"},{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"1\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]",
+  "[{\\"name\\":\\"__name__\\",\\"value\\":\\"samples\\"},{\\"name\\":\\"__period_type__\\",\\"value\\":\\"cpu\\"},{\\"name\\":\\"__period_unit__\\",\\"value\\":\\"nanoseconds\\"},{\\"name\\":\\"__profile_type__\\",\\"value\\":\\"samples:samples:count:cpu:nanoseconds\\"},{\\"name\\":\\"__sample_type__\\",\\"value\\":\\"samples\\"},{\\"name\\":\\"__sample_unit__\\",\\"value\\":\\"count\\"},{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"2\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]",
+  "[{\\"name\\":\\"__name__\\",\\"value\\":\\"samples\\"},{\\"name\\":\\"__period_type__\\",\\"value\\":\\"cpu\\"},{\\"name\\":\\"__period_unit__\\",\\"value\\":\\"nanoseconds\\"},{\\"name\\":\\"__profile_type__\\",\\"value\\":\\"samples:samples:count:cpu:nanoseconds\\"},{\\"name\\":\\"__sample_type__\\",\\"value\\":\\"samples\\"},{\\"name\\":\\"__sample_unit__\\",\\"value\\":\\"count\\"},{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"3\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]",
+  "[{\\"name\\":\\"__name__\\",\\"value\\":\\"samples\\"},{\\"name\\":\\"__period_type__\\",\\"value\\":\\"cpu\\"},{\\"name\\":\\"__period_unit__\\",\\"value\\":\\"nanoseconds\\"},{\\"name\\":\\"__profile_type__\\",\\"value\\":\\"samples:samples:count:cpu:nanoseconds\\"},{\\"name\\":\\"__sample_type__\\",\\"value\\":\\"samples\\"},{\\"name\\":\\"__sample_unit__\\",\\"value\\":\\"count\\"},{\\"name\\":\\"__session_id__\\",\\"value\\":\\"TEST_ID\\"},{\\"name\\":\\"five\\",\\"value\\":\\"4\\"},{\\"name\\":\\"scope_label\\",\\"value\\":\\"otlp\\"},{\\"name\\":\\"service_name\\",\\"value\\":\\"otlp-test-client\\"}]",
+]
+`;
+
+exports[`otlp pprof: should read the second profile type of each request 1`] = `
+Array [
+  "app.handler",
+  "app.parse",
+  "main",
+  "n/a",
+  "runtime.mallocgc",
+  "total",
+]
+`;
