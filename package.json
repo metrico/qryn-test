@@ -56,7 +56,8 @@
     "ws": "^8.4.0",
     "xxhash-wasm": "^0.4.2",
     "yaml": "^1.10.2",
-    "@elastic/elasticsearch": "^8.5.0"
+    "@elastic/elasticsearch": "^8.5.0",
+    "google-protobuf": "^3.21.4"
   },
   "devDependencies": {
     "casual": "^1.6.2",

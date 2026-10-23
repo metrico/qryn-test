@@ -164,11 +164,13 @@ const extraHeaders = (() => {
 const shard = -1
 
 const storage = {}
+const otelCollectorUrl = process.env.OTEL_COLL_URL || null
 
 module.exports = {
   ...module.exports,
   clokiWriteUrl,
   clokiExtUrl,
+  otelCollectorUrl,
   _it,
   testID,
   start,
