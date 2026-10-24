@@ -8,6 +8,7 @@ require('./e2e.prom.reader')
 require('./e2e.misc')
 require('./e2e.traceql')
 require('./e2e.otlp.pprof')
+require('./e2e.otlp.pprof.labels')
 
 const checkAlertConfig = async () => {
   try {
